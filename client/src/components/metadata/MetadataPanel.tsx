@@ -11,12 +11,30 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 
+interface SchemaColumn {
+  name: string;
+  type: string;
+  description?: string;
+}
+
+interface Metadata {
+  name: string;
+  description?: string;
+  owner: string;
+  sla?: string;
+  updateFrequency?: string;
+  schema: {
+    columns: SchemaColumn[];
+  };
+  tags: string[];
+}
+
 interface MetadataPanelProps {
   dataProductId: number | null;
 }
 
 export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
-  const { data: metadata, isLoading } = useQuery({
+  const { data: metadata, isLoading } = useQuery<Metadata>({
     queryKey: ["/api/metadata", dataProductId],
     enabled: dataProductId !== null,
   });
@@ -29,7 +47,7 @@ export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
     );
   }
 
-  if (isLoading) {
+  if (isLoading || !metadata) {
     return <MetadataSkeleton />;
   }
 
@@ -46,7 +64,7 @@ export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Description</TableCell>
-                <TableCell>{metadata.description}</TableCell>
+                <TableCell>{metadata.description || 'No description available'}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Owner</TableCell>
@@ -54,11 +72,11 @@ export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">SLA</TableCell>
-                <TableCell>{metadata.sla}</TableCell>
+                <TableCell>{metadata.sla || 'Not specified'}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Update Frequency</TableCell>
-                <TableCell>{metadata.updateFrequency}</TableCell>
+                <TableCell>{metadata.updateFrequency || 'Not specified'}</TableCell>
               </TableRow>
             </TableBody>
           </Table>
@@ -75,11 +93,11 @@ export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {metadata.schema.columns.map((column: any) => (
+              {metadata.schema.columns.map((column) => (
                 <TableRow key={column.name}>
                   <TableCell>{column.name}</TableCell>
                   <TableCell>{column.type}</TableCell>
-                  <TableCell>{column.description}</TableCell>
+                  <TableCell>{column.description || 'No description'}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -89,11 +107,14 @@ export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
         <section>
           <h3 className="text-lg font-semibold mb-2">Tags</h3>
           <div className="flex gap-2 flex-wrap">
-            {metadata.tags.map((tag: string) => (
+            {metadata.tags?.map((tag) => (
               <Badge key={tag} variant="secondary">
                 {tag}
               </Badge>
-            ))}
+            ))} 
+            {(!metadata.tags || metadata.tags.length === 0) && (
+              <span className="text-sm text-muted-foreground">No tags available</span>
+            )}
           </div>
         </section>
       </div>
