@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 interface CommentSummaryProps {
   dataProductId: number;
@@ -16,18 +17,34 @@ interface SummaryResponse {
 }
 
 export default function CommentSummary({ dataProductId }: CommentSummaryProps) {
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [summary, setSummary] = useState<SummaryResponse | null>(null);
+  const { toast } = useToast();
 
-  const { data: summary, isLoading, refetch } = useQuery<SummaryResponse>({
-    queryKey: [`/api/data-products/${dataProductId}/comments/summarize`],
-    enabled: false,
+  const summarizeMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/data-products/${dataProductId}/comments/summarize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+
+      return response.json() as Promise<SummaryResponse>;
+    },
+    onSuccess: (data) => {
+      setSummary(data);
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to generate summary",
+      });
+    },
   });
-
-  const handleGenerateSummary = async () => {
-    setIsRefreshing(true);
-    await refetch();
-    setIsRefreshing(false);
-  };
 
   return (
     <Card>
@@ -36,10 +53,10 @@ export default function CommentSummary({ dataProductId }: CommentSummaryProps) {
         <Button
           variant="outline"
           size="sm"
-          onClick={handleGenerateSummary}
-          disabled={isLoading || isRefreshing}
+          onClick={() => summarizeMutation.mutate()}
+          disabled={summarizeMutation.isPending}
         >
-          {(isLoading || isRefreshing) && (
+          {summarizeMutation.isPending && (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           )}
           Generate Summary
