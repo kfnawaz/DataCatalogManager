@@ -6,7 +6,8 @@ import {
   metricDefinitions, 
   metricDefinitionVersions,
   qualityMetrics, 
-  metricTemplates 
+  metricTemplates,
+  comments 
 } from "@db/schema";
 import { eq, desc } from "drizzle-orm";
 
@@ -19,6 +20,55 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error fetching data products:", error);
       res.status(500).json({ error: "Failed to fetch data products" });
+    }
+  });
+
+  // Comments routes
+  app.get("/api/data-products/:id/comments", async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      if (isNaN(productId)) {
+        return res.status(400).json({ error: "Invalid product ID" });
+      }
+
+      const productComments = await db
+        .select()
+        .from(comments)
+        .where(eq(comments.dataProductId, productId))
+        .orderBy(desc(comments.createdAt));
+
+      res.json(productComments);
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      res.status(500).json({ error: "Failed to fetch comments" });
+    }
+  });
+
+  app.post("/api/data-products/:id/comments", async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      if (isNaN(productId)) {
+        return res.status(400).json({ error: "Invalid product ID" });
+      }
+
+      const { content, authorName } = req.body;
+      if (!content || !authorName) {
+        return res.status(400).json({ error: "Content and author name are required" });
+      }
+
+      const [newComment] = await db
+        .insert(comments)
+        .values({
+          dataProductId: productId,
+          content,
+          authorName,
+        })
+        .returning();
+
+      res.json(newComment);
+    } catch (error) {
+      console.error("Error creating comment:", error);
+      res.status(500).json({ error: "Failed to create comment" });
     }
   });
 
