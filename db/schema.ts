@@ -1,6 +1,16 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
+
+// Create a proper Postgres enum for metric types
+export const metricTypeEnum = pgEnum('metric_type', [
+  'completeness',
+  'accuracy',
+  'timeliness',
+  'consistency',
+  'uniqueness',
+  'validity',
+]);
 
 export const dataProducts = pgTable("data_products", {
   id: serial("id").primaryKey(),
@@ -15,19 +25,28 @@ export const dataProducts = pgTable("data_products", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Standard quality metrics types
-export const metricTypes = {
-  COMPLETENESS: 'completeness',
-  ACCURACY: 'accuracy',
-  TIMELINESS: 'timeliness',
-} as const;
+// Metric templates for common use cases
+export const metricTemplates = pgTable("metric_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  type: metricTypeEnum("type").notNull(),
+  defaultFormula: text("default_formula").notNull(),
+  parameters: jsonb("parameters").notNull(), // Configurable parameters for the template
+  example: text("example"), // Example usage
+  tags: text("tags").array(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
 export const metricDefinitions = pgTable("metric_definitions", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description").notNull(),
-  type: text("type", { enum: ['completeness', 'accuracy', 'timeliness'] }).notNull(),
-  formula: text("formula"), // Optional formula or calculation method
+  type: metricTypeEnum("type").notNull(),
+  templateId: integer("template_id").references(() => metricTemplates.id),
+  formula: text("formula"), // Customized formula based on template
+  parameters: jsonb("parameters"), // Customized parameters
   enabled: boolean("enabled").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -37,11 +56,10 @@ export const metricDefinitions = pgTable("metric_definitions", {
 export const qualityMetrics = pgTable("quality_metrics", {
   id: serial("id").primaryKey(),
   dataProductId: integer("data_product_id").references(() => dataProducts.id).notNull(),
-  completeness: integer("completeness").notNull().default(0),
-  accuracy: integer("accuracy").notNull().default(0),
-  timeliness: integer("timeliness").notNull().default(0),
-  timestamp: timestamp("timestamp").defaultNow(),
+  metricDefinitionId: integer("metric_definition_id").references(() => metricDefinitions.id).notNull(),
+  value: integer("value").notNull(),
   metadata: jsonb("metadata"), // For any additional metric context
+  timestamp: timestamp("timestamp").defaultNow(),
 });
 
 // Relations
@@ -54,11 +72,24 @@ export const qualityMetricRelations = relations(qualityMetrics, ({ one }) => ({
     fields: [qualityMetrics.dataProductId],
     references: [dataProducts.id],
   }),
+  metricDefinition: one(metricDefinitions, {
+    fields: [qualityMetrics.metricDefinitionId],
+    references: [metricDefinitions.id],
+  }),
+}));
+
+export const metricDefinitionRelations = relations(metricDefinitions, ({ one }) => ({
+  template: one(metricTemplates, {
+    fields: [metricDefinitions.templateId],
+    references: [metricTemplates.id],
+  }),
 }));
 
 // Schemas for validation
 export const insertDataProductSchema = createInsertSchema(dataProducts);
 export const selectDataProductSchema = createSelectSchema(dataProducts);
+export const insertMetricTemplateSchema = createInsertSchema(metricTemplates);
+export const selectMetricTemplateSchema = createSelectSchema(metricTemplates);
 export const insertMetricDefinitionSchema = createInsertSchema(metricDefinitions);
 export const selectMetricDefinitionSchema = createSelectSchema(metricDefinitions);
 export const insertQualityMetricSchema = createInsertSchema(qualityMetrics);
@@ -67,6 +98,8 @@ export const selectQualityMetricSchema = createSelectSchema(qualityMetrics);
 // Types
 export type DataProduct = typeof dataProducts.$inferSelect;
 export type NewDataProduct = typeof dataProducts.$inferInsert;
+export type MetricTemplate = typeof metricTemplates.$inferSelect;
+export type NewMetricTemplate = typeof metricTemplates.$inferInsert;
 export type MetricDefinition = typeof metricDefinitions.$inferSelect;
 export type NewMetricDefinition = typeof metricDefinitions.$inferInsert;
 export type QualityMetric = typeof qualityMetrics.$inferSelect;

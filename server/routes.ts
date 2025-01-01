@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { dataProducts, metricDefinitions, qualityMetrics } from "@db/schema";
+import { dataProducts, metricDefinitions, qualityMetrics, metricTemplates } from "@db/schema";
 import { eq, desc } from "drizzle-orm";
 
 export function registerRoutes(app: Express): Server {
@@ -67,23 +67,53 @@ export function registerRoutes(app: Express): Server {
       const current = metrics[0];
       const history = metrics.map(m => ({
         timestamp: m.timestamp,
-        completeness: m.completeness,
-        accuracy: m.accuracy,
-        timeliness: m.timeliness,
+        value: m.value,
+        metadata: m.metadata,
       }));
 
-      res.json({
-        current: {
-          completeness: current.completeness,
-          accuracy: current.accuracy,
-          timeliness: current.timeliness,
-          metadata: current.metadata,
-        },
-        history,
-      });
+      res.json({ current, history });
     } catch (error) {
       console.error("Error fetching quality metrics:", error);
       res.status(500).json({ error: "Failed to fetch quality metrics" });
+    }
+  });
+
+  // Metric template routes
+  app.get("/api/metric-templates", async (req, res) => {
+    try {
+      const templates = await db.select().from(metricTemplates);
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching metric templates:", error);
+      res.status(500).json({ error: "Failed to fetch metric templates" });
+    }
+  });
+
+  app.post("/api/metric-templates", async (req, res) => {
+    try {
+      const { name, description, type, defaultFormula, parameters, example, tags } = req.body;
+
+      if (!name || !description || !type || !defaultFormula || !parameters) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const [template] = await db
+        .insert(metricTemplates)
+        .values({
+          name,
+          description,
+          type,
+          defaultFormula,
+          parameters,
+          example,
+          tags,
+        })
+        .returning();
+
+      res.json(template);
+    } catch (error) {
+      console.error("Error creating metric template:", error);
+      res.status(500).json({ error: "Failed to create metric template" });
     }
   });
 
@@ -100,7 +130,7 @@ export function registerRoutes(app: Express): Server {
 
   app.post("/api/metric-definitions", async (req, res) => {
     try {
-      const { name, description, type, formula } = req.body;
+      const { name, description, type, templateId, formula, parameters } = req.body;
 
       if (!name || !description || !type) {
         return res.status(400).json({ error: "Missing required fields" });
@@ -112,7 +142,9 @@ export function registerRoutes(app: Express): Server {
           name,
           description,
           type,
+          templateId: templateId || null,
           formula: formula || null,
+          parameters: parameters || null,
           enabled: true,
         })
         .returning();
