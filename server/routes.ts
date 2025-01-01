@@ -1,7 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { dataProducts, metricDefinitions, qualityMetrics, metricTemplates } from "@db/schema";
+import { 
+  dataProducts, 
+  metricDefinitions, 
+  metricDefinitionVersions,
+  qualityMetrics, 
+  metricTemplates 
+} from "@db/schema";
 import { eq, desc } from "drizzle-orm";
 
 export function registerRoutes(app: Express): Server {
@@ -153,6 +159,165 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error creating metric definition:", error);
       res.status(500).json({ error: "Failed to create metric definition" });
+    }
+  });
+
+  // Get metric definition history
+  app.get("/api/metric-definitions/:id/history", async (req, res) => {
+    try {
+      const definitionId = parseInt(req.params.id);
+      if (isNaN(definitionId)) {
+        return res.status(400).json({ error: "Invalid definition ID" });
+      }
+
+      const versions = await db
+        .select()
+        .from(metricDefinitionVersions)
+        .where(eq(metricDefinitionVersions.metricDefinitionId, definitionId))
+        .orderBy(desc(metricDefinitionVersions.version));
+
+      res.json(versions);
+    } catch (error) {
+      console.error("Error fetching metric definition history:", error);
+      res.status(500).json({ error: "Failed to fetch metric definition history" });
+    }
+  });
+
+  // Update metric definition
+  app.put("/api/metric-definitions/:id", async (req, res) => {
+    try {
+      const definitionId = parseInt(req.params.id);
+      if (isNaN(definitionId)) {
+        return res.status(400).json({ error: "Invalid definition ID" });
+      }
+
+      const { name, description, type, templateId, formula, parameters, changeMessage } = req.body;
+
+      if (!name || !description || !type) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      // Start a transaction to update both tables
+      await db.transaction(async (tx) => {
+        // Get current version number
+        const [currentVersion] = await tx
+          .select()
+          .from(metricDefinitionVersions)
+          .where(eq(metricDefinitionVersions.metricDefinitionId, definitionId))
+          .orderBy(desc(metricDefinitionVersions.version))
+          .limit(1);
+
+        const nextVersion = currentVersion ? currentVersion.version + 1 : 1;
+
+        // Create new version record
+        await tx.insert(metricDefinitionVersions).values({
+          metricDefinitionId: definitionId,
+          name,
+          description,
+          type,
+          templateId: templateId || null,
+          formula: formula || null,
+          parameters: parameters || null,
+          enabled: true,
+          version: nextVersion,
+          changeMessage: changeMessage || "Updated metric definition",
+        });
+
+        // Update current definition
+        await tx
+          .update(metricDefinitions)
+          .set({
+            name,
+            description,
+            type,
+            templateId: templateId || null,
+            formula: formula || null,
+            parameters: parameters || null,
+          })
+          .where(eq(metricDefinitions.id, definitionId));
+      });
+
+      // Get updated definition
+      const [updated] = await db
+        .select()
+        .from(metricDefinitions)
+        .where(eq(metricDefinitions.id, definitionId))
+        .limit(1);
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating metric definition:", error);
+      res.status(500).json({ error: "Failed to update metric definition" });
+    }
+  });
+
+  // Rollback to specific version
+  app.post("/api/metric-definitions/:id/rollback/:versionId", async (req, res) => {
+    try {
+      const definitionId = parseInt(req.params.id);
+      const versionId = parseInt(req.params.versionId);
+
+      if (isNaN(definitionId) || isNaN(versionId)) {
+        return res.status(400).json({ error: "Invalid ID parameters" });
+      }
+
+      // Get the version to rollback to
+      const [version] = await db
+        .select()
+        .from(metricDefinitionVersions)
+        .where(eq(metricDefinitionVersions.id, versionId))
+        .limit(1);
+
+      if (!version) {
+        return res.status(404).json({ error: "Version not found" });
+      }
+
+      // Start a transaction for rollback
+      await db.transaction(async (tx) => {
+        // Get current version number
+        const [currentVersion] = await tx
+          .select()
+          .from(metricDefinitionVersions)
+          .where(eq(metricDefinitionVersions.metricDefinitionId, definitionId))
+          .orderBy(desc(metricDefinitionVersions.version))
+          .limit(1);
+
+        const nextVersion = currentVersion ? currentVersion.version + 1 : 1;
+
+        // Create new version record for the rollback
+        await tx.insert(metricDefinitionVersions).values({
+          ...version,
+          id: undefined,
+          version: nextVersion,
+          createdAt: undefined,
+          changeMessage: `Rolled back to version ${version.version}`,
+        });
+
+        // Update current definition
+        await tx
+          .update(metricDefinitions)
+          .set({
+            name: version.name,
+            description: version.description,
+            type: version.type,
+            templateId: version.templateId,
+            formula: version.formula,
+            parameters: version.parameters,
+          })
+          .where(eq(metricDefinitions.id, definitionId));
+      });
+
+      // Get updated definition
+      const [updated] = await db
+        .select()
+        .from(metricDefinitions)
+        .where(eq(metricDefinitions.id, definitionId))
+        .limit(1);
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error rolling back metric definition:", error);
+      res.status(500).json({ error: "Failed to rollback metric definition" });
     }
   });
 

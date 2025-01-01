@@ -25,6 +25,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
+interface MetricDefinition {
+  id?: number;
+  name: string;
+  description: string;
+  type: string;
+  templateId?: number | null;
+  formula?: string;
+  parameters: Record<string, string>;
+}
+
 const metricDefinitionSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().min(1, "Description is required"),
@@ -32,6 +42,7 @@ const metricDefinitionSchema = z.object({
   templateId: z.string().optional(),
   formula: z.string().optional(),
   parameters: z.record(z.string().min(1, "Parameter value is required")),
+  changeMessage: z.string().optional(),
 });
 
 type MetricDefinitionForm = z.infer<typeof metricDefinitionSchema>;
@@ -51,7 +62,12 @@ interface Template {
   tags?: string[];
 }
 
-export default function MetricDefinitionForm() {
+interface MetricDefinitionFormProps {
+  initialData?: MetricDefinition;
+  onSuccess?: () => void;
+}
+
+export default function MetricDefinitionForm({ initialData, onSuccess }: MetricDefinitionFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -62,22 +78,31 @@ export default function MetricDefinitionForm() {
   const form = useForm<MetricDefinitionForm>({
     resolver: zodResolver(metricDefinitionSchema),
     defaultValues: {
-      name: "",
-      description: "",
-      type: "completeness", // Set a default type
-      formula: "",
-      parameters: {},
+      name: initialData?.name || "",
+      description: initialData?.description || "",
+      type: initialData?.type || "completeness",
+      templateId: initialData?.templateId?.toString() || "custom",
+      formula: initialData?.formula || "",
+      parameters: initialData?.parameters || {},
+      changeMessage: "", // Added default value
     },
   });
 
   const createMetricMutation = useMutation({
     mutationFn: async (data: MetricDefinitionForm) => {
-      const response = await fetch("/api/metric-definitions", {
-        method: "POST",
+      const url = initialData
+        ? `/api/metric-definitions/${initialData.id}`
+        : "/api/metric-definitions";
+
+      const method = initialData ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
           templateId: data.templateId === "custom" ? null : parseInt(data.templateId || "0"),
+          changeMessage: initialData ? form.getValues("changeMessage") : undefined,
         }),
       });
 
@@ -91,9 +116,10 @@ export default function MetricDefinitionForm() {
       queryClient.invalidateQueries({ queryKey: ["/api/metric-definitions"] });
       toast({
         title: "Success",
-        description: "Metric definition created successfully",
+        description: `Metric definition ${initialData ? "updated" : "created"} successfully`,
       });
       form.reset();
+      onSuccess?.();
     },
     onError: (error) => {
       toast({
@@ -109,7 +135,6 @@ export default function MetricDefinitionForm() {
     if (template) {
       form.setValue("type", template.type as any);
       form.setValue("formula", template.defaultFormula);
-      // Initialize parameters with empty values
       const initialParameters = Object.keys(template.parameters).reduce((acc, key) => {
         acc[key] = "";
         return acc;
@@ -124,7 +149,6 @@ export default function MetricDefinitionForm() {
   function onSubmit(data: MetricDefinitionForm) {
     const template = templates?.find(t => t.id === parseInt(data.templateId || "0"));
 
-    // Validate required parameters if using a template
     if (template) {
       const missingParams = Object.entries(template.parameters)
         .filter(([key, param]) => param.required && !data.parameters[key])
@@ -161,7 +185,7 @@ export default function MetricDefinitionForm() {
                   field.onChange(value);
                   onTemplateSelect(value);
                 }}
-                value={field.value || "custom"} // Provide a default value
+                value={field.value || "custom"}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -275,10 +299,9 @@ export default function MetricDefinitionForm() {
                 />
               </FormControl>
               <FormDescription>
-                {selectedTemplate ?
-                  "Customize the template formula if needed" :
-                  "How this metric should be calculated"
-                }
+                {selectedTemplate
+                  ? "Customize the template formula if needed"
+                  : "How this metric should be calculated"}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -296,7 +319,7 @@ export default function MetricDefinitionForm() {
                 <FormControl>
                   <Input
                     placeholder={param.description}
-                    type={param.type === 'number' ? 'number' : 'text'}
+                    type={param.type === "number" ? "number" : "text"}
                     {...field}
                   />
                 </FormControl>
@@ -308,8 +331,36 @@ export default function MetricDefinitionForm() {
           />
         ))}
 
+        {initialData && (
+          <FormField
+            control={form.control}
+            name="changeMessage"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Change Message</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Describe what changed in this update"
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Provide a brief description of the changes made
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
         <Button type="submit" disabled={createMetricMutation.isPending}>
-          {createMetricMutation.isPending ? "Creating..." : "Create Metric"}
+          {createMetricMutation.isPending
+            ? initialData
+              ? "Updating..."
+              : "Creating..."
+            : initialData
+            ? "Update Metric"
+            : "Create Metric"}
         </Button>
       </form>
     </Form>
