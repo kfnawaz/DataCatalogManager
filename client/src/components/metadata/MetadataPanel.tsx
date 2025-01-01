@@ -35,7 +35,7 @@ interface MetadataPanelProps {
 
 export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
   const { data: metadata, isLoading } = useQuery<Metadata>({
-    queryKey: [`/api/metadata/${dataProductId}`],
+    queryKey: ["/api/metadata", dataProductId],
     enabled: dataProductId !== null,
   });
 
@@ -122,7 +122,7 @@ export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
           <h3 className="text-lg font-semibold mb-2 text-foreground">Tags</h3>
           <div className="flex gap-2 flex-wrap">
             {metadata.tags?.map((tag) => (
-              <Badge key={tag} variant="secondary" className="text-foreground">
+              <Badge key={tag} variant="secondary">
                 {tag}
               </Badge>
             )) || (

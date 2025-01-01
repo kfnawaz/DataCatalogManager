@@ -26,7 +26,6 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
   const [open, setOpen] = useState(false);
   const { data: searchResults, isLoading, error } = useQuery<DataProduct[]>({
     queryKey: ["/api/data-products"],
-    staleTime: 30000, // Consider results fresh for 30 seconds
   });
 
   return (
@@ -68,7 +67,7 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
                   }}
                 >
                   <div className="flex flex-col gap-1">
-                    <span>{item.name}</span>
+                    <span className="font-medium">{item.name}</span>
                     {item.tags && item.tags.length > 0 && (
                       <div className="flex gap-1">
                         {item.tags.map((tag) => (
