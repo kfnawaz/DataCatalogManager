@@ -1,18 +1,13 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
+import SearchBar from "../components/search/SearchBar";
 
 export default function HomePage() {
   const [, setLocation] = useLocation();
-  const [searchQuery, setSearchQuery] = useState("");
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery) {
-      setLocation("/");
-    }
+  const handleSelect = (productId: number) => {
+    setLocation(`/dashboard?product=${productId}`);
   };
 
   return (
@@ -27,22 +22,9 @@ export default function HomePage() {
           </p>
         </div>
 
-        <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search data products, metrics, or documentation..."
-                className="pl-10 h-12"
-              />
-            </div>
-            <Button type="submit" size="lg" disabled={!searchQuery}>
-              Search
-            </Button>
-          </div>
-        </form>
+        <div className="max-w-2xl mx-auto">
+          <SearchBar onSelect={handleSelect} />
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
           <div className="text-center space-y-2">
