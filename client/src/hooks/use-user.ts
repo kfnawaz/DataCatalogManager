@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 
+// Since we've disabled auth, always return a default user
 const defaultUser = {
   id: 1,
-  username: 'guest',
+  username: 'Demo User',
   role: 'user',
 };
 
