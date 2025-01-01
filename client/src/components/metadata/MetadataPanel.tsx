@@ -35,7 +35,7 @@ interface MetadataPanelProps {
 
 export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
   const { data: metadata, isLoading } = useQuery<Metadata>({
-    queryKey: ["/api/metadata", dataProductId],
+    queryKey: [`/api/metadata/${dataProductId}`],
     enabled: dataProductId !== null,
   });
 

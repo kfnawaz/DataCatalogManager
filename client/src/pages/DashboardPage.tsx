@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const [selectedDataProduct, setSelectedDataProduct] = useState<number | null>(null);
 
   const { data: selectedProduct } = useQuery<DataProduct>({
-    queryKey: ["/api/metadata", selectedDataProduct],
+    queryKey: [`/api/metadata/${selectedDataProduct}`],
     enabled: selectedDataProduct !== null,
   });
 
