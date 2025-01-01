@@ -1,5 +1,5 @@
 import { Switch, Route } from "wouter";
-import DashboardPage from "./pages/DashboardPage";
+import DataProductsPage from "./pages/DataProductsPage";
 import MetricDefinitionsPage from "./pages/MetricDefinitionsPage";
 import HomePage from "./pages/HomePage";
 import NavBar from "./components/navigation/NavBar";
@@ -10,7 +10,7 @@ function App() {
       <NavBar />
       <Switch>
         <Route path="/" component={HomePage} />
-        <Route path="/dashboard" component={DashboardPage} />
+        <Route path="/data-products" component={DataProductsPage} />
         <Route path="/metric-definitions" component={MetricDefinitionsPage} />
       </Switch>
     </div>

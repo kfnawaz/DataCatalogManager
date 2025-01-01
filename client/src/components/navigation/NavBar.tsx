@@ -12,8 +12,8 @@ export default function NavBar() {
             </Link>
           </div>
           <nav className="hidden md:flex items-center gap-6">
-            <Link href="/dashboard" className="text-sm font-medium hover:text-primary transition-colors">
-              Dashboard
+            <Link href="/data-products" className="text-sm font-medium hover:text-primary transition-colors">
+              Data Products
             </Link>
             <Link href="/metric-definitions" className="text-sm font-medium hover:text-primary transition-colors">
               Metric Definitions

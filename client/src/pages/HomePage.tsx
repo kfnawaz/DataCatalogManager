@@ -7,7 +7,7 @@ export default function HomePage() {
   const [, setLocation] = useLocation();
 
   const handleSelect = (productId: number) => {
-    setLocation(`/dashboard?product=${productId}`);
+    setLocation(`/data-products?product=${productId}`);
   };
 
   return (
