@@ -1,6 +1,7 @@
 import { db } from "@db";
 import { metricTemplates } from "@db/schema";
 import { eq } from "drizzle-orm";
+import { seedDataProducts } from "./seed_data_products";
 
 const defaultTemplates = [
   {
@@ -135,7 +136,7 @@ export async function seedTemplates() {
 }
 
 if (require.main === module) {
-  seedTemplates()
+  Promise.all([seedTemplates(), seedDataProducts()])
     .then(() => process.exit(0))
     .catch((error) => {
       console.error(error);

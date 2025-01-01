@@ -1,0 +1,88 @@
+1. Consumer-Aligned Data Product
+VaR Report Data Product
+Attributes:
+Attribute Name	Description	Data Type
+portfolio_id	Unique identifier for the portfolio	STRING
+var_value	Calculated Value at Risk for the portfolio	FLOAT
+confidence_level	Confidence level of the VaR calculation	FLOAT
+calculation_date	Date of the VaR calculation	DATE
+stress_scenario_impact	Portfolio loss under stress scenarios	FLOAT
+var_methodology	Method used for VaR calculation (e.g., MC, HS)	STRING
+2. Aggregate Data Products
+a. Portfolio Risk Metrics
+Attributes:
+Attribute Name	Description	Data Type
+portfolio_id	Unique identifier for the portfolio	STRING
+total_exposure	Total market exposure of the portfolio	FLOAT
+delta	Portfolio sensitivity to price changes	FLOAT
+gamma	Second-order price sensitivity	FLOAT
+vega	Sensitivity to changes in volatility	FLOAT
+risk_classification	Classification of portfolio risk	STRING
+b. Stress Testing and Scenario Data
+Attributes:
+Attribute Name	Description	Data Type
+scenario_id	Unique identifier for the stress scenario	STRING
+portfolio_id	Portfolio under evaluation	STRING
+scenario_description	Details of the stress scenario	STRING
+impact_value	Portfolio impact under the scenario	FLOAT
+probability_of_event	Likelihood of the stress scenario	FLOAT
+calculation_date	Date of stress testing	DATE
+c. Market Risk Factors
+Attributes:
+Attribute Name	Description	Data Type
+risk_factor_id	Unique identifier for the risk factor	STRING
+risk_factor_type	Type of risk factor (e.g., volatility)	STRING
+time_series_date	Date of the risk factor data	DATE
+value	Value of the risk factor	FLOAT
+source	Source of the data (e.g., Bloomberg)	STRING
+d. Counterparty Risk Metrics
+Attributes:
+Attribute Name	Description	Data Type
+counterparty_id	Unique identifier for the counterparty	STRING
+exposure_value	Total exposure to the counterparty	FLOAT
+credit_rating	Credit rating of the counterparty	STRING
+default_probability	Probability of default	FLOAT
+lgd	Loss given default	FLOAT
+last_updated	Timestamp of the last update	TIMESTAMP
+e. Regulatory Metrics
+Attributes:
+Attribute Name	Description	Data Type
+metric_id	Unique identifier for the regulatory metric	STRING
+portfolio_id	Portfolio under evaluation	STRING
+metric_type	Type of regulatory metric (e.g., VaR limit)	STRING
+value	Value of the metric	FLOAT
+compliance_status	Whether the metric is compliant	BOOLEAN
+last_calculation_date	Date of the last metric calculation	DATE
+3. Source-Aligned Data Products
+a. Market Data
+Attributes:
+Attribute Name	Description	Data Type
+instrument_id	Unique identifier for the financial instrument	STRING
+price	Closing price of the instrument	FLOAT
+date	Date of the price data	DATE
+volatility	Historical or implied volatility	FLOAT
+source	Source of the market data	STRING
+b. Trade and Position Data
+Attributes:
+Attribute Name	Description	Data Type
+trade_id	Unique identifier for the trade	STRING
+portfolio_id	Portfolio associated with the trade	STRING
+instrument_id	Financial instrument involved	STRING
+quantity	Quantity traded	INTEGER
+trade_date	Date of the trade	DATE
+counterparty_id	Counterparty involved in the trade	STRING
+c. Reference Data
+Attributes:
+Attribute Name	Description	Data Type
+instrument_id	Unique identifier for the instrument	STRING
+isin	International Securities Identification Number	STRING
+sector	Sector classification of the instrument	STRING
+issuer	Issuer of the instrument	STRING
+rating	Credit rating of the issuer	STRING
+d. Risk Factor Data
+Attributes:
+Attribute Name	Description	Data Type
+risk_factor_id	Unique identifier for the risk factor	STRING
+sensitivity_type	Type of sensitivity (e.g., delta, gamma)	STRING
+sensitivity_value	Value of the sensitivity	FLOAT
+date	Date of the sensitivity data	DATE
