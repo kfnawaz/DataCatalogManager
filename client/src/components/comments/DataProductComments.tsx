@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { SendHorizontal, MessageSquare } from "lucide-react";
@@ -21,6 +23,7 @@ interface DataProductCommentsProps {
 
 export default function DataProductComments({ dataProductId }: DataProductCommentsProps) {
   const [newComment, setNewComment] = useState("");
+  const [authorName, setAuthorName] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -29,11 +32,11 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
   });
 
   const addCommentMutation = useMutation({
-    mutationFn: async (content: string) => {
+    mutationFn: async (data: { content: string; authorName: string }) => {
       const response = await fetch(`/api/data-products/${dataProductId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify(data),
       });
 
       if (!response.ok) {
@@ -45,6 +48,7 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/data-products/${dataProductId}/comments`] });
       setNewComment("");
+      setAuthorName("");
       toast({
         title: "Success",
         description: "Comment added successfully",
@@ -61,8 +65,8 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newComment.trim()) {
-      addCommentMutation.mutate(newComment);
+    if (newComment.trim() && authorName.trim()) {
+      addCommentMutation.mutate({ content: newComment, authorName });
     }
   };
 
@@ -73,20 +77,38 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
         <h3 className="font-semibold">Comments</h3>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <Textarea
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          placeholder="Add a comment..."
-          className="min-h-[80px]"
-        />
-        <Button 
-          type="submit" 
-          size="icon"
-          disabled={!newComment.trim() || addCommentMutation.isPending}
-        >
-          <SendHorizontal className="h-4 w-4" />
-        </Button>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="author">Your Name</Label>
+          <Input
+            id="author"
+            value={authorName}
+            onChange={(e) => setAuthorName(e.target.value)}
+            placeholder="Enter your name"
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="comment">Comment</Label>
+          <div className="flex gap-2">
+            <Textarea
+              id="comment"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Add a comment..."
+              className="min-h-[80px]"
+              required
+            />
+            <Button 
+              type="submit" 
+              size="icon"
+              disabled={!newComment.trim() || !authorName.trim() || addCommentMutation.isPending}
+            >
+              <SendHorizontal className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </form>
 
       <AnimatePresence mode="popLayout">
