@@ -47,57 +47,65 @@ export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
     );
   }
 
-  if (isLoading || !metadata) {
+  if (isLoading) {
     return <MetadataSkeleton />;
+  }
+
+  if (!metadata) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Failed to load metadata
+      </div>
+    );
   }
 
   return (
     <ScrollArea className="h-[500px]">
       <div className="space-y-6">
         <section>
-          <h3 className="text-lg font-semibold mb-2">Basic Information</h3>
+          <h3 className="text-lg font-semibold mb-2 text-foreground">Basic Information</h3>
           <Table>
             <TableBody>
               <TableRow>
-                <TableCell className="font-medium">Name</TableCell>
-                <TableCell>{metadata?.name || 'N/A'}</TableCell>
+                <TableCell className="font-medium text-foreground">Name</TableCell>
+                <TableCell className="text-foreground">{metadata.name}</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell className="font-medium">Description</TableCell>
-                <TableCell>{metadata?.description || 'No description available'}</TableCell>
+                <TableCell className="font-medium text-foreground">Description</TableCell>
+                <TableCell className="text-foreground">{metadata.description || 'No description available'}</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell className="font-medium">Owner</TableCell>
-                <TableCell>{metadata?.owner || 'N/A'}</TableCell>
+                <TableCell className="font-medium text-foreground">Owner</TableCell>
+                <TableCell className="text-foreground">{metadata.owner}</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell className="font-medium">SLA</TableCell>
-                <TableCell>{metadata?.sla || 'Not specified'}</TableCell>
+                <TableCell className="font-medium text-foreground">SLA</TableCell>
+                <TableCell className="text-foreground">{metadata.sla || 'Not specified'}</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell className="font-medium">Update Frequency</TableCell>
-                <TableCell>{metadata?.updateFrequency || 'Not specified'}</TableCell>
+                <TableCell className="font-medium text-foreground">Update Frequency</TableCell>
+                <TableCell className="text-foreground">{metadata.updateFrequency || 'Not specified'}</TableCell>
               </TableRow>
             </TableBody>
           </Table>
         </section>
 
         <section>
-          <h3 className="text-lg font-semibold mb-2">Schema</h3>
+          <h3 className="text-lg font-semibold mb-2 text-foreground">Schema</h3>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Column</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Description</TableHead>
+                <TableHead className="text-foreground">Column</TableHead>
+                <TableHead className="text-foreground">Type</TableHead>
+                <TableHead className="text-foreground">Description</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {metadata?.schema?.columns?.map((column) => (
+              {metadata.schema?.columns?.map((column) => (
                 <TableRow key={column.name}>
-                  <TableCell>{column.name}</TableCell>
-                  <TableCell>{column.type}</TableCell>
-                  <TableCell>{column.description || 'No description'}</TableCell>
+                  <TableCell className="text-foreground">{column.name}</TableCell>
+                  <TableCell className="text-foreground">{column.type}</TableCell>
+                  <TableCell className="text-foreground">{column.description || 'No description'}</TableCell>
                 </TableRow>
               )) || (
                 <TableRow>
@@ -111,10 +119,10 @@ export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
         </section>
 
         <section>
-          <h3 className="text-lg font-semibold mb-2">Tags</h3>
+          <h3 className="text-lg font-semibold mb-2 text-foreground">Tags</h3>
           <div className="flex gap-2 flex-wrap">
-            {metadata?.tags?.map((tag) => (
-              <Badge key={tag} variant="secondary">
+            {metadata.tags?.map((tag) => (
+              <Badge key={tag} variant="secondary" className="text-foreground">
                 {tag}
               </Badge>
             )) || (

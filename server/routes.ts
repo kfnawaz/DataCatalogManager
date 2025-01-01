@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
 import { dataProducts, lineageNodes, lineageEdges, qualityMetrics } from "@db/schema";
-import { eq, or, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 export function registerRoutes(app: Express): Server {
   // Setup authentication routes
@@ -13,7 +13,6 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/data-products", async (req, res) => {
     try {
       const products = await db.select().from(dataProducts);
-      console.log("Fetched data products:", products.length);
       res.json(products);
     } catch (error) {
       console.error("Error fetching data products:", error);
@@ -23,19 +22,21 @@ export function registerRoutes(app: Express): Server {
 
   app.get("/api/metadata/:id", async (req, res) => {
     try {
-      console.log("Fetching metadata for id:", req.params.id);
+      const productId = parseInt(req.params.id);
+      if (isNaN(productId)) {
+        return res.status(400).json({ error: "Invalid product ID" });
+      }
+
       const [product] = await db
         .select()
         .from(dataProducts)
-        .where(eq(dataProducts.id, parseInt(req.params.id)))
+        .where(eq(dataProducts.id, productId))
         .limit(1);
 
       if (!product) {
-        console.log("No product found for id:", req.params.id);
-        return res.status(404).send("Data product not found");
+        return res.status(404).json({ error: "Data product not found" });
       }
 
-      console.log("Found product:", product.name);
       res.json(product);
     } catch (error) {
       console.error("Error fetching metadata:", error);
@@ -46,30 +47,22 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/lineage/:id", async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
-      console.log("Fetching lineage for id:", productId);
+      if (isNaN(productId)) {
+        return res.status(400).json({ error: "Invalid product ID" });
+      }
 
       const nodes = await db
         .select()
         .from(lineageNodes)
         .where(eq(lineageNodes.dataProductId, productId));
 
-      console.log("Found lineage nodes:", nodes.length);
-
       const nodeIds = nodes.map(node => node.id);
-      let edges: any[] = [];
-
-      if (nodeIds.length > 0) {
-        edges = await db
-          .select()
-          .from(lineageEdges)
-          .where(
-            or(
-              eq(lineageEdges.sourceId, nodeIds[0]),
-              eq(lineageEdges.targetId, nodeIds[0])
-            )
-          );
-        console.log("Found lineage edges:", edges.length);
-      }
+      const edges = nodeIds.length > 0
+        ? await db
+            .select()
+            .from(lineageEdges)
+            .where(eq(lineageEdges.sourceId, nodeIds[0]))
+        : [];
 
       res.json({
         nodes: nodes.map(node => ({
@@ -90,32 +83,41 @@ export function registerRoutes(app: Express): Server {
 
   app.get("/api/quality-metrics/:id", async (req, res) => {
     try {
-      console.log("Fetching quality metrics for id:", req.params.id);
+      const productId = parseInt(req.params.id);
+      if (isNaN(productId)) {
+        return res.status(400).json({ error: "Invalid product ID" });
+      }
+
       const metrics = await db
         .select()
         .from(qualityMetrics)
-        .where(eq(qualityMetrics.dataProductId, parseInt(req.params.id)))
+        .where(eq(qualityMetrics.dataProductId, productId))
         .orderBy(qualityMetrics.timestamp);
 
       if (metrics.length === 0) {
-        console.log("No metrics found for id:", req.params.id);
-        return res.status(404).send("No metrics found for this data product");
+        return res.json({
+          current: {
+            completeness: 0,
+            accuracy: 0,
+            timeliness: 0,
+          },
+          history: [],
+        });
       }
 
-      console.log("Found metrics:", metrics.length);
       const current = metrics[metrics.length - 1];
       const history = metrics.map(m => ({
         timestamp: m.timestamp,
-        completeness: m.completeness,
-        accuracy: m.accuracy,
-        timeliness: m.timeliness,
+        completeness: m.completeness ?? 0,
+        accuracy: m.accuracy ?? 0,
+        timeliness: m.timeliness ?? 0,
       }));
 
       res.json({
         current: {
-          completeness: current.completeness,
-          accuracy: current.accuracy,
-          timeliness: current.timeliness,
+          completeness: current.completeness ?? 0,
+          accuracy: current.accuracy ?? 0,
+          timeliness: current.timeliness ?? 0,
           customMetrics: current.customMetrics,
         },
         history,
@@ -132,7 +134,7 @@ export function registerRoutes(app: Express): Server {
       console.log("Search query:", query);
       const products = await db.select().from(dataProducts);
 
-      const results = products.filter(product => 
+      const results = products.filter(product =>
         product.name.toLowerCase().includes(query) ||
         product.tags?.some(tag => tag.toLowerCase().includes(query))
       );
