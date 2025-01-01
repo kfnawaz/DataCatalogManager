@@ -1,6 +1,7 @@
 import { Switch, Route } from "wouter";
 import DashboardPage from "./pages/DashboardPage";
 import MetricDefinitionsPage from "./pages/MetricDefinitionsPage";
+import HomePage from "./pages/HomePage";
 import NavBar from "./components/navigation/NavBar";
 
 function App() {
@@ -8,7 +9,8 @@ function App() {
     <div className="min-h-screen bg-background text-foreground">
       <NavBar />
       <Switch>
-        <Route path="/" component={DashboardPage} />
+        <Route path="/" component={HomePage} />
+        <Route path="/dashboard" component={DashboardPage} />
         <Route path="/metric-definitions" component={MetricDefinitionsPage} />
       </Switch>
     </div>
