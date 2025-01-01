@@ -8,6 +8,7 @@ import QualityMetrics from "../components/quality/QualityMetrics";
 import SearchBar from "../components/search/SearchBar";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
+import DataProductComments from "../components/comments/DataProductComments";
 
 interface DataProduct {
   id: number;
@@ -97,14 +98,25 @@ export default function DataProductsPage() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                   >
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Metadata Management</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <MetadataPanel dataProductId={selectedDataProduct} />
-                      </CardContent>
-                    </Card>
+                    <div className="space-y-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Metadata Management</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <MetadataPanel dataProductId={selectedDataProduct} />
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Comments & Annotations</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <DataProductComments dataProductId={selectedDataProduct} />
+                        </CardContent>
+                      </Card>
+                    </div>
                   </motion.div>
                 </TabsContent>
 

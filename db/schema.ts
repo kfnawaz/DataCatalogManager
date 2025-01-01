@@ -25,6 +25,18 @@ export const dataProducts = pgTable("data_products", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Comments table for data products
+export const comments = pgTable("comments", {
+  id: serial("id").primaryKey(),
+  dataProductId: integer("data_product_id")
+    .references(() => dataProducts.id)
+    .notNull(),
+  content: text("content").notNull(),
+  authorName: text("author_name").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Metric templates for common use cases
 export const metricTemplates = pgTable("metric_templates", {
   id: serial("id").primaryKey(),
@@ -32,8 +44,8 @@ export const metricTemplates = pgTable("metric_templates", {
   description: text("description").notNull(),
   type: metricTypeEnum("type").notNull(),
   defaultFormula: text("default_formula").notNull(),
-  parameters: jsonb("parameters").notNull(), // Configurable parameters for the template
-  example: text("example"), // Example usage
+  parameters: jsonb("parameters").notNull(),
+  example: text("example"),
   tags: text("tags").array(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -45,8 +57,8 @@ export const metricDefinitions = pgTable("metric_definitions", {
   description: text("description").notNull(),
   type: metricTypeEnum("type").notNull(),
   templateId: integer("template_id").references(() => metricTemplates.id),
-  formula: text("formula"), // Customized formula based on template
-  parameters: jsonb("parameters"), // Customized parameters
+  formula: text("formula"),
+  parameters: jsonb("parameters"),
   enabled: boolean("enabled").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -67,8 +79,8 @@ export const metricDefinitionVersions = pgTable("metric_definition_versions", {
   enabled: boolean("enabled").notNull(),
   version: integer("version").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
-  createdBy: text("created_by"), // To track who made the change
-  changeMessage: text("change_message"), // To describe what changed
+  createdBy: text("created_by"),
+  changeMessage: text("change_message"),
 });
 
 export const qualityMetrics = pgTable("quality_metrics", {
@@ -76,13 +88,14 @@ export const qualityMetrics = pgTable("quality_metrics", {
   dataProductId: integer("data_product_id").references(() => dataProducts.id).notNull(),
   metricDefinitionId: integer("metric_definition_id").references(() => metricDefinitions.id).notNull(),
   value: integer("value").notNull(),
-  metadata: jsonb("metadata"), // For any additional metric context
+  metadata: jsonb("metadata"),
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
 // Relations
 export const dataProductRelations = relations(dataProducts, ({ many }) => ({
   qualityMetrics: many(qualityMetrics),
+  comments: many(comments),
 }));
 
 export const qualityMetricRelations = relations(qualityMetrics, ({ one }) => ({
@@ -93,6 +106,13 @@ export const qualityMetricRelations = relations(qualityMetrics, ({ one }) => ({
   metricDefinition: one(metricDefinitions, {
     fields: [qualityMetrics.metricDefinitionId],
     references: [metricDefinitions.id],
+  }),
+}));
+
+export const commentRelations = relations(comments, ({ one }) => ({
+  dataProduct: one(dataProducts, {
+    fields: [comments.dataProductId],
+    references: [dataProducts.id],
   }),
 }));
 
@@ -120,11 +140,12 @@ export const insertMetricDefinitionSchema = createInsertSchema(metricDefinitions
 export const selectMetricDefinitionSchema = createSelectSchema(metricDefinitions);
 export const insertQualityMetricSchema = createInsertSchema(qualityMetrics);
 export const selectQualityMetricSchema = createSelectSchema(qualityMetrics);
+export const insertCommentSchema = createInsertSchema(comments);
+export const selectCommentSchema = createSelectSchema(comments);
 
 // Add schemas for version history
 export const insertMetricDefinitionVersionSchema = createInsertSchema(metricDefinitionVersions);
 export const selectMetricDefinitionVersionSchema = createSelectSchema(metricDefinitionVersions);
-
 
 // Types
 export type DataProduct = typeof dataProducts.$inferSelect;
@@ -135,6 +156,8 @@ export type MetricDefinition = typeof metricDefinitions.$inferSelect;
 export type NewMetricDefinition = typeof metricDefinitions.$inferInsert;
 export type QualityMetric = typeof qualityMetrics.$inferSelect;
 export type NewQualityMetric = typeof qualityMetrics.$inferInsert;
+export type Comment = typeof comments.$inferSelect;
+export type NewComment = typeof comments.$inferInsert;
 
 // Add types for version history
 export type MetricDefinitionVersion = typeof metricDefinitionVersions.$inferSelect;
