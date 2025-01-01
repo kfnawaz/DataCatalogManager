@@ -6,6 +6,35 @@ import { eq } from "drizzle-orm";
 
 export function registerRoutes(app: Express): Server {
   // Data product routes
+  app.get("/api/metadata/:id", async (req, res) => {
+    try {
+      console.log("Fetching metadata for product ID:", req.params.id);
+      const productId = parseInt(req.params.id);
+      if (isNaN(productId)) {
+        console.error("Invalid product ID:", req.params.id);
+        return res.status(400).json({ error: "Invalid product ID" });
+      }
+
+      const [product] = await db
+        .select()
+        .from(dataProducts)
+        .where(eq(dataProducts.id, productId))
+        .limit(1);
+
+      console.log("Found product:", product);
+
+      if (!product) {
+        console.log("No product found for ID:", productId);
+        return res.status(404).json({ error: "Data product not found" });
+      }
+
+      return res.json(product);
+    } catch (error) {
+      console.error("Error fetching metadata:", error);
+      return res.status(500).json({ error: "Failed to fetch metadata" });
+    }
+  });
+
   app.get("/api/data-products", async (_req, res) => {
     try {
       console.log("Fetching data products...");
@@ -78,35 +107,6 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error fetching data products:", error);
       return res.status(500).json({ error: "Failed to fetch data products" });
-    }
-  });
-
-  app.get("/api/metadata/:id", async (req, res) => {
-    try {
-      console.log("Fetching metadata for product ID:", req.params.id);
-      const productId = parseInt(req.params.id);
-      if (isNaN(productId)) {
-        console.error("Invalid product ID:", req.params.id);
-        return res.status(400).json({ error: "Invalid product ID" });
-      }
-
-      const [product] = await db
-        .select()
-        .from(dataProducts)
-        .where(eq(dataProducts.id, productId))
-        .limit(1);
-
-      console.log("Found product:", product);
-
-      if (!product) {
-        console.log("No product found for ID:", productId);
-        return res.status(404).json({ error: "Data product not found" });
-      }
-
-      return res.json(product);
-    } catch (error) {
-      console.error("Error fetching metadata:", error);
-      return res.status(500).json({ error: "Failed to fetch metadata" });
     }
   });
 
@@ -214,17 +214,17 @@ export function registerRoutes(app: Express): Server {
         date.setDate(today.getDate() - i);
         return {
           timestamp: date.toISOString(),
-          completeness: metrics[0].completeness - Math.random() * 5,
-          accuracy: metrics[0].accuracy - Math.random() * 3,
-          timeliness: metrics[0].timeliness - Math.random() * 4
+          completeness: (metrics[0]?.completeness ?? 0) - Math.random() * 5,
+          accuracy: (metrics[0]?.accuracy ?? 0) - Math.random() * 3,
+          timeliness: (metrics[0]?.timeliness ?? 0) - Math.random() * 4
         };
       });
 
       return res.json({
         current: {
-          completeness: metrics[0].completeness,
-          accuracy: metrics[0].accuracy,
-          timeliness: metrics[0].timeliness,
+          completeness: metrics[0]?.completeness ?? 0,
+          accuracy: metrics[0]?.accuracy ?? 0,
+          timeliness: metrics[0]?.timeliness ?? 0,
           customMetrics: definitions,
         },
         history
