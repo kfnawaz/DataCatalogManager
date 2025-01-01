@@ -64,7 +64,7 @@ export default function MetricDefinitionForm() {
     defaultValues: {
       name: "",
       description: "",
-      type: "completeness",
+      type: "completeness", // Set a default type
       formula: "",
       parameters: {},
     },
@@ -161,7 +161,7 @@ export default function MetricDefinitionForm() {
                   field.onChange(value);
                   onTemplateSelect(value);
                 }}
-                value={field.value}
+                value={field.value || "custom"} // Provide a default value
               >
                 <FormControl>
                   <SelectTrigger>
@@ -275,8 +275,8 @@ export default function MetricDefinitionForm() {
                 />
               </FormControl>
               <FormDescription>
-                {selectedTemplate ? 
-                  "Customize the template formula if needed" : 
+                {selectedTemplate ?
+                  "Customize the template formula if needed" :
                   "How this metric should be calculated"
                 }
               </FormDescription>
@@ -294,7 +294,7 @@ export default function MetricDefinitionForm() {
               <FormItem>
                 <FormLabel>{key}</FormLabel>
                 <FormControl>
-                  <Input 
+                  <Input
                     placeholder={param.description}
                     type={param.type === 'number' ? 'number' : 'text'}
                     {...field}
