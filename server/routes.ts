@@ -8,10 +8,13 @@ export function registerRoutes(app: Express): Server {
   // Data product routes
   app.get("/api/data-products", async (_req, res) => {
     try {
+      console.log("Fetching data products...");
       const products = await db.select().from(dataProducts);
+      console.log("Found products:", products);
 
       // If no products exist, create sample data
       if (products.length === 0) {
+        console.log("No products found, creating sample data...");
         const [product1, product2] = await db.insert(dataProducts).values([
           {
             name: "Customer Data Lake",
@@ -45,6 +48,7 @@ export function registerRoutes(app: Express): Server {
           }
         ]).returning();
 
+        console.log("Created sample products:", [product1, product2]);
         return res.json([product1, product2]);
       }
 
@@ -57,8 +61,10 @@ export function registerRoutes(app: Express): Server {
 
   app.get("/api/metadata/:id", async (req, res) => {
     try {
+      console.log("Fetching metadata for product ID:", req.params.id);
       const productId = parseInt(req.params.id);
       if (isNaN(productId)) {
+        console.error("Invalid product ID:", req.params.id);
         return res.status(400).json({ error: "Invalid product ID" });
       }
 
@@ -66,7 +72,10 @@ export function registerRoutes(app: Express): Server {
         where: eq(dataProducts.id, productId)
       });
 
+      console.log("Found product:", product);
+
       if (!product) {
+        console.log("No product found for ID:", productId);
         return res.status(404).json({ error: "Data product not found" });
       }
 
