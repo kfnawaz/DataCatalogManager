@@ -122,7 +122,13 @@ export default function MetricDefinitionForm({ initialData, onSuccess }: MetricD
       return response.json();
     },
     onSuccess: () => {
+      // Invalidate both the definitions list and the history queries
       queryClient.invalidateQueries({ queryKey: ["/api/metric-definitions"] });
+      if (initialData?.id) {
+        queryClient.invalidateQueries({ 
+          queryKey: [`/api/metric-definitions/${initialData.id}/history`] 
+        });
+      }
       toast({
         title: "Success",
         description: `Metric definition ${initialData ? "updated" : "created"} successfully`,
