@@ -8,10 +8,8 @@ export function registerRoutes(app: Express): Server {
   // Data product routes
   app.get("/api/metadata/:id", async (req, res) => {
     try {
-      console.log("Fetching metadata for product ID:", req.params.id);
       const productId = parseInt(req.params.id);
       if (isNaN(productId)) {
-        console.error("Invalid product ID:", req.params.id);
         return res.status(400).json({ error: "Invalid product ID" });
       }
 
@@ -21,14 +19,20 @@ export function registerRoutes(app: Express): Server {
         .where(eq(dataProducts.id, productId))
         .limit(1);
 
-      console.log("Found product:", product);
-
       if (!product) {
-        console.log("No product found for ID:", productId);
         return res.status(404).json({ error: "Data product not found" });
       }
 
-      return res.json(product);
+      return res.json({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        owner: product.owner,
+        schema: product.schema,
+        tags: product.tags || [],
+        sla: product.sla,
+        updateFrequency: product.updateFrequency
+      });
     } catch (error) {
       console.error("Error fetching metadata:", error);
       return res.status(500).json({ error: "Failed to fetch metadata" });
@@ -37,13 +41,10 @@ export function registerRoutes(app: Express): Server {
 
   app.get("/api/data-products", async (_req, res) => {
     try {
-      console.log("Fetching data products...");
       const products = await db.select().from(dataProducts);
-      console.log("Found products:", products);
 
       // If no products exist, create sample data
       if (products.length === 0) {
-        console.log("No products found, creating sample data...");
         const [product1, product2, product3] = await db.insert(dataProducts).values([
           {
             name: "Trading Data Warehouse",
@@ -140,7 +141,6 @@ export function registerRoutes(app: Express): Server {
           })
         );
 
-        console.log("Created sample products:", [product1, product2, product3]);
         return res.json([product1, product2, product3]);
       }
 
@@ -168,6 +168,8 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ error: "No lineage data found" });
       }
 
+      // Get all edges where either source or target is one of our nodes
+      const nodeIds = nodes.map(n => n.id);
       const edges = await db
         .select()
         .from(lineageEdges)
@@ -213,24 +215,24 @@ export function registerRoutes(app: Express): Server {
         .from(metricDefinitions)
         .where(eq(metricDefinitions.dataProductId, productId));
 
-      // Generate historical data
+      // Generate historical data with safe null checks
       const today = new Date();
       const history = Array.from({ length: 7 }).map((_, i) => {
         const date = new Date();
         date.setDate(today.getDate() - i);
         return {
           timestamp: date.toISOString(),
-          completeness: metrics.completeness - Math.random() * 5,
-          accuracy: metrics.accuracy - Math.random() * 3,
-          timeliness: metrics.timeliness - Math.random() * 4
+          completeness: (metrics.completeness ?? 95) - Math.random() * 5,
+          accuracy: (metrics.accuracy ?? 98) - Math.random() * 3,
+          timeliness: (metrics.timeliness ?? 96) - Math.random() * 4
         };
       }).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
       return res.json({
         current: {
-          completeness: metrics.completeness,
-          accuracy: metrics.accuracy,
-          timeliness: metrics.timeliness,
+          completeness: metrics.completeness ?? 95,
+          accuracy: metrics.accuracy ?? 98,
+          timeliness: metrics.timeliness ?? 96,
           customMetrics: definitions,
         },
         history
