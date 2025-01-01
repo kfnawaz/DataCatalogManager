@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { SendHorizontal, MessageSquare, AlertCircle } from "lucide-react";
+import { SendHorizontal, MessageSquare, AlertCircle, ChevronDown, ChevronUp, BarChart2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import CommentAnalytics from "./CommentAnalytics";
 
 interface Comment {
   id: number;
@@ -40,6 +41,7 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
   const [newComment, setNewComment] = useState("");
   const [authorName, setAuthorName] = useState("");
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -104,12 +106,36 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
           <MessageSquare className="h-5 w-5" />
           <h3 className="font-semibold">Comments</h3>
         </div>
-        {comments.length > 0 && (
-          <span className="text-sm text-muted-foreground">
-            Total comments: {comments.length}
-          </span>
-        )}
+        <div className="flex items-center gap-4">
+          {comments.length > 0 && (
+            <span className="text-sm text-muted-foreground">
+              Total comments: {comments.length}
+            </span>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowAnalytics(!showAnalytics)}
+            className="flex items-center gap-2"
+          >
+            <BarChart2 className="h-4 w-4" />
+            {showAnalytics ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
+        </div>
       </div>
+
+      <AnimatePresence>
+        {showAnalytics && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <CommentAnalytics comments={comments} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
