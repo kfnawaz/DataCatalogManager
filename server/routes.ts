@@ -17,6 +17,33 @@ const openai = new OpenAI({
 });
 
 export function registerRoutes(app: Express): Server {
+  // Add health check endpoint for API status
+  app.get("/api/health", async (_req, res) => {
+    try {
+      // Test OpenAI API with a minimal request
+      await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: "test" }],
+        max_tokens: 1
+      });
+
+      res.json({
+        status: "healthy",
+        aiService: true,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      // If error is rate limit or auth, mark AI service as unavailable
+      const aiUnavailable = error.status === 429 || error.status === 401;
+
+      res.json({
+        status: aiUnavailable ? "limited" : "healthy",
+        aiService: !aiUnavailable,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // Data product routes
   app.get("/api/data-products", async (req, res) => {
     try {
