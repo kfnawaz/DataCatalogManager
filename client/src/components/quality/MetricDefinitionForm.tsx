@@ -31,7 +31,7 @@ const metricDefinitionSchema = z.object({
   type: z.enum(["completeness", "accuracy", "timeliness", "consistency", "uniqueness", "validity"]),
   templateId: z.string().optional(),
   formula: z.string().optional(),
-  parameters: z.record(z.any()).optional(),
+  parameters: z.record(z.string().min(1, "Parameter value is required")),
 });
 
 type MetricDefinitionForm = z.infer<typeof metricDefinitionSchema>;
@@ -75,7 +75,10 @@ export default function MetricDefinitionForm() {
       const response = await fetch("/api/metric-definitions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          templateId: data.templateId === "custom" ? null : parseInt(data.templateId || "0"),
+        }),
       });
 
       if (!response.ok) {
@@ -119,6 +122,24 @@ export default function MetricDefinitionForm() {
   };
 
   function onSubmit(data: MetricDefinitionForm) {
+    const template = templates?.find(t => t.id === parseInt(data.templateId || "0"));
+
+    // Validate required parameters if using a template
+    if (template) {
+      const missingParams = Object.entries(template.parameters)
+        .filter(([key, param]) => param.required && !data.parameters[key])
+        .map(([key]) => key);
+
+      if (missingParams.length > 0) {
+        toast({
+          variant: "destructive",
+          title: "Validation Error",
+          description: `Missing required parameters: ${missingParams.join(", ")}`,
+        });
+        return;
+      }
+    }
+
     createMetricMutation.mutate(data);
   }
 
@@ -280,6 +301,7 @@ export default function MetricDefinitionForm() {
                   />
                 </FormControl>
                 <FormDescription>{param.description}</FormDescription>
+                {param.required && <FormMessage>This field is required</FormMessage>}
                 <FormMessage />
               </FormItem>
             )}
