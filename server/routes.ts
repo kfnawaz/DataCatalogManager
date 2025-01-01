@@ -11,97 +11,138 @@ export function registerRoutes(app: Express): Server {
 
   // Data product routes
   app.get("/api/data-products", async (req, res) => {
-    const products = await db.select().from(dataProducts);
-    res.json(products);
+    try {
+      const products = await db.select().from(dataProducts);
+      console.log("Fetched data products:", products.length);
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching data products:", error);
+      res.status(500).json({ error: "Failed to fetch data products" });
+    }
   });
 
   app.get("/api/metadata/:id", async (req, res) => {
-    const [product] = await db
-      .select()
-      .from(dataProducts)
-      .where(eq(dataProducts.id, parseInt(req.params.id)))
-      .limit(1);
+    try {
+      console.log("Fetching metadata for id:", req.params.id);
+      const [product] = await db
+        .select()
+        .from(dataProducts)
+        .where(eq(dataProducts.id, parseInt(req.params.id)))
+        .limit(1);
 
-    if (!product) {
-      return res.status(404).send("Data product not found");
+      if (!product) {
+        console.log("No product found for id:", req.params.id);
+        return res.status(404).send("Data product not found");
+      }
+
+      console.log("Found product:", product.name);
+      res.json(product);
+    } catch (error) {
+      console.error("Error fetching metadata:", error);
+      res.status(500).json({ error: "Failed to fetch metadata" });
     }
-
-    res.json(product);
   });
 
   app.get("/api/lineage/:id", async (req, res) => {
-    const productId = parseInt(req.params.id);
-    const nodes = await db
-      .select()
-      .from(lineageNodes)
-      .where(eq(lineageNodes.dataProductId, productId));
+    try {
+      const productId = parseInt(req.params.id);
+      console.log("Fetching lineage for id:", productId);
 
-    const nodeIds = nodes.map(node => node.id);
+      const nodes = await db
+        .select()
+        .from(lineageNodes)
+        .where(eq(lineageNodes.dataProductId, productId));
 
-    // Fetch all edges where either source or target is in our nodes
-    const edges = await db
-      .select()
-      .from(lineageEdges)
-      .where(
-        or(
-          nodeIds.length > 0 ? eq(lineageEdges.sourceId, nodeIds[0]) : undefined,
-          nodeIds.length > 0 ? eq(lineageEdges.targetId, nodeIds[0]) : undefined
-        )
-      );
+      console.log("Found lineage nodes:", nodes.length);
 
-    res.json({
-      nodes: nodes.map(node => ({
-        id: node.id.toString(),
-        type: node.type,
-        label: node.details ? (node.details as any).name || `Node ${node.id}` : `Node ${node.id}`,
-      })),
-      links: edges.map(edge => ({
-        source: edge.sourceId.toString(),
-        target: edge.targetId.toString(),
-      })),
-    });
+      const nodeIds = nodes.map(node => node.id);
+      let edges: any[] = [];
+
+      if (nodeIds.length > 0) {
+        edges = await db
+          .select()
+          .from(lineageEdges)
+          .where(
+            or(
+              eq(lineageEdges.sourceId, nodeIds[0]),
+              eq(lineageEdges.targetId, nodeIds[0])
+            )
+          );
+        console.log("Found lineage edges:", edges.length);
+      }
+
+      res.json({
+        nodes: nodes.map(node => ({
+          id: node.id.toString(),
+          type: node.type,
+          label: node.details ? (node.details as any).name || `Node ${node.id}` : `Node ${node.id}`,
+        })),
+        links: edges.map(edge => ({
+          source: edge.sourceId.toString(),
+          target: edge.targetId.toString(),
+        })),
+      });
+    } catch (error) {
+      console.error("Error fetching lineage:", error);
+      res.status(500).json({ error: "Failed to fetch lineage" });
+    }
   });
 
   app.get("/api/quality-metrics/:id", async (req, res) => {
-    const metrics = await db
-      .select()
-      .from(qualityMetrics)
-      .where(eq(qualityMetrics.dataProductId, parseInt(req.params.id)))
-      .orderBy(qualityMetrics.timestamp);
+    try {
+      console.log("Fetching quality metrics for id:", req.params.id);
+      const metrics = await db
+        .select()
+        .from(qualityMetrics)
+        .where(eq(qualityMetrics.dataProductId, parseInt(req.params.id)))
+        .orderBy(qualityMetrics.timestamp);
 
-    if (metrics.length === 0) {
-      return res.status(404).send("No metrics found for this data product");
+      if (metrics.length === 0) {
+        console.log("No metrics found for id:", req.params.id);
+        return res.status(404).send("No metrics found for this data product");
+      }
+
+      console.log("Found metrics:", metrics.length);
+      const current = metrics[metrics.length - 1];
+      const history = metrics.map(m => ({
+        timestamp: m.timestamp,
+        completeness: m.completeness,
+        accuracy: m.accuracy,
+        timeliness: m.timeliness,
+      }));
+
+      res.json({
+        current: {
+          completeness: current.completeness,
+          accuracy: current.accuracy,
+          timeliness: current.timeliness,
+          customMetrics: current.customMetrics,
+        },
+        history,
+      });
+    } catch (error) {
+      console.error("Error fetching quality metrics:", error);
+      res.status(500).json({ error: "Failed to fetch quality metrics" });
     }
-
-    const current = metrics[metrics.length - 1];
-    const history = metrics.map(m => ({
-      timestamp: m.timestamp,
-      completeness: m.completeness,
-      accuracy: m.accuracy,
-      timeliness: m.timeliness,
-    }));
-
-    res.json({
-      current: {
-        completeness: current.completeness,
-        accuracy: current.accuracy,
-        timeliness: current.timeliness,
-        customMetrics: current.customMetrics,
-      },
-      history,
-    });
   });
 
   app.get("/api/search", async (req, res) => {
-    const query = (req.query.q as string || "").toLowerCase();
-    const products = await db.select().from(dataProducts);
+    try {
+      const query = (req.query.q as string || "").toLowerCase();
+      console.log("Search query:", query);
+      const products = await db.select().from(dataProducts);
 
-    const results = products.filter(product => 
-      product.name.toLowerCase().includes(query) ||
-      product.tags?.some(tag => tag.toLowerCase().includes(query))
-    );
+      const results = products.filter(product => 
+        product.name.toLowerCase().includes(query) ||
+        product.tags?.some(tag => tag.toLowerCase().includes(query))
+      );
 
-    res.json(results);
+      console.log("Search results:", results.length);
+      res.json(results);
+    } catch (error) {
+      console.error("Error searching products:", error);
+      res.status(500).json({ error: "Failed to search products" });
+    }
   });
 
   const httpServer = createServer(app);

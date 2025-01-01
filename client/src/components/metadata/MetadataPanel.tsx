@@ -60,23 +60,23 @@ export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
             <TableBody>
               <TableRow>
                 <TableCell className="font-medium">Name</TableCell>
-                <TableCell>{metadata.name}</TableCell>
+                <TableCell>{metadata?.name || 'N/A'}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Description</TableCell>
-                <TableCell>{metadata.description || 'No description available'}</TableCell>
+                <TableCell>{metadata?.description || 'No description available'}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Owner</TableCell>
-                <TableCell>{metadata.owner}</TableCell>
+                <TableCell>{metadata?.owner || 'N/A'}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">SLA</TableCell>
-                <TableCell>{metadata.sla || 'Not specified'}</TableCell>
+                <TableCell>{metadata?.sla || 'Not specified'}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Update Frequency</TableCell>
-                <TableCell>{metadata.updateFrequency || 'Not specified'}</TableCell>
+                <TableCell>{metadata?.updateFrequency || 'Not specified'}</TableCell>
               </TableRow>
             </TableBody>
           </Table>
@@ -93,13 +93,19 @@ export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {metadata.schema.columns.map((column) => (
+              {metadata?.schema?.columns?.map((column) => (
                 <TableRow key={column.name}>
                   <TableCell>{column.name}</TableCell>
                   <TableCell>{column.type}</TableCell>
                   <TableCell>{column.description || 'No description'}</TableCell>
                 </TableRow>
-              ))}
+              )) || (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-muted-foreground">
+                    No schema information available
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </section>
@@ -107,12 +113,11 @@ export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
         <section>
           <h3 className="text-lg font-semibold mb-2">Tags</h3>
           <div className="flex gap-2 flex-wrap">
-            {metadata.tags?.map((tag) => (
+            {metadata?.tags?.map((tag) => (
               <Badge key={tag} variant="secondary">
                 {tag}
               </Badge>
-            ))} 
-            {(!metadata.tags || metadata.tags.length === 0) && (
+            )) || (
               <span className="text-sm text-muted-foreground">No tags available</span>
             )}
           </div>

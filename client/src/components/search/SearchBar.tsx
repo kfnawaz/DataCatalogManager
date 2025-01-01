@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Command } from "cmdk";
-import { Search } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -10,15 +10,23 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { Badge } from "@/components/ui/badge";
 
 interface SearchBarProps {
   onSelect: (id: number) => void;
 }
 
+interface DataProduct {
+  id: number;
+  name: string;
+  tags?: string[];
+}
+
 export default function SearchBar({ onSelect }: SearchBarProps) {
   const [open, setOpen] = useState(false);
-  const { data: searchResults } = useQuery({
-    queryKey: ["/api/search"],
+  const { data: searchResults, isLoading, error } = useQuery<DataProduct[]>({
+    queryKey: ["/api/data-products"],
+    staleTime: 30000, // Consider results fresh for 30 seconds
   });
 
   return (
@@ -38,24 +46,43 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
         <CommandInput placeholder="Search data products..." />
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
-          <CommandGroup heading="Data Products">
-            {searchResults?.map((item: any) => (
-              <CommandItem
-                key={item.id}
-                onSelect={() => {
-                  onSelect(item.id);
-                  setOpen(false);
-                }}
-              >
-                {item.name}
-                {item.tags && (
-                  <span className="ml-2 text-xs text-muted-foreground">
-                    {item.tags.join(", ")}
-                  </span>
-                )}
-              </CommandItem>
-            ))}
-          </CommandGroup>
+          {isLoading && (
+            <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              Loading data products...
+            </div>
+          )}
+          {error && (
+            <div className="py-6 text-center">
+              <p className="text-sm text-destructive">Failed to load data products</p>
+            </div>
+          )}
+          {searchResults && (
+            <CommandGroup heading="Data Products">
+              {searchResults.map((item) => (
+                <CommandItem
+                  key={item.id}
+                  onSelect={() => {
+                    onSelect(item.id);
+                    setOpen(false);
+                  }}
+                >
+                  <div className="flex flex-col gap-1">
+                    <span>{item.name}</span>
+                    {item.tags && item.tags.length > 0 && (
+                      <div className="flex gap-1">
+                        {item.tags.map((tag) => (
+                          <Badge key={tag} variant="secondary" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
         </CommandList>
       </CommandDialog>
     </>
