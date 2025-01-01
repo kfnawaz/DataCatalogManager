@@ -8,6 +8,7 @@ import MetadataPanel from "../components/metadata/MetadataPanel";
 import LineageGraph from "../components/lineage/LineageGraph";
 import QualityMetrics from "../components/quality/QualityMetrics";
 import SearchBar from "../components/search/SearchBar";
+import { ThemeToggle } from "../components/theme/theme-toggle";
 import { LogOut } from "lucide-react";
 
 interface DataProduct {
@@ -59,6 +60,7 @@ export default function DashboardPage() {
             <span className="text-sm text-muted-foreground">
               Welcome, {user?.username}
             </span>
+            <ThemeToggle />
             <Button variant="ghost" size="icon" onClick={handleLogout}>
               <LogOut className="h-4 w-4" />
             </Button>
