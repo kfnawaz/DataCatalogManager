@@ -8,11 +8,11 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Create postgres connection
+// Create postgres connection with proper configuration
 const client = postgres(process.env.DATABASE_URL, {
   max: 1,
-  ssl: true,
-  prepare: false
+  ssl: 'require',
+  connect_timeout: 10,
 });
 
 // Create drizzle database instance

@@ -15,41 +15,63 @@ export function registerRoutes(app: Express): Server {
       // If no products exist, create sample data
       if (products.length === 0) {
         console.log("No products found, creating sample data...");
-        const [product1, product2] = await db.insert(dataProducts).values([
+        const [product1, product2, product3] = await db.insert(dataProducts).values([
           {
-            name: "Customer Data Lake",
-            description: "Central repository for all customer-related data",
-            owner: "Data Engineering Team",
+            name: "Trading Data Warehouse",
+            description: "Centralized repository for all trading and market data",
+            owner: "Trading Technology Team",
             schema: {
               columns: [
-                { name: "customer_id", type: "string", description: "Unique identifier" },
-                { name: "name", type: "string", description: "Customer name" },
-                { name: "email", type: "string", description: "Email address" }
+                { name: "trade_id", type: "string", description: "Unique trade identifier" },
+                { name: "instrument_id", type: "string", description: "Financial instrument identifier" },
+                { name: "price", type: "decimal", description: "Trade execution price" },
+                { name: "quantity", type: "integer", description: "Number of units traded" },
+                { name: "timestamp", type: "timestamp", description: "Trade execution time" },
+                { name: "counterparty", type: "string", description: "Trading counterparty" }
               ]
             },
-            tags: ["customer", "core"],
-            sla: "99.9%",
+            tags: ["trading", "market-data", "core"],
+            sla: "99.99%",
             updateFrequency: "Real-time",
           },
           {
-            name: "Sales Analytics",
-            description: "Sales performance metrics and analysis",
-            owner: "Analytics Team",
+            name: "Risk Analytics Platform",
+            description: "Risk calculations and exposure analysis for trading positions",
+            owner: "Risk Management Team",
             schema: {
               columns: [
-                { name: "sale_id", type: "string", description: "Sale identifier" },
-                { name: "amount", type: "number", description: "Sale amount" },
-                { name: "date", type: "timestamp", description: "Sale date" }
+                { name: "position_id", type: "string", description: "Position identifier" },
+                { name: "var_value", type: "decimal", description: "Value at Risk calculation" },
+                { name: "exposure", type: "decimal", description: "Current exposure amount" },
+                { name: "risk_factors", type: "jsonb", description: "Risk factor sensitivities" },
+                { name: "stress_scenarios", type: "jsonb", description: "Stress test results" }
               ]
             },
-            tags: ["sales", "analytics"],
-            sla: "99.5%",
+            tags: ["risk", "analytics", "compliance"],
+            sla: "99.9%",
+            updateFrequency: "Hourly",
+          },
+          {
+            name: "Client Portfolio Management",
+            description: "Client investment portfolios and performance tracking",
+            owner: "Portfolio Management Team",
+            schema: {
+              columns: [
+                { name: "portfolio_id", type: "string", description: "Portfolio identifier" },
+                { name: "client_id", type: "string", description: "Client reference" },
+                { name: "holdings", type: "jsonb", description: "Current portfolio holdings" },
+                { name: "performance", type: "decimal", description: "Portfolio performance" },
+                { name: "allocation", type: "jsonb", description: "Asset allocation" }
+              ]
+            },
+            tags: ["portfolio", "client", "investment"],
+            sla: "99.95%",
             updateFrequency: "Daily",
           }
         ]).returning();
 
-        console.log("Created sample products:", [product1, product2]);
-        return res.json([product1, product2]);
+        console.log("Created sample products:", [product1, product2, product3]);
+        return res.json([product1, product2, product3]);
       }
 
       return res.json(products);
@@ -68,9 +90,11 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Invalid product ID" });
       }
 
-      const product = await db.query.dataProducts.findFirst({
-        where: eq(dataProducts.id, productId)
-      });
+      const [product] = await db
+        .select()
+        .from(dataProducts)
+        .where(eq(dataProducts.id, productId))
+        .limit(1);
 
       console.log("Found product:", product);
 
@@ -86,6 +110,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Lineage routes
   app.get("/api/lineage/:id", async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
@@ -93,7 +118,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Invalid product ID" });
       }
 
-      const nodes = await db
+      let nodes = await db
         .select()
         .from(lineageNodes)
         .where(eq(lineageNodes.dataProductId, productId));
@@ -104,17 +129,17 @@ export function registerRoutes(app: Express): Server {
           {
             dataProductId: productId,
             type: "source",
-            details: { name: "Raw Data Source" }
+            details: { name: "Market Data Feed", description: "Real-time market data source" }
           },
           {
             dataProductId: productId,
             type: "transformation",
-            details: { name: "ETL Process" }
+            details: { name: "Data Processing Pipeline", description: "ETL and enrichment process" }
           },
           {
             dataProductId: productId,
             type: "target",
-            details: { name: "Analytics Dashboard" }
+            details: { name: "Trading Platform", description: "Real-time trading system" }
           }
         ]).returning();
 
@@ -123,17 +148,7 @@ export function registerRoutes(app: Express): Server {
           { sourceId: transform.id, targetId: target.id }
         ]);
 
-        return res.json({
-          nodes: [source, transform, target].map(node => ({
-            id: node.id.toString(),
-            type: node.type,
-            label: node.details?.name || `Node ${node.id}`,
-          })),
-          links: [
-            { source: source.id.toString(), target: transform.id.toString() },
-            { source: transform.id.toString(), target: target.id.toString() }
-          ]
-        });
+        nodes = [source, transform, target];
       }
 
       const edges = await db
@@ -158,6 +173,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Quality metrics routes
   app.get("/api/quality-metrics/:id", async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
@@ -173,12 +189,13 @@ export function registerRoutes(app: Express): Server {
       if (metrics.length === 0) {
         const [newMetrics] = await db.insert(qualityMetrics).values({
           dataProductId: productId,
-          completeness: 95,
-          accuracy: 98,
-          timeliness: 92,
+          completeness: 98,
+          accuracy: 99,
+          timeliness: 97,
           customMetrics: {
-            data_freshness: 90,
-            schema_compliance: 100
+            data_freshness: 95,
+            schema_compliance: 100,
+            data_consistency: 98
           }
         }).returning();
 
@@ -190,6 +207,19 @@ export function registerRoutes(app: Express): Server {
         .from(metricDefinitions)
         .where(eq(metricDefinitions.dataProductId, productId));
 
+      // Generate historical data
+      const today = new Date();
+      const history = Array.from({ length: 7 }).map((_, i) => {
+        const date = new Date();
+        date.setDate(today.getDate() - i);
+        return {
+          timestamp: date.toISOString(),
+          completeness: metrics[0].completeness - Math.random() * 5,
+          accuracy: metrics[0].accuracy - Math.random() * 3,
+          timeliness: metrics[0].timeliness - Math.random() * 4
+        };
+      });
+
       return res.json({
         current: {
           completeness: metrics[0].completeness,
@@ -197,12 +227,7 @@ export function registerRoutes(app: Express): Server {
           timeliness: metrics[0].timeliness,
           customMetrics: definitions,
         },
-        history: [{
-          timestamp: metrics[0].timestamp?.toISOString() || new Date().toISOString(),
-          completeness: metrics[0].completeness,
-          accuracy: metrics[0].accuracy,
-          timeliness: metrics[0].timeliness,
-        }]
+        history
       });
     } catch (error) {
       console.error("Error fetching quality metrics:", error);
