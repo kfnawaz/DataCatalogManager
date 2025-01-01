@@ -15,7 +15,13 @@ export const dataProducts = pgTable("data_products", {
   name: text("name").notNull(),
   description: text("description"),
   owner: text("owner").notNull(),
-  schema: jsonb("schema").notNull(),
+  schema: jsonb("schema").$type<{
+    columns: Array<{
+      name: string;
+      type: string;
+      description?: string;
+    }>;
+  }>().notNull(),
   tags: text("tags").array(),
   sla: text("sla"),
   updateFrequency: text("update_frequency"),
@@ -39,7 +45,10 @@ export const lineageNodes = pgTable("lineage_nodes", {
   id: serial("id").primaryKey(),
   dataProductId: integer("data_product_id").references(() => dataProducts.id).notNull(),
   type: text("type").notNull(),
-  details: jsonb("details"),
+  details: jsonb("details").$type<{
+    name: string;
+    description?: string;
+  }>(),
 });
 
 export const lineageEdges = pgTable("lineage_edges", {
@@ -54,7 +63,7 @@ export const qualityMetrics = pgTable("quality_metrics", {
   completeness: integer("completeness"),
   accuracy: integer("accuracy"),
   timeliness: integer("timeliness"),
-  customMetrics: jsonb("custom_metrics"),
+  customMetrics: jsonb("custom_metrics").$type<Record<string, number>>(),
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
