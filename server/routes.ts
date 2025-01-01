@@ -10,6 +10,11 @@ import {
   comments 
 } from "@db/schema";
 import { eq, desc, sql } from "drizzle-orm";
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export function registerRoutes(app: Express): Server {
   // Data product routes
@@ -419,6 +424,69 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error rolling back metric definition:", error);
       res.status(500).json({ error: "Failed to rollback metric definition" });
+    }
+  });
+
+  // Add new route for comment summarization
+  app.post("/api/data-products/:id/comments/summarize", async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      if (isNaN(productId)) {
+        return res.status(400).json({ 
+          error: "Invalid input",
+          details: "Product ID must be a valid number" 
+        });
+      }
+
+      // Get all comments for the product
+      const productComments = await db
+        .select()
+        .from(comments)
+        .where(eq(comments.dataProductId, productId))
+        .orderBy(desc(comments.createdAt));
+
+      if (productComments.length === 0) {
+        return res.json({ 
+          summary: "No comments available to summarize.",
+          commentCount: 0 
+        });
+      }
+
+      // Prepare comments for summarization
+      const commentsText = productComments
+        .map(c => `${c.authorName}: ${c.content}`)
+        .join("\n");
+
+      // Generate summary using OpenAI
+      const completion = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "system",
+            content: "You are a helpful assistant that summarizes user comments. Provide a concise summary that captures the main points and sentiment of the comments."
+          },
+          {
+            role: "user",
+            content: `Please summarize these comments:\n${commentsText}`
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 150
+      });
+
+      const summary = completion.choices[0]?.message?.content || "Unable to generate summary.";
+
+      res.json({
+        summary,
+        commentCount: productComments.length,
+        lastUpdated: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error summarizing comments:", error);
+      res.status(500).json({ 
+        error: "Internal server error",
+        details: "Failed to generate comment summary. Please try again later."
+      });
     }
   });
 

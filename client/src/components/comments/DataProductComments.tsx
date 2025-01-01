@@ -12,6 +12,7 @@ import { SendHorizontal, MessageSquare, AlertCircle, ChevronDown, ChevronUp, Bar
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import CommentAnalytics from "./CommentAnalytics";
+import CommentSummary from "./CommentSummary";
 
 interface Comment {
   id: number;
@@ -132,7 +133,10 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <CommentAnalytics comments={comments} />
+            <div className="space-y-4">
+              <CommentAnalytics comments={comments} />
+              <CommentSummary dataProductId={dataProductId} />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -164,11 +168,7 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
               className={`min-h-[80px] ${validationErrors.content ? "border-red-500" : ""}`}
               required
             />
-            <Button 
-              type="submit" 
-              size="icon"
-              disabled={addCommentMutation.isPending}
-            >
+            <Button type="submit" size="icon" disabled={addCommentMutation.isPending}>
               <SendHorizontal className="h-4 w-4" />
             </Button>
           </div>
