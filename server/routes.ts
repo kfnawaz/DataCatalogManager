@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
 import { dataProducts, lineageNodes, lineageEdges, qualityMetrics } from "@db/schema";
-import { eq } from "drizzle-orm";
+import { eq, or, and } from "drizzle-orm";
 
 export function registerRoutes(app: Express): Server {
   // Setup authentication routes
@@ -30,26 +30,30 @@ export function registerRoutes(app: Express): Server {
   });
 
   app.get("/api/lineage/:id", async (req, res) => {
+    const productId = parseInt(req.params.id);
     const nodes = await db
       .select()
       .from(lineageNodes)
-      .where(eq(lineageNodes.dataProductId, parseInt(req.params.id)));
+      .where(eq(lineageNodes.dataProductId, productId));
 
     const nodeIds = nodes.map(node => node.id);
+
+    // Fetch all edges where either source or target is in our nodes
     const edges = await db
       .select()
       .from(lineageEdges)
       .where(
-        nodeIds.length > 0
-          ? eq(lineageEdges.sourceId, nodeIds[0])
-          : undefined
+        or(
+          nodeIds.length > 0 ? eq(lineageEdges.sourceId, nodeIds[0]) : undefined,
+          nodeIds.length > 0 ? eq(lineageEdges.targetId, nodeIds[0]) : undefined
+        )
       );
 
     res.json({
       nodes: nodes.map(node => ({
         id: node.id.toString(),
         type: node.type,
-        label: (node.details as any)?.name || `Node ${node.id}`,
+        label: node.details ? (node.details as any).name || `Node ${node.id}` : `Node ${node.id}`,
       })),
       links: edges.map(edge => ({
         source: edge.sourceId.toString(),
@@ -91,7 +95,7 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/search", async (req, res) => {
     const query = (req.query.q as string || "").toLowerCase();
     const products = await db.select().from(dataProducts);
-    
+
     const results = products.filter(product => 
       product.name.toLowerCase().includes(query) ||
       product.tags?.some(tag => tag.toLowerCase().includes(query))
