@@ -17,9 +17,9 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-73px)]">
-      <div className="max-w-3xl w-full px-4 text-center space-y-8">
-        <div className="space-y-4">
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+      <div className="max-w-3xl w-full px-4 text-center space-y-6 -mt-20">
+        <div className="space-y-3">
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
             Enterprise Data Catalog
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground">
