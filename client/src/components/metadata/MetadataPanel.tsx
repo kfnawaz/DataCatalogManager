@@ -42,7 +42,8 @@ export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
       if (!dataProductId) throw new Error("No data product selected");
       const response = await fetch(`/api/metadata/${dataProductId}`);
       if (!response.ok) {
-        throw new Error(`Failed to fetch metadata: ${await response.text()}`);
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch metadata: ${errorText}`);
       }
       return response.json();
     },

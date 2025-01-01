@@ -23,6 +23,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ error: "Data product not found" });
       }
 
+      res.setHeader('Content-Type', 'application/json');
       return res.json({
         id: product.id,
         name: product.name,
@@ -141,9 +142,11 @@ export function registerRoutes(app: Express): Server {
           })
         );
 
+        res.setHeader('Content-Type', 'application/json');
         return res.json([product1, product2, product3]);
       }
 
+      res.setHeader('Content-Type', 'application/json');
       return res.json(products);
     } catch (error) {
       console.error("Error fetching data products:", error);
@@ -175,6 +178,7 @@ export function registerRoutes(app: Express): Server {
         .from(lineageEdges)
         .where(eq(lineageEdges.sourceId, nodes[0].id));
 
+      res.setHeader('Content-Type', 'application/json');
       return res.json({
         nodes: nodes.map(node => ({
           id: node.id.toString(),
@@ -228,6 +232,7 @@ export function registerRoutes(app: Express): Server {
         };
       }).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
+      res.setHeader('Content-Type', 'application/json');
       return res.json({
         current: {
           completeness: metrics.completeness ?? 95,
