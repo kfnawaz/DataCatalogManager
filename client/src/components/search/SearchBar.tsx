@@ -24,15 +24,10 @@ interface DataProduct {
 
 export default function SearchBar({ onSelect }: SearchBarProps) {
   const [open, setOpen] = useState(false);
-  const { data: products, isLoading, error } = useQuery<DataProduct[]>({
+  const { data: searchResults, isLoading, error } = useQuery<DataProduct[]>({
     queryKey: ["/api/data-products"],
+    staleTime: 30000, // Consider results fresh for 30 seconds
   });
-
-  const handleSelect = (id: number) => {
-    console.log("Selected product ID:", id);
-    onSelect(id);
-    setOpen(false);
-  };
 
   return (
     <>
@@ -62,19 +57,21 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
               <p className="text-sm text-destructive">Failed to load data products</p>
             </div>
           )}
-          {products && (
+          {searchResults && (
             <CommandGroup heading="Data Products">
-              {products.map((product) => (
+              {searchResults.map((item) => (
                 <CommandItem
-                  key={product.id}
-                  onSelect={() => handleSelect(product.id)}
-                  className="cursor-pointer"
+                  key={item.id}
+                  onSelect={() => {
+                    onSelect(item.id);
+                    setOpen(false);
+                  }}
                 >
                   <div className="flex flex-col gap-1">
-                    <span className="font-medium">{product.name}</span>
-                    {product.tags && product.tags.length > 0 && (
+                    <span>{item.name}</span>
+                    {item.tags && item.tags.length > 0 && (
                       <div className="flex gap-1">
-                        {product.tags.map((tag) => (
+                        {item.tags.map((tag) => (
                           <Badge key={tag} variant="secondary" className="text-xs">
                             {tag}
                           </Badge>

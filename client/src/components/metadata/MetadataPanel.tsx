@@ -10,8 +10,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
 
 interface SchemaColumn {
   name: string;
@@ -36,17 +34,8 @@ interface MetadataPanelProps {
 }
 
 export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
-  const { data: metadata, isLoading, error } = useQuery<Metadata>({
-    queryKey: ["/api/metadata", dataProductId],
-    queryFn: async () => {
-      if (!dataProductId) throw new Error("No data product selected");
-      const response = await fetch(`/api/metadata/${dataProductId}`);
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to fetch metadata: ${errorText}`);
-      }
-      return response.json();
-    },
+  const { data: metadata, isLoading } = useQuery<Metadata>({
+    queryKey: [`/api/metadata/${dataProductId}`],
     enabled: dataProductId !== null,
   });
 
@@ -60,17 +49,6 @@ export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
 
   if (isLoading) {
     return <MetadataSkeleton />;
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          {error instanceof Error ? error.message : "Failed to load metadata"}
-        </AlertDescription>
-      </Alert>
-    );
   }
 
   if (!metadata) {
@@ -144,7 +122,7 @@ export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
           <h3 className="text-lg font-semibold mb-2 text-foreground">Tags</h3>
           <div className="flex gap-2 flex-wrap">
             {metadata.tags?.map((tag) => (
-              <Badge key={tag} variant="secondary">
+              <Badge key={tag} variant="secondary" className="text-foreground">
                 {tag}
               </Badge>
             )) || (

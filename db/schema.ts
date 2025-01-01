@@ -15,13 +15,7 @@ export const dataProducts = pgTable("data_products", {
   name: text("name").notNull(),
   description: text("description"),
   owner: text("owner").notNull(),
-  schema: jsonb("schema").$type<{
-    columns: Array<{
-      name: string;
-      type: string;
-      description?: string;
-    }>;
-  }>().notNull(),
+  schema: jsonb("schema").notNull(),
   tags: text("tags").array(),
   sla: text("sla"),
   updateFrequency: text("update_frequency"),
@@ -29,26 +23,11 @@ export const dataProducts = pgTable("data_products", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const metricDefinitions = pgTable("metric_definitions", {
-  id: serial("id").primaryKey(),
-  dataProductId: integer("data_product_id").references(() => dataProducts.id).notNull(),
-  name: text("name").notNull(),
-  description: text("description"),
-  query: text("query").notNull(),
-  threshold: integer("threshold"),
-  enabled: boolean("enabled").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
 export const lineageNodes = pgTable("lineage_nodes", {
   id: serial("id").primaryKey(),
   dataProductId: integer("data_product_id").references(() => dataProducts.id).notNull(),
-  type: text("type").notNull(),
-  details: jsonb("details").$type<{
-    name: string;
-    description?: string;
-  }>(),
+  type: text("type").notNull(), // source, transformation, target
+  details: jsonb("details"),
 });
 
 export const lineageEdges = pgTable("lineage_edges", {
@@ -63,14 +42,14 @@ export const qualityMetrics = pgTable("quality_metrics", {
   completeness: integer("completeness"),
   accuracy: integer("accuracy"),
   timeliness: integer("timeliness"),
-  customMetrics: jsonb("custom_metrics").$type<Record<string, number>>(),
+  customMetrics: jsonb("custom_metrics"),
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
+// Relations
 export const dataProductRelations = relations(dataProducts, ({ many }) => ({
   lineageNodes: many(lineageNodes),
   qualityMetrics: many(qualityMetrics),
-  metricDefinitions: many(metricDefinitions),
 }));
 
 export const lineageNodeRelations = relations(lineageNodes, ({ one, many }) => ({
@@ -93,20 +72,18 @@ export const lineageEdgeRelations = relations(lineageEdges, ({ one }) => ({
   }),
 }));
 
+// Schemas for validation
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 export const insertDataProductSchema = createInsertSchema(dataProducts);
 export const selectDataProductSchema = createSelectSchema(dataProducts);
 export const insertQualityMetricSchema = createInsertSchema(qualityMetrics);
 export const selectQualityMetricSchema = createSelectSchema(qualityMetrics);
-export const insertMetricDefinitionSchema = createInsertSchema(metricDefinitions);
-export const selectMetricDefinitionSchema = createSelectSchema(metricDefinitions);
 
+// Types
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type DataProduct = typeof dataProducts.$inferSelect;
 export type NewDataProduct = typeof dataProducts.$inferInsert;
 export type QualityMetric = typeof qualityMetrics.$inferSelect;
 export type NewQualityMetric = typeof qualityMetrics.$inferInsert;
-export type MetricDefinition = typeof metricDefinitions.$inferSelect;
-export type NewMetricDefinition = typeof metricDefinitions.$inferInsert;

@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const [selectedDataProduct, setSelectedDataProduct] = useState<number | null>(null);
 
   const { data: selectedProduct } = useQuery<DataProduct>({
-    queryKey: ["/api/metadata", selectedDataProduct],
+    queryKey: [`/api/metadata/${selectedDataProduct}`],
     enabled: selectedDataProduct !== null,
   });
 
@@ -46,7 +46,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
@@ -92,7 +92,7 @@ export default function DashboardPage() {
               <TabsContent value="metadata">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-foreground">Metadata Management</CardTitle>
+                    <CardTitle>Metadata Management</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <MetadataPanel dataProductId={selectedDataProduct} />
@@ -103,7 +103,7 @@ export default function DashboardPage() {
               <TabsContent value="lineage">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-foreground">Data Lineage</CardTitle>
+                    <CardTitle>Data Lineage</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <LineageGraph dataProductId={selectedDataProduct} />
@@ -114,7 +114,7 @@ export default function DashboardPage() {
               <TabsContent value="quality">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-foreground">Quality Metrics</CardTitle>
+                    <CardTitle>Quality Metrics</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <QualityMetrics dataProductId={selectedDataProduct} />
