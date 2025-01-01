@@ -2,9 +2,10 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface CommentSummaryProps {
   dataProductId: number;
@@ -16,8 +17,14 @@ interface SummaryResponse {
   lastUpdated: string;
 }
 
+interface ErrorResponse {
+  error: string;
+  details: string;
+}
+
 export default function CommentSummary({ dataProductId }: CommentSummaryProps) {
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const summarizeMutation = useMutation({
@@ -28,20 +35,22 @@ export default function CommentSummary({ dataProductId }: CommentSummaryProps) {
       });
 
       if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error);
+        const errorData = await response.json() as ErrorResponse;
+        throw new Error(errorData.details || "Failed to generate summary");
       }
 
       return response.json() as Promise<SummaryResponse>;
     },
     onSuccess: (data) => {
       setSummary(data);
+      setError(null);
     },
     onError: (error: Error) => {
+      setError(error.message);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to generate summary",
+        description: error.message,
       });
     },
   });
@@ -63,7 +72,12 @@ export default function CommentSummary({ dataProductId }: CommentSummaryProps) {
         </Button>
       </CardHeader>
       <CardContent>
-        {summary ? (
+        {error ? (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : summary ? (
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">{summary.summary}</p>
             <div className="flex items-center justify-between text-xs text-muted-foreground">

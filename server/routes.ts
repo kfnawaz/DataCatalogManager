@@ -457,30 +457,54 @@ export function registerRoutes(app: Express): Server {
         .map(c => `${c.authorName}: ${c.content}`)
         .join("\n");
 
-      // Generate summary using OpenAI
-      const completion = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "system",
-            content: "You are a helpful assistant that summarizes user comments. Provide a concise summary that captures the main points and sentiment of the comments."
-          },
-          {
-            role: "user",
-            content: `Please summarize these comments:\n${commentsText}`
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 150
-      });
+      try {
+        // Generate summary using OpenAI
+        const completion = await openai.chat.completions.create({
+          model: "gpt-3.5-turbo",
+          messages: [
+            {
+              role: "system",
+              content: "You are a helpful assistant that summarizes user comments. Provide a concise summary that captures the main points and sentiment of the comments."
+            },
+            {
+              role: "user",
+              content: `Please summarize these comments:\n${commentsText}`
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 150
+        });
 
-      const summary = completion.choices[0]?.message?.content || "Unable to generate summary.";
+        const summary = completion.choices[0]?.message?.content || "Unable to generate summary.";
 
-      res.json({
-        summary,
-        commentCount: productComments.length,
-        lastUpdated: new Date().toISOString()
-      });
+        res.json({
+          summary,
+          commentCount: productComments.length,
+          lastUpdated: new Date().toISOString()
+        });
+      } catch (openaiError: any) {
+        console.error("OpenAI API Error:", openaiError);
+
+        // Handle specific OpenAI errors
+        if (openaiError.status === 429) {
+          return res.status(429).json({
+            error: "API Rate Limit",
+            details: "The AI service is currently unavailable due to rate limiting. Please try again later."
+          });
+        }
+
+        if (openaiError.status === 401) {
+          return res.status(401).json({
+            error: "API Authentication",
+            details: "Unable to authenticate with the AI service. Please contact support."
+          });
+        }
+
+        return res.status(500).json({
+          error: "AI Service Error",
+          details: "Failed to generate summary due to an AI service error. Please try again later."
+        });
+      }
     } catch (error) {
       console.error("Error summarizing comments:", error);
       res.status(500).json({ 
