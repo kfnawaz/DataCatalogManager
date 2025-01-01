@@ -7,7 +7,7 @@ export default function NavBar() {
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <div className="flex items-center gap-8">
           <div className="text-2xl font-bold">
-            <Link href="/" className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+            <Link href="/" className="dark:text-foreground text-foreground hover:opacity-90 transition-opacity">
               Data Catalog
             </Link>
           </div>
