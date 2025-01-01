@@ -147,6 +147,27 @@ export const selectCommentSchema = createSelectSchema(comments);
 export const insertMetricDefinitionVersionSchema = createInsertSchema(metricDefinitionVersions);
 export const selectMetricDefinitionVersionSchema = createSelectSchema(metricDefinitionVersions);
 
+// Add API usage tracking table
+export const apiUsage = pgTable("api_usage", {
+  id: serial("id").primaryKey(),
+  endpoint: text("endpoint").notNull(),
+  statusCode: integer("status_code").notNull(),
+  errorType: text("error_type"),
+  timestamp: timestamp("timestamp").defaultNow(),
+  metadata: jsonb("metadata"),
+  quotaUsed: integer("quota_used"),
+  isSuccessful: boolean("is_successful").notNull(),
+});
+
+// Add schema for API usage
+export const insertApiUsageSchema = createInsertSchema(apiUsage);
+export const selectApiUsageSchema = createSelectSchema(apiUsage);
+
+// Add types for API usage
+export type ApiUsage = typeof apiUsage.$inferSelect;
+export type NewApiUsage = typeof apiUsage.$inferInsert;
+
+
 // Types
 export type DataProduct = typeof dataProducts.$inferSelect;
 export type NewDataProduct = typeof dataProducts.$inferInsert;

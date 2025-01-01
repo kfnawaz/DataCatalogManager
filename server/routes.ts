@@ -11,12 +11,25 @@ import {
 } from "@db/schema";
 import { eq, desc, sql } from "drizzle-orm";
 import OpenAI from "openai";
+import { trackApiUsage, getApiUsageStats } from "./utils/apiTracker";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 export function registerRoutes(app: Express): Server {
+  // Add usage stats endpoint
+  app.get("/api/usage-stats", async (req, res) => {
+    try {
+      const timeframe = (req.query.timeframe || 'day') as 'day' | 'week' | 'month';
+      const stats = await getApiUsageStats(timeframe);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching API usage stats:", error);
+      res.status(500).json({ error: "Failed to fetch API usage statistics" });
+    }
+  });
+
   // Add health check endpoint for API status
   app.get("/api/health", async (_req, res) => {
     try {
@@ -459,6 +472,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const productId = parseInt(req.params.id);
       if (isNaN(productId)) {
+        await trackApiUsage("/api/data-products/:id/comments/summarize", 400, "InvalidInput");
         return res.status(400).json({ 
           error: "Invalid input",
           details: "Product ID must be a valid number" 
@@ -473,6 +487,7 @@ export function registerRoutes(app: Express): Server {
         .orderBy(desc(comments.createdAt));
 
       if (productComments.length === 0) {
+        await trackApiUsage("/api/data-products/:id/comments/summarize", 200, null, 0);
         return res.json({ 
           summary: "No comments available to summarize.",
           commentCount: 0 
@@ -504,6 +519,8 @@ export function registerRoutes(app: Express): Server {
 
         const summary = completion.choices[0]?.message?.content || "Unable to generate summary.";
 
+        await trackApiUsage("/api/data-products/:id/comments/summarize", 200, null, completion.usage?.total_tokens);
+
         res.json({
           summary,
           commentCount: productComments.length,
@@ -514,6 +531,7 @@ export function registerRoutes(app: Express): Server {
 
         // Handle specific OpenAI errors
         if (openaiError.status === 429) {
+          await trackApiUsage("/api/data-products/:id/comments/summarize", 429, "RateLimit");
           return res.status(429).json({
             error: "API Rate Limit",
             details: "The AI service is currently unavailable due to rate limiting. Please try again later."
@@ -521,12 +539,14 @@ export function registerRoutes(app: Express): Server {
         }
 
         if (openaiError.status === 401) {
+          await trackApiUsage("/api/data-products/:id/comments/summarize", 401, "Authentication");
           return res.status(401).json({
             error: "API Authentication",
             details: "Unable to authenticate with the AI service. Please contact support."
           });
         }
 
+        await trackApiUsage("/api/data-products/:id/comments/summarize", 500, openaiError.type);
         return res.status(500).json({
           error: "AI Service Error",
           details: "Failed to generate summary due to an AI service error. Please try again later."
@@ -534,6 +554,7 @@ export function registerRoutes(app: Express): Server {
       }
     } catch (error) {
       console.error("Error summarizing comments:", error);
+      await trackApiUsage("/api/data-products/:id/comments/summarize", 500, "InternalServerError");
       res.status(500).json({ 
         error: "Internal server error",
         details: "Failed to generate comment summary. Please try again later."
