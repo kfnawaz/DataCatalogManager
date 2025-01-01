@@ -106,7 +106,12 @@ export default function MetricDefinitionForm() {
     if (template) {
       form.setValue("type", template.type as any);
       form.setValue("formula", template.defaultFormula);
-      form.setValue("parameters", {});
+      // Initialize parameters with empty values
+      const initialParameters = Object.keys(template.parameters).reduce((acc, key) => {
+        acc[key] = "";
+        return acc;
+      }, {} as Record<string, string>);
+      form.setValue("parameters", initialParameters);
     } else {
       form.setValue("formula", "");
       form.setValue("parameters", {});
@@ -258,6 +263,28 @@ export default function MetricDefinitionForm() {
             </FormItem>
           )}
         />
+
+        {selectedTemplate && Object.entries(selectedTemplate.parameters).map(([key, param]) => (
+          <FormField
+            key={key}
+            control={form.control}
+            name={`parameters.${key}`}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{key}</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder={param.description}
+                    type={param.type === 'number' ? 'number' : 'text'}
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>{param.description}</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ))}
 
         <Button type="submit" disabled={createMetricMutation.isPending}>
           {createMetricMutation.isPending ? "Creating..." : "Create Metric"}
