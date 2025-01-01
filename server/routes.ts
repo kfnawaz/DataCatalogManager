@@ -47,7 +47,6 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Invalid product ID" });
       }
 
-      // Get the latest metrics for the product
       const metrics = await db
         .select()
         .from(qualityMetrics)
@@ -88,20 +87,40 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.get("/api/search", async (req, res) => {
+  // Metric definition routes
+  app.get("/api/metric-definitions", async (req, res) => {
     try {
-      const query = (req.query.q as string || "").toLowerCase();
-      const products = await db.select().from(dataProducts);
-
-      const results = products.filter(product =>
-        product.name.toLowerCase().includes(query) ||
-        product.tags?.some(tag => tag.toLowerCase().includes(query))
-      );
-
-      res.json(results);
+      const definitions = await db.select().from(metricDefinitions);
+      res.json(definitions);
     } catch (error) {
-      console.error("Error searching products:", error);
-      res.status(500).json({ error: "Failed to search products" });
+      console.error("Error fetching metric definitions:", error);
+      res.status(500).json({ error: "Failed to fetch metric definitions" });
+    }
+  });
+
+  app.post("/api/metric-definitions", async (req, res) => {
+    try {
+      const { name, description, type, formula } = req.body;
+
+      if (!name || !description || !type) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const [definition] = await db
+        .insert(metricDefinitions)
+        .values({
+          name,
+          description,
+          type,
+          formula: formula || null,
+          enabled: true,
+        })
+        .returning();
+
+      res.json(definition);
+    } catch (error) {
+      console.error("Error creating metric definition:", error);
+      res.status(500).json({ error: "Failed to create metric definition" });
     }
   });
 

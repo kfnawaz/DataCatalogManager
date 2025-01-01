@@ -5,6 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MetadataPanel from "../components/metadata/MetadataPanel";
 import LineageGraph from "../components/lineage/LineageGraph";
 import QualityMetrics from "../components/quality/QualityMetrics";
+import MetricDefinitionForm from "../components/quality/MetricDefinitionForm";
+import MetricDefinitionList from "../components/quality/MetricDefinitionList";
 import SearchBar from "../components/search/SearchBar";
 import { ThemeToggle } from "../components/theme/theme-toggle";
 
@@ -67,6 +69,7 @@ export default function DashboardPage() {
                 <TabsTrigger value="metadata">Metadata</TabsTrigger>
                 <TabsTrigger value="lineage">Lineage</TabsTrigger>
                 <TabsTrigger value="quality">Quality Metrics</TabsTrigger>
+                <TabsTrigger value="metric-definitions">Metric Definitions</TabsTrigger>
               </TabsList>
 
               <TabsContent value="metadata">
@@ -100,6 +103,28 @@ export default function DashboardPage() {
                     <QualityMetrics dataProductId={selectedDataProduct} />
                   </CardContent>
                 </Card>
+              </TabsContent>
+
+              <TabsContent value="metric-definitions">
+                <div className="grid gap-6 md:grid-cols-2">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Create Metric Definition</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <MetricDefinitionForm />
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Metric Definitions</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <MetricDefinitionList />
+                    </CardContent>
+                  </Card>
+                </div>
               </TabsContent>
             </Tabs>
           </>
