@@ -29,6 +29,7 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
   });
 
   const handleSelect = (id: number) => {
+    console.log("Selected product ID:", id);
     onSelect(id);
     setOpen(false);
   };

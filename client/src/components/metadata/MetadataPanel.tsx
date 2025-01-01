@@ -10,6 +10,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface SchemaColumn {
   name: string;
@@ -34,8 +36,16 @@ interface MetadataPanelProps {
 }
 
 export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
-  const { data: metadata, isLoading } = useQuery<Metadata>({
+  const { data: metadata, isLoading, error } = useQuery<Metadata>({
     queryKey: ["/api/metadata", dataProductId],
+    queryFn: async () => {
+      if (!dataProductId) throw new Error("No data product selected");
+      const response = await fetch(`/api/metadata/${dataProductId}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch metadata: ${await response.text()}`);
+      }
+      return response.json();
+    },
     enabled: dataProductId !== null,
   });
 
@@ -49,6 +59,17 @@ export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
 
   if (isLoading) {
     return <MetadataSkeleton />;
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          {error instanceof Error ? error.message : "Failed to load metadata"}
+        </AlertDescription>
+      </Alert>
+    );
   }
 
   if (!metadata) {
