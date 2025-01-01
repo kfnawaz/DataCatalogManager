@@ -18,6 +18,9 @@ const crypto = {
   },
   compare: async (suppliedPassword: string, storedPassword: string) => {
     const [hashedPassword, salt] = storedPassword.split(".");
+    if (!hashedPassword || !salt) {
+      return false;
+    }
     const hashedPasswordBuf = Buffer.from(hashedPassword, "hex");
     const suppliedPasswordBuf = (await scryptAsync(
       suppliedPassword,
@@ -73,6 +76,7 @@ export function setupAuth(app: Express) {
         if (!user) {
           return done(null, false, { message: "Incorrect username." });
         }
+
         const isMatch = await crypto.compare(password, user.password);
         if (!isMatch) {
           return done(null, false, { message: "Incorrect password." });
