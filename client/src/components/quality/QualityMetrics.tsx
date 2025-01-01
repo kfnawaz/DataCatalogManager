@@ -12,12 +12,29 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 
+interface MetricHistory {
+  timestamp: string;
+  completeness: number;
+  accuracy: number;
+  timeliness: number;
+}
+
+interface MetricData {
+  current: {
+    completeness: number;
+    accuracy: number;
+    timeliness: number;
+    customMetrics?: Record<string, any>;
+  };
+  history: MetricHistory[];
+}
+
 interface QualityMetricsProps {
   dataProductId: number | null;
 }
 
 export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
-  const { data: metrics, isLoading } = useQuery({
+  const { data: metrics, isLoading } = useQuery<MetricData>({
     queryKey: ["/api/quality-metrics", dataProductId],
     enabled: dataProductId !== null,
   });
@@ -30,11 +47,11 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
     );
   }
 
-  if (isLoading) {
+  if (isLoading || !metrics) {
     return <Skeleton className="w-full h-[400px]" />;
   }
 
-  const formattedData = metrics.history.map((item: any) => ({
+  const formattedData = metrics.history.map((item) => ({
     ...item,
     timestamp: format(new Date(item.timestamp), "MMM d, yyyy"),
   }));
