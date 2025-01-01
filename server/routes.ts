@@ -1,8 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { dataProducts, lineageNodes, lineageEdges, qualityMetrics } from "@db/schema";
-import { eq } from "drizzle-orm";
+import { dataProducts, metricDefinitions, qualityMetrics } from "@db/schema";
+import { eq, desc } from "drizzle-orm";
 
 export function registerRoutes(app: Express): Server {
   // Data product routes
@@ -40,43 +40,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.get("/api/lineage/:id", async (req, res) => {
-    try {
-      const productId = parseInt(req.params.id);
-      if (isNaN(productId)) {
-        return res.status(400).json({ error: "Invalid product ID" });
-      }
-
-      const nodes = await db
-        .select()
-        .from(lineageNodes)
-        .where(eq(lineageNodes.dataProductId, productId));
-
-      const nodeIds = nodes.map(node => node.id);
-      const edges = nodeIds.length > 0
-        ? await db
-            .select()
-            .from(lineageEdges)
-            .where(eq(lineageEdges.sourceId, nodeIds[0]))
-        : [];
-
-      res.json({
-        nodes: nodes.map(node => ({
-          id: node.id.toString(),
-          type: node.type,
-          label: node.details ? (node.details as any).name || `Node ${node.id}` : `Node ${node.id}`,
-        })),
-        links: edges.map(edge => ({
-          source: edge.sourceId.toString(),
-          target: edge.targetId.toString(),
-        })),
-      });
-    } catch (error) {
-      console.error("Error fetching lineage:", error);
-      res.status(500).json({ error: "Failed to fetch lineage" });
-    }
-  });
-
   app.get("/api/quality-metrics/:id", async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
@@ -84,11 +47,12 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Invalid product ID" });
       }
 
+      // Get the latest metrics for the product
       const metrics = await db
         .select()
         .from(qualityMetrics)
         .where(eq(qualityMetrics.dataProductId, productId))
-        .orderBy(qualityMetrics.timestamp);
+        .orderBy(desc(qualityMetrics.timestamp));
 
       if (metrics.length === 0) {
         return res.json({
@@ -101,20 +65,20 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      const current = metrics[metrics.length - 1];
+      const current = metrics[0];
       const history = metrics.map(m => ({
         timestamp: m.timestamp,
-        completeness: m.completeness ?? 0,
-        accuracy: m.accuracy ?? 0,
-        timeliness: m.timeliness ?? 0,
+        completeness: m.completeness,
+        accuracy: m.accuracy,
+        timeliness: m.timeliness,
       }));
 
       res.json({
         current: {
-          completeness: current.completeness ?? 0,
-          accuracy: current.accuracy ?? 0,
-          timeliness: current.timeliness ?? 0,
-          customMetrics: current.customMetrics,
+          completeness: current.completeness,
+          accuracy: current.accuracy,
+          timeliness: current.timeliness,
+          metadata: current.metadata,
         },
         history,
       });
