@@ -1,14 +1,6 @@
-import { pgTable, text, serial, integer, timestamp, jsonb, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
-
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").unique().notNull(),
-  password: text("password").notNull(),
-  role: text("role").notNull().default("user"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
 
 export const dataProducts = pgTable("data_products", {
   id: serial("id").primaryKey(),
@@ -73,16 +65,12 @@ export const lineageEdgeRelations = relations(lineageEdges, ({ one }) => ({
 }));
 
 // Schemas for validation
-export const insertUserSchema = createInsertSchema(users);
-export const selectUserSchema = createSelectSchema(users);
 export const insertDataProductSchema = createInsertSchema(dataProducts);
 export const selectDataProductSchema = createSelectSchema(dataProducts);
 export const insertQualityMetricSchema = createInsertSchema(qualityMetrics);
 export const selectQualityMetricSchema = createSelectSchema(qualityMetrics);
 
 // Types
-export type User = typeof users.$inferSelect;
-export type NewUser = typeof users.$inferInsert;
 export type DataProduct = typeof dataProducts.$inferSelect;
 export type NewDataProduct = typeof dataProducts.$inferInsert;
 export type QualityMetric = typeof qualityMetrics.$inferSelect;

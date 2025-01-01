@@ -1,14 +1,10 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { setupAuth } from "./auth";
 import { db } from "@db";
 import { dataProducts, lineageNodes, lineageEdges, qualityMetrics } from "@db/schema";
 import { eq } from "drizzle-orm";
 
 export function registerRoutes(app: Express): Server {
-  // Setup authentication routes
-  setupAuth(app);
-
   // Data product routes
   app.get("/api/data-products", async (req, res) => {
     try {
@@ -131,7 +127,6 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/search", async (req, res) => {
     try {
       const query = (req.query.q as string || "").toLowerCase();
-      console.log("Search query:", query);
       const products = await db.select().from(dataProducts);
 
       const results = products.filter(product =>
@@ -139,7 +134,6 @@ export function registerRoutes(app: Express): Server {
         product.tags?.some(tag => tag.toLowerCase().includes(query))
       );
 
-      console.log("Search results:", results.length);
       res.json(results);
     } catch (error) {
       console.error("Error searching products:", error);
