@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { SendHorizontal, MessageSquare } from "lucide-react";
+import { SendHorizontal, MessageSquare, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Comment {
   id: number;
@@ -17,13 +19,27 @@ interface Comment {
   authorName: string;
 }
 
+interface CommentResponse {
+  comment: Comment;
+  metrics: {
+    totalComments: number;
+    timestamp: string;
+  };
+}
+
 interface DataProductCommentsProps {
   dataProductId: number;
+}
+
+interface ValidationErrors {
+  content?: string;
+  authorName?: string;
 }
 
 export default function DataProductComments({ dataProductId }: DataProductCommentsProps) {
   const [newComment, setNewComment] = useState("");
   const [authorName, setAuthorName] = useState("");
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -40,31 +56,42 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
       });
 
       if (!response.ok) {
-        throw new Error(await response.text());
+        const errorData = await response.json();
+        if (errorData.error === "Validation failed") {
+          throw new Error(JSON.stringify(errorData.details));
+        }
+        throw new Error(errorData.details || "Failed to create comment");
       }
 
-      return response.json();
+      return response.json() as Promise<CommentResponse>;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [`/api/data-products/${dataProductId}/comments`] });
       setNewComment("");
       setAuthorName("");
+      setValidationErrors({});
       toast({
         title: "Success",
-        description: "Comment added successfully",
+        description: `Comment added successfully! Total comments: ${data.metrics.totalComments}`,
       });
     },
     onError: (error: Error) => {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
+      try {
+        const parsedErrors = JSON.parse(error.message);
+        setValidationErrors(parsedErrors);
+      } catch {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message,
+        });
+      }
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationErrors({});
     if (newComment.trim() && authorName.trim()) {
       addCommentMutation.mutate({ content: newComment, authorName });
     }
@@ -72,9 +99,16 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-4">
-        <MessageSquare className="h-5 w-5" />
-        <h3 className="font-semibold">Comments</h3>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <MessageSquare className="h-5 w-5" />
+          <h3 className="font-semibold">Comments</h3>
+        </div>
+        {comments.length > 0 && (
+          <span className="text-sm text-muted-foreground">
+            Total comments: {comments.length}
+          </span>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -86,7 +120,11 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
             onChange={(e) => setAuthorName(e.target.value)}
             placeholder="Enter your name"
             required
+            className={validationErrors.authorName ? "border-red-500" : ""}
           />
+          {validationErrors.authorName && (
+            <p className="text-sm text-red-500">{validationErrors.authorName}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -97,7 +135,7 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Add a comment..."
-              className="min-h-[80px]"
+              className={`min-h-[80px] ${validationErrors.content ? "border-red-500" : ""}`}
               required
             />
             <Button 
@@ -108,6 +146,9 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
               <SendHorizontal className="h-4 w-4" />
             </Button>
           </div>
+          {validationErrors.content && (
+            <p className="text-sm text-red-500">{validationErrors.content}</p>
+          )}
         </div>
       </form>
 

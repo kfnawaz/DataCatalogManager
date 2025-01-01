@@ -9,7 +9,7 @@ import {
   metricTemplates,
   comments 
 } from "@db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 
 export function registerRoutes(app: Express): Server {
   // Data product routes
@@ -48,27 +48,78 @@ export function registerRoutes(app: Express): Server {
     try {
       const productId = parseInt(req.params.id);
       if (isNaN(productId)) {
-        return res.status(400).json({ error: "Invalid product ID" });
+        return res.status(400).json({ 
+          error: "Invalid input",
+          details: "Product ID must be a valid number" 
+        });
+      }
+
+      // Verify product exists
+      const [product] = await db
+        .select()
+        .from(dataProducts)
+        .where(eq(dataProducts.id, productId))
+        .limit(1);
+
+      if (!product) {
+        return res.status(404).json({ 
+          error: "Not found",
+          details: "Data product not found" 
+        });
       }
 
       const { content, authorName } = req.body;
-      if (!content || !authorName) {
-        return res.status(400).json({ error: "Content and author name are required" });
+
+      // Validate required fields
+      const errors: Record<string, string> = {};
+      if (!content?.trim()) {
+        errors.content = "Comment content is required";
+      } else if (content.length > 1000) {
+        errors.content = "Comment content must be less than 1000 characters";
       }
 
+      if (!authorName?.trim()) {
+        errors.authorName = "Author name is required";
+      } else if (authorName.length > 100) {
+        errors.authorName = "Author name must be less than 100 characters";
+      }
+
+      if (Object.keys(errors).length > 0) {
+        return res.status(400).json({ 
+          error: "Validation failed",
+          details: errors 
+        });
+      }
+
+      // Create comment with analytics data
       const [newComment] = await db
         .insert(comments)
         .values({
           dataProductId: productId,
-          content,
-          authorName,
+          content: content.trim(),
+          authorName: authorName.trim(),
         })
         .returning();
 
-      res.json(newComment);
+      // Track comment metrics
+      const commentCount = await db
+        .select({ count: sql`count(*)` })
+        .from(comments)
+        .where(eq(comments.dataProductId, productId));
+
+      res.json({
+        comment: newComment,
+        metrics: {
+          totalComments: commentCount[0].count,
+          timestamp: new Date().toISOString()
+        }
+      });
     } catch (error) {
       console.error("Error creating comment:", error);
-      res.status(500).json({ error: "Failed to create comment" });
+      res.status(500).json({ 
+        error: "Internal server error",
+        details: "Failed to create comment. Please try again later."
+      });
     }
   });
 
