@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Command } from "cmdk";
 import { Search, Loader2 } from "lucide-react";
@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 
 interface SearchBarProps {
   onSelect: (id: number) => void;
+  initialValue?: number | null;
 }
 
 interface DataProduct {
@@ -22,12 +23,24 @@ interface DataProduct {
   tags?: string[];
 }
 
-export default function SearchBar({ onSelect }: SearchBarProps) {
+export default function SearchBar({ onSelect, initialValue }: SearchBarProps) {
   const [open, setOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<DataProduct | null>(null);
+
   const { data: searchResults, isLoading, error } = useQuery<DataProduct[]>({
     queryKey: ["/api/data-products"],
     staleTime: 30000, // Consider results fresh for 30 seconds
   });
+
+  // Update selected product when initialValue changes
+  useEffect(() => {
+    if (initialValue && searchResults) {
+      const product = searchResults.find(p => p.id === initialValue);
+      if (product) {
+        setSelectedProduct(product);
+      }
+    }
+  }, [initialValue, searchResults]);
 
   return (
     <>
@@ -36,7 +49,9 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
         className="w-full flex items-center gap-2 h-10 px-4 py-2 text-sm text-muted-foreground border rounded-md bg-background hover:bg-accent hover:text-accent-foreground"
       >
         <Search className="h-4 w-4" />
-        <span>Search data products...</span>
+        <span>
+          {selectedProduct ? selectedProduct.name : "Search data products..."}
+        </span>
         <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
           <span className="text-xs">⌘</span>K
         </kbd>
@@ -64,6 +79,7 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
                   key={item.id}
                   onSelect={() => {
                     onSelect(item.id);
+                    setSelectedProduct(item);
                     setOpen(false);
                   }}
                 >

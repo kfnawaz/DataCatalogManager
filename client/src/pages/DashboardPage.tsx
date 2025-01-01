@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,6 +27,15 @@ interface DataProduct {
 export default function DashboardPage() {
   const [selectedDataProduct, setSelectedDataProduct] = useState<number | null>(null);
 
+  // Extract product ID from URL query parameters on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const productId = params.get('product');
+    if (productId) {
+      setSelectedDataProduct(parseInt(productId));
+    }
+  }, []);
+
   const { data: selectedProduct } = useQuery<DataProduct>({
     queryKey: [`/api/metadata/${selectedDataProduct}`],
     enabled: selectedDataProduct !== null,
@@ -35,7 +44,7 @@ export default function DashboardPage() {
   return (
     <main className="container mx-auto px-4 py-6">
       <div className="mb-6">
-        <SearchBar onSelect={setSelectedDataProduct} />
+        <SearchBar onSelect={setSelectedDataProduct} initialValue={selectedDataProduct} />
       </div>
 
       {selectedProduct ? (
