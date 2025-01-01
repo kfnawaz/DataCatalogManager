@@ -3,19 +3,41 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { useUser } from "../hooks/use-user";
+import { useUser } from "@/hooks/use-user";
 import MetadataPanel from "../components/metadata/MetadataPanel";
 import LineageGraph from "../components/lineage/LineageGraph";
 import QualityMetrics from "../components/quality/QualityMetrics";
 import SearchBar from "../components/search/SearchBar";
 import { LogOut } from "lucide-react";
 
+interface DataProduct {
+  id: number;
+  name: string;
+  description?: string;
+  owner: string;
+  schema: {
+    columns: Array<{
+      name: string;
+      type: string;
+      description?: string;
+    }>;
+  };
+  tags?: string[];
+  sla?: string;
+  updateFrequency?: string;
+}
+
 export default function DashboardPage() {
   const { user, logout } = useUser();
   const [selectedDataProduct, setSelectedDataProduct] = useState<number | null>(null);
 
-  const { data: dataProducts } = useQuery({
+  const { data: dataProducts } = useQuery<DataProduct[]>({
     queryKey: ["/api/data-products"],
+  });
+
+  const { data: selectedProduct } = useQuery<DataProduct>({
+    queryKey: ["/api/metadata", selectedDataProduct],
+    enabled: selectedDataProduct !== null,
   });
 
   const handleLogout = async () => {
@@ -48,6 +70,19 @@ export default function DashboardPage() {
         <div className="mb-6">
           <SearchBar onSelect={setSelectedDataProduct} />
         </div>
+
+        {selectedProduct && (
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-foreground">
+              {selectedProduct.name}
+            </h2>
+            {selectedProduct.description && (
+              <p className="mt-1 text-sm text-muted-foreground">
+                {selectedProduct.description}
+              </p>
+            )}
+          </div>
+        )}
 
         <Tabs defaultValue="metadata" className="space-y-4">
           <TabsList>
