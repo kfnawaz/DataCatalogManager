@@ -24,6 +24,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface MetricDefinition {
   id?: number;
@@ -36,13 +38,18 @@ interface MetricDefinition {
 }
 
 const metricDefinitionSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  description: z.string().min(1, "Description is required"),
-  type: z.enum(["completeness", "accuracy", "timeliness", "consistency", "uniqueness", "validity"]),
+  name: z.string().min(3, "Name must be at least 3 characters").max(50, "Name must be less than 50 characters"),
+  description: z.string()
+    .min(10, "Description must be at least 10 characters")
+    .max(500, "Description must be less than 500 characters"),
+  type: z.enum(["completeness", "accuracy", "timeliness", "consistency", "uniqueness", "validity"], {
+    required_error: "Please select a metric type",
+  }),
   templateId: z.string().optional(),
   formula: z.string().optional(),
   parameters: z.record(z.string().min(1, "Parameter value is required")),
-  changeMessage: z.string().optional(),
+  changeMessage: z.string().optional()
+    .refine(val => !val || val.length >= 5, "Change message must be at least 5 characters if provided"),
 });
 
 type MetricDefinitionForm = z.infer<typeof metricDefinitionSchema>;
@@ -84,8 +91,9 @@ export default function MetricDefinitionForm({ initialData, onSuccess }: MetricD
       templateId: initialData?.templateId?.toString() || "custom",
       formula: initialData?.formula || "",
       parameters: initialData?.parameters || {},
-      changeMessage: "", // Added default value
+      changeMessage: "",
     },
+    mode: "onChange", // Enable real-time validation
   });
 
   const createMetricMutation = useMutation({
@@ -107,7 +115,8 @@ export default function MetricDefinitionForm({ initialData, onSuccess }: MetricD
       });
 
       if (!response.ok) {
-        throw new Error(await response.text());
+        const errorData = await response.text();
+        throw new Error(errorData);
       }
 
       return response.json();
@@ -121,7 +130,7 @@ export default function MetricDefinitionForm({ initialData, onSuccess }: MetricD
       form.reset();
       onSuccess?.();
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: "Error",
@@ -173,7 +182,17 @@ export default function MetricDefinitionForm({ initialData, onSuccess }: MetricD
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {createMetricMutation.isError && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              Failed to {initialData ? "update" : "create"} metric definition. Please try again.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <FormField
           control={form.control}
           name="templateId"
@@ -204,6 +223,7 @@ export default function MetricDefinitionForm({ initialData, onSuccess }: MetricD
               <FormDescription>
                 Start with a template or create a custom metric
               </FormDescription>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -226,19 +246,53 @@ export default function MetricDefinitionForm({ initialData, onSuccess }: MetricD
           </Card>
         )}
 
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Metric name" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid gap-6 md:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Metric name" {...field} />
+                </FormControl>
+                <FormDescription>
+                  A unique, descriptive name for this metric
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Type</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select metric type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="completeness">Completeness</SelectItem>
+                    <SelectItem value="accuracy">Accuracy</SelectItem>
+                    <SelectItem value="timeliness">Timeliness</SelectItem>
+                    <SelectItem value="consistency">Consistency</SelectItem>
+                    <SelectItem value="uniqueness">Uniqueness</SelectItem>
+                    <SelectItem value="validity">Validity</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  The category this metric belongs to
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
@@ -248,38 +302,13 @@ export default function MetricDefinitionForm({ initialData, onSuccess }: MetricD
               <FormLabel>Description</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Describe what this metric measures"
+                  placeholder="Describe what this metric measures and why it's important"
+                  className="min-h-[100px]"
                   {...field}
                 />
               </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="type"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Type</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select metric type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="completeness">Completeness</SelectItem>
-                  <SelectItem value="accuracy">Accuracy</SelectItem>
-                  <SelectItem value="timeliness">Timeliness</SelectItem>
-                  <SelectItem value="consistency">Consistency</SelectItem>
-                  <SelectItem value="uniqueness">Uniqueness</SelectItem>
-                  <SelectItem value="validity">Validity</SelectItem>
-                </SelectContent>
-              </Select>
               <FormDescription>
-                The category this metric belongs to
+                Provide a clear explanation of what this metric measures and how it should be interpreted
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -295,6 +324,7 @@ export default function MetricDefinitionForm({ initialData, onSuccess }: MetricD
               <FormControl>
                 <Textarea
                   placeholder="SQL or calculation formula for this metric"
+                  className="min-h-[100px] font-mono"
                   {...field}
                 />
               </FormControl>
@@ -324,7 +354,9 @@ export default function MetricDefinitionForm({ initialData, onSuccess }: MetricD
                   />
                 </FormControl>
                 <FormDescription>{param.description}</FormDescription>
-                {param.required && <FormMessage>This field is required</FormMessage>}
+                {param.required && (
+                  <FormMessage>This parameter is required</FormMessage>
+                )}
                 <FormMessage />
               </FormItem>
             )}
@@ -341,11 +373,12 @@ export default function MetricDefinitionForm({ initialData, onSuccess }: MetricD
                 <FormControl>
                   <Textarea
                     placeholder="Describe what changed in this update"
+                    className="min-h-[100px]"
                     {...field}
                   />
                 </FormControl>
                 <FormDescription>
-                  Provide a brief description of the changes made
+                  Provide a brief description of the changes made to help track version history
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -353,15 +386,21 @@ export default function MetricDefinitionForm({ initialData, onSuccess }: MetricD
           />
         )}
 
-        <Button type="submit" disabled={createMetricMutation.isPending}>
-          {createMetricMutation.isPending
-            ? initialData
-              ? "Updating..."
-              : "Creating..."
-            : initialData
-            ? "Update Metric"
-            : "Create Metric"}
-        </Button>
+        <div className="flex justify-end">
+          <Button 
+            type="submit" 
+            size="lg"
+            disabled={createMetricMutation.isPending || !form.formState.isValid}
+          >
+            {createMetricMutation.isPending
+              ? initialData
+                ? "Updating..."
+                : "Creating..."
+              : initialData
+              ? "Update Metric"
+              : "Create Metric"}
+          </Button>
+        </div>
       </form>
     </Form>
   );

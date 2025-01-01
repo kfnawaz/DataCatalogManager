@@ -147,18 +147,20 @@ export default function MetricDefinitionList() {
 
       {selectedMetric && isEditing && (
         <Dialog open={isEditing} onOpenChange={setIsEditing}>
-          <DialogContent className="max-w-3xl">
+          <DialogContent className="max-w-7xl w-[calc(100vw-4rem)] h-[calc(100vh-4rem)] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Edit Metric Definition</DialogTitle>
+              <DialogTitle className="text-2xl">Edit Metric Definition</DialogTitle>
             </DialogHeader>
-            <MetricDefinitionForm
-              initialData={selectedMetric}
-              onSuccess={() => {
-                setIsEditing(false);
-                setSelectedMetric(null);
-                queryClient.invalidateQueries({ queryKey: ["/api/metric-definitions"] });
-              }}
-            />
+            <div className="py-6">
+              <MetricDefinitionForm
+                initialData={selectedMetric}
+                onSuccess={() => {
+                  setIsEditing(false);
+                  setSelectedMetric(null);
+                  queryClient.invalidateQueries({ queryKey: ["/api/metric-definitions"] });
+                }}
+              />
+            </div>
           </DialogContent>
         </Dialog>
       )}
