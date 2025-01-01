@@ -10,7 +10,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
@@ -19,6 +19,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import MetricDefinitionForm from "./MetricDefinitionForm";
@@ -80,7 +81,7 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Quality Metrics</h3>
+        <h3 className="text-lg font-semibold text-foreground">Quality Metrics</h3>
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogTrigger asChild>
             <Button className="flex items-center gap-2">
@@ -91,6 +92,9 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create Custom Metric</DialogTitle>
+              <DialogDescription>
+                Define a new metric to track for this data product.
+              </DialogDescription>
             </DialogHeader>
             <MetricDefinitionForm
               dataProductId={dataProductId}
@@ -135,14 +139,17 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
       {formattedData.length > 0 ? (
         <Card>
           <CardContent className="pt-6">
-            <h3 className="text-lg font-semibold mb-4">Historical Trends</h3>
+            <h3 className="text-lg font-semibold mb-4 text-foreground">Historical Trends</h3>
             <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={formattedData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="timestamp" />
-                  <YAxis domain={[0, 100]} />
-                  <Tooltip />
+                  <XAxis dataKey="timestamp" className="text-foreground" />
+                  <YAxis domain={[0, 100]} className="text-foreground" />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))' }}
+                    labelStyle={{ color: 'hsl(var(--foreground))' }}
+                  />
                   <Line
                     type="monotone"
                     dataKey="completeness"
@@ -190,7 +197,7 @@ function MetricCard({ title, value, description, threshold }: MetricCardProps) {
       <CardContent className="pt-6">
         <h4 className="text-sm font-medium text-muted-foreground">{title}</h4>
         <div className="mt-2 flex items-baseline">
-          <div className={`text-3xl font-semibold ${isBelow ? 'text-destructive' : ''}`}>
+          <div className={`text-3xl font-semibold ${isBelow ? 'text-destructive' : 'text-foreground'}`}>
             {value}%
           </div>
         </div>
