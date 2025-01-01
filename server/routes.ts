@@ -99,6 +99,47 @@ export function registerRoutes(app: Express): Server {
           }
         ]).returning();
 
+        // Create sample lineage data
+        await Promise.all(
+          [product1, product2, product3].map(async (product) => {
+            const [source, transform, target] = await db.insert(lineageNodes).values([
+              {
+                dataProductId: product.id,
+                type: "source",
+                details: { name: "Market Data Feed", description: "Real-time market data source" }
+              },
+              {
+                dataProductId: product.id,
+                type: "transformation",
+                details: { name: "Data Processing Pipeline", description: "ETL and enrichment process" }
+              },
+              {
+                dataProductId: product.id,
+                type: "target",
+                details: { name: "Trading Platform", description: "Real-time trading system" }
+              }
+            ]).returning();
+
+            await db.insert(lineageEdges).values([
+              { sourceId: source.id, targetId: transform.id },
+              { sourceId: transform.id, targetId: target.id }
+            ]);
+
+            // Create sample quality metrics
+            await db.insert(qualityMetrics).values({
+              dataProductId: product.id,
+              completeness: 98,
+              accuracy: 99,
+              timeliness: 97,
+              customMetrics: {
+                data_freshness: 95,
+                schema_compliance: 100,
+                data_consistency: 98
+              }
+            });
+          })
+        );
+
         console.log("Created sample products:", [product1, product2, product3]);
         return res.json([product1, product2, product3]);
       }
@@ -118,37 +159,13 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Invalid product ID" });
       }
 
-      let nodes = await db
+      const nodes = await db
         .select()
         .from(lineageNodes)
         .where(eq(lineageNodes.dataProductId, productId));
 
-      // Create sample data if none exists
       if (nodes.length === 0) {
-        const [source, transform, target] = await db.insert(lineageNodes).values([
-          {
-            dataProductId: productId,
-            type: "source",
-            details: { name: "Market Data Feed", description: "Real-time market data source" }
-          },
-          {
-            dataProductId: productId,
-            type: "transformation",
-            details: { name: "Data Processing Pipeline", description: "ETL and enrichment process" }
-          },
-          {
-            dataProductId: productId,
-            type: "target",
-            details: { name: "Trading Platform", description: "Real-time trading system" }
-          }
-        ]).returning();
-
-        await db.insert(lineageEdges).values([
-          { sourceId: source.id, targetId: transform.id },
-          { sourceId: transform.id, targetId: target.id }
-        ]);
-
-        nodes = [source, transform, target];
+        return res.status(404).json({ error: "No lineage data found" });
       }
 
       const edges = await db
@@ -181,25 +198,14 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Invalid product ID" });
       }
 
-      let metrics = await db
+      const [metrics] = await db
         .select()
         .from(qualityMetrics)
-        .where(eq(qualityMetrics.dataProductId, productId));
+        .where(eq(qualityMetrics.dataProductId, productId))
+        .limit(1);
 
-      if (metrics.length === 0) {
-        const [newMetrics] = await db.insert(qualityMetrics).values({
-          dataProductId: productId,
-          completeness: 98,
-          accuracy: 99,
-          timeliness: 97,
-          customMetrics: {
-            data_freshness: 95,
-            schema_compliance: 100,
-            data_consistency: 98
-          }
-        }).returning();
-
-        metrics = [newMetrics];
+      if (!metrics) {
+        return res.status(404).json({ error: "No quality metrics found" });
       }
 
       const definitions = await db
@@ -214,17 +220,17 @@ export function registerRoutes(app: Express): Server {
         date.setDate(today.getDate() - i);
         return {
           timestamp: date.toISOString(),
-          completeness: (metrics[0]?.completeness ?? 0) - Math.random() * 5,
-          accuracy: (metrics[0]?.accuracy ?? 0) - Math.random() * 3,
-          timeliness: (metrics[0]?.timeliness ?? 0) - Math.random() * 4
+          completeness: metrics.completeness - Math.random() * 5,
+          accuracy: metrics.accuracy - Math.random() * 3,
+          timeliness: metrics.timeliness - Math.random() * 4
         };
-      });
+      }).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
       return res.json({
         current: {
-          completeness: metrics[0]?.completeness ?? 0,
-          accuracy: metrics[0]?.accuracy ?? 0,
-          timeliness: metrics[0]?.timeliness ?? 0,
+          completeness: metrics.completeness,
+          accuracy: metrics.accuracy,
+          timeliness: metrics.timeliness,
           customMetrics: definitions,
         },
         history

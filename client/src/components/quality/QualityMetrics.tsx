@@ -58,6 +58,14 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { data: metrics, isLoading } = useQuery<MetricData>({
     queryKey: ["/api/quality-metrics", dataProductId],
+    queryFn: async () => {
+      if (!dataProductId) throw new Error("No data product selected");
+      const response = await fetch(`/api/quality-metrics/${dataProductId}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch quality metrics: ${await response.text()}`);
+      }
+      return response.json();
+    },
     enabled: dataProductId !== null,
   });
 
