@@ -141,7 +141,7 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
             <Button 
               type="submit" 
               size="icon"
-              disabled={!newComment.trim() || !authorName.trim() || addCommentMutation.isPending}
+              disabled={addCommentMutation.isPending}
             >
               <SendHorizontal className="h-4 w-4" />
             </Button>
