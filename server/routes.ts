@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { dataProducts, lineageNodes, lineageEdges, qualityMetrics } from "@db/schema";
+import { dataProducts, lineageNodes, lineageEdges, qualityMetrics, metricDefinitions } from "@db/schema";
 import { eq } from "drizzle-orm";
 
 export function registerRoutes(app: Express): Server {
@@ -84,39 +84,31 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Invalid product ID" });
       }
 
-      const metrics = await db
+      const [metrics] = await db
         .select()
         .from(qualityMetrics)
         .where(eq(qualityMetrics.dataProductId, productId))
-        .orderBy(qualityMetrics.timestamp);
+        .orderBy(qualityMetrics.timestamp)
+        .limit(1);
 
-      if (metrics.length === 0) {
-        return res.json({
-          current: {
-            completeness: 0,
-            accuracy: 0,
-            timeliness: 0,
-          },
-          history: [],
-        });
-      }
-
-      const current = metrics[metrics.length - 1];
-      const history = metrics.map(m => ({
-        timestamp: m.timestamp,
-        completeness: m.completeness ?? 0,
-        accuracy: m.accuracy ?? 0,
-        timeliness: m.timeliness ?? 0,
-      }));
+      const definitions = await db
+        .select()
+        .from(metricDefinitions)
+        .where(eq(metricDefinitions.dataProductId, productId));
 
       res.json({
         current: {
-          completeness: current.completeness ?? 0,
-          accuracy: current.accuracy ?? 0,
-          timeliness: current.timeliness ?? 0,
-          customMetrics: current.customMetrics,
+          completeness: metrics?.completeness ?? 0,
+          accuracy: metrics?.accuracy ?? 0,
+          timeliness: metrics?.timeliness ?? 0,
+          customMetrics: definitions,
         },
-        history,
+        history: [{
+          timestamp: metrics?.timestamp ?? new Date().toISOString(),
+          completeness: metrics?.completeness ?? 0,
+          accuracy: metrics?.accuracy ?? 0,
+          timeliness: metrics?.timeliness ?? 0,
+        }],
       });
     } catch (error) {
       console.error("Error fetching quality metrics:", error);
@@ -124,10 +116,36 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.post("/api/metric-definitions", async (req, res) => {
+    try {
+      const { dataProductId, name, description, query, threshold } = req.body;
+
+      if (!dataProductId || !name || !query) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const [newMetric] = await db
+        .insert(metricDefinitions)
+        .values({
+          dataProductId,
+          name,
+          description,
+          query,
+          threshold,
+          enabled: true,
+        })
+        .returning();
+
+      res.json(newMetric);
+    } catch (error) {
+      console.error("Error creating metric definition:", error);
+      res.status(500).json({ error: "Failed to create metric definition" });
+    }
+  });
+
   app.get("/api/search", async (req, res) => {
     try {
       const query = (req.query.q as string || "").toLowerCase();
-      console.log("Search query:", query);
       const products = await db.select().from(dataProducts);
 
       const results = products.filter(product =>
@@ -135,7 +153,6 @@ export function registerRoutes(app: Express): Server {
         product.tags?.some(tag => tag.toLowerCase().includes(query))
       );
 
-      console.log("Search results:", results.length);
       res.json(results);
     } catch (error) {
       console.error("Error searching products:", error);

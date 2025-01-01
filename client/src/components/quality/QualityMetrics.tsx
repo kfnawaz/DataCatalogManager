@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -8,9 +10,18 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import MetricDefinitionForm from "./MetricDefinitionForm";
 
 interface MetricHistory {
   timestamp: string;
@@ -19,12 +30,21 @@ interface MetricHistory {
   timeliness: number;
 }
 
+interface CustomMetric {
+  id: number;
+  name: string;
+  description?: string;
+  query: string;
+  threshold?: number;
+  enabled: boolean;
+}
+
 interface MetricData {
   current: {
     completeness: number;
     accuracy: number;
     timeliness: number;
-    customMetrics?: Record<string, any>;
+    customMetrics: CustomMetric[];
   };
   history: MetricHistory[];
 }
@@ -34,6 +54,7 @@ interface QualityMetricsProps {
 }
 
 export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const { data: metrics, isLoading } = useQuery<MetricData>({
     queryKey: ["/api/quality-metrics", dataProductId],
     enabled: dataProductId !== null,
@@ -58,6 +79,27 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">Quality Metrics</h3>
+        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+          <DialogTrigger asChild>
+            <Button className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Add Custom Metric
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Custom Metric</DialogTitle>
+            </DialogHeader>
+            <MetricDefinitionForm
+              dataProductId={dataProductId}
+              onSuccess={() => setIsFormOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <MetricCard
           title="Completeness"
@@ -75,6 +117,20 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
           description="Data freshness score"
         />
       </div>
+
+      {metrics.current.customMetrics.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {metrics.current.customMetrics.map((metric) => (
+            <MetricCard
+              key={metric.id}
+              title={metric.name}
+              value={0} // TODO: Implement custom metric value calculation
+              description={metric.description || "Custom metric"}
+              threshold={metric.threshold}
+            />
+          ))}
+        </div>
+      )}
 
       {formattedData.length > 0 ? (
         <Card>
@@ -123,17 +179,27 @@ interface MetricCardProps {
   title: string;
   value: number;
   description: string;
+  threshold?: number;
 }
 
-function MetricCard({ title, value, description }: MetricCardProps) {
+function MetricCard({ title, value, description, threshold }: MetricCardProps) {
+  const isBelow = threshold !== undefined && value < threshold;
+
   return (
     <Card>
       <CardContent className="pt-6">
         <h4 className="text-sm font-medium text-muted-foreground">{title}</h4>
         <div className="mt-2 flex items-baseline">
-          <div className="text-3xl font-semibold">{value}%</div>
+          <div className={`text-3xl font-semibold ${isBelow ? 'text-destructive' : ''}`}>
+            {value}%
+          </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2">{description}</p>
+        {threshold && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Threshold: {threshold}%
+          </p>
+        )}
       </CardContent>
     </Card>
   );
