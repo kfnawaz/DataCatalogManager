@@ -101,7 +101,6 @@ export default function MetricDefinitionForm() {
     },
   });
 
-  // Handle template selection
   const onTemplateSelect = (templateId: string) => {
     const template = templates?.find(t => t.id === parseInt(templateId));
     if (template) {
@@ -144,7 +143,7 @@ export default function MetricDefinitionForm() {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">Custom Metric</SelectItem>
+                  <SelectItem value="custom">Custom Metric</SelectItem>
                   {templates?.map((template) => (
                     <SelectItem key={template.id} value={template.id.toString()}>
                       {template.name}
