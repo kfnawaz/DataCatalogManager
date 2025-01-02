@@ -3,12 +3,15 @@ import { createServer, type Server } from "http";
 import { db } from "@db";
 import { 
   dataProducts, 
-  metricDefinitions, 
+  metricDefinitions,
   metricDefinitionVersions,
-  qualityMetrics, 
+  qualityMetrics,
   metricTemplates,
   comments,
   commentReactions,
+  lineageNodes,
+  lineageEdges,
+  lineageVersions
 } from "@db/schema";
 import { eq, desc, sql, and } from "drizzle-orm";
 import OpenAI from "openai";
@@ -752,6 +755,204 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error adding reaction:", error);
       res.status(500).json({ error: "Failed to add reaction" });
+    }
+  });
+
+  // Add lineage data endpoint
+  app.get("/api/lineage", async (req, res) => {
+    try {
+      const dataProductId = parseInt(req.query.dataProductId as string);
+      const version = req.query.version ? parseInt(req.query.version as string) : null;
+
+      if (isNaN(dataProductId)) {
+        return res.status(400).json({ error: "Invalid data product ID" });
+      }
+
+      // If version is specified, fetch that specific version
+      if (version !== null) {
+        const [lineageVersion] = await db
+          .select()
+          .from(lineageVersions)
+          .where(
+            and(
+              eq(lineageVersions.dataProductId, dataProductId),
+              eq(lineageVersions.version, version)
+            )
+          )
+          .limit(1);
+
+        if (lineageVersion) {
+          return res.json({
+            ...lineageVersion.snapshot,
+            version: lineageVersion.version,
+            versions: await db
+              .select({
+                version: lineageVersions.version,
+                timestamp: lineageVersions.createdAt,
+              })
+              .from(lineageVersions)
+              .where(eq(lineageVersions.dataProductId, dataProductId))
+              .orderBy(desc(lineageVersions.version))
+          });
+        }
+      }
+
+      // Fetch current lineage data
+      const nodes = await db
+        .select()
+        .from(lineageNodes)
+        .where(eq(lineageNodes.dataProductId, dataProductId));
+
+      const nodeIds = nodes.map(n => n.id);
+
+      const edges = await db
+        .select()
+        .from(lineageEdges)
+        .where(
+          and(
+            sql`${lineageEdges.sourceId} = ANY(${nodeIds})`,
+            sql`${lineageEdges.targetId} = ANY(${nodeIds})`
+          )
+        );
+
+      // Get all versions
+      const versions = await db
+        .select({
+          version: lineageVersions.version,
+          timestamp: lineageVersions.createdAt,
+        })
+        .from(lineageVersions)
+        .where(eq(lineageVersions.dataProductId, dataProductId))
+        .orderBy(desc(lineageVersions.version));
+
+      // Get latest version number
+      const latestVersion = versions.length > 0 ? versions[0].version : 1;
+
+      // Format response
+      const response = {
+        nodes: nodes.map(node => ({
+          id: node.id.toString(),
+          type: node.type,
+          label: node.name,
+          metadata: node.metadata
+        })),
+        links: edges.map(edge => ({
+          source: edge.sourceId.toString(),
+          target: edge.targetId.toString(),
+          transformationLogic: edge.transformationLogic,
+          metadata: edge.metadata
+        })),
+        version: latestVersion,
+        versions
+      };
+
+      res.json(response);
+    } catch (error) {
+      console.error("Error fetching lineage data:", error);
+      res.status(500).json({ error: "Failed to fetch lineage data" });
+    }
+  });
+
+  // Add new version endpoint
+  app.post("/api/lineage/versions", async (req, res) => {
+    try {
+      const { dataProductId, snapshot, changeMessage, createdBy } = req.body;
+
+      if (!dataProductId || !snapshot) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      // Get current version number
+      const [currentVersion] = await db
+        .select()
+        .from(lineageVersions)
+        .where(eq(lineageVersions.dataProductId, dataProductId))
+        .orderBy(desc(lineageVersions.version))
+        .limit(1);
+
+      const nextVersion = currentVersion ? currentVersion.version + 1 : 1;
+
+      // Create new version
+      const [newVersion] = await db
+        .insert(lineageVersions)
+        .values({
+          dataProductId,
+          version: nextVersion,
+          snapshot,
+          changeMessage: changeMessage || null,
+          createdBy: createdBy || null
+        })
+        .returning();
+
+      res.json(newVersion);
+    } catch (error) {
+      console.error("Error creating lineage version:", error);
+      res.status(500).json({ error: "Failed to create lineage version" });
+    }
+  });
+
+  // Update nodes and edges
+  app.put("/api/lineage/nodes", async (req, res) => {
+    try {
+      const { dataProductId, nodes } = req.body;
+
+      if (!dataProductId || !nodes) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      // Start a transaction
+      await db.transaction(async (tx) => {
+        // Delete existing nodes
+        await tx
+          .delete(lineageNodes)
+          .where(eq(lineageNodes.dataProductId, dataProductId));
+
+        // Insert new nodes
+        await tx
+          .insert(lineageNodes)
+          .values(nodes.map((node: any) => ({
+            name: node.label,
+            type: node.type,
+            dataProductId,
+            metadata: node.metadata || null
+          })));
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating lineage nodes:", error);
+      res.status(500).json({ error: "Failed to update lineage nodes" });
+    }
+  });
+
+  app.put("/api/lineage/edges", async (req, res) => {
+    try {
+      const { edges } = req.body;
+
+      if (!edges) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      // Start a transaction
+      await db.transaction(async (tx) => {
+        // Delete existing edges
+        await tx.delete(lineageEdges);
+
+        // Insert new edges
+        await tx
+          .insert(lineageEdges)
+          .values(edges.map((edge: any) => ({
+            sourceId: parseInt(edge.source),
+            targetId: parseInt(edge.target),
+            transformationLogic: edge.transformationLogic || null,
+            metadata: edge.metadata || null
+          })));
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating lineage edges:", error);
+      res.status(500).json({ error: "Failed to update lineage edges" });
     }
   });
 
