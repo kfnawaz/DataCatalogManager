@@ -816,12 +816,12 @@ export function registerRoutes(app: Express): Server {
       // Get all node IDs
       const nodeIds = nodes.map(n => n.id);
 
-      // Fetch edges using OR conditions instead of array operations
+      // Fetch edges using SQL IN clause
       const edges = await db
         .select()
         .from(lineageEdges)
         .where(
-          sql`(${lineageEdges.sourceId} = ANY(ARRAY[${sql.join(nodeIds)}]::int[]) AND ${lineageEdges.targetId} = ANY(ARRAY[${sql.join(nodeIds)}]::int[]))`
+          sql`${lineageEdges.sourceId} IN (${sql.join(nodeIds)}) AND ${lineageEdges.targetId} IN (${sql.join(nodeIds)})`
         );
 
       // Get all versions
@@ -858,7 +858,14 @@ export function registerRoutes(app: Express): Server {
       res.json(response);
     } catch (error) {
       console.error("Error fetching lineage data:", error);
-      res.status(500).json({ error: "Failed to fetch lineage data" });
+      // Send detailed error information for debugging
+      res.status(500).json({ 
+        error: "Failed to fetch lineage data",
+        details: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString(),
+        path: "/api/lineage",
+        query: { dataProductId: req.query.dataProductId, version: req.query.version }
+      });
     }
   });
 
