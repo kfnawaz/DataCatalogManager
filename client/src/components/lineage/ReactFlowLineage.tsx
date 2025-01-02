@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useEffect } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -128,7 +128,7 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
   });
 
   // Transform data for React Flow whenever lineageData changes
-  useCallback(() => {
+  useEffect(() => {
     if (!lineageData?.nodes?.length) return;
 
     // Transform nodes

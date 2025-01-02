@@ -232,40 +232,23 @@ export default function D3LineageGraph({ dataProductId }: D3LineageGraphProps) {
   return (
     <TooltipProvider>
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Version:</span>
-            <Select
-              value={selectedVersion?.toString()}
-              onValueChange={(value) => setSelectedVersion(Number(value))}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select version" />
-              </SelectTrigger>
-              <SelectContent>
-                {lineageData?.versions.map((v) => (
-                  <SelectItem key={v.version} value={v.version.toString()}>
-                    Version {v.version} ({new Date(v.timestamp).toLocaleDateString()})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2" role="presentation">
-              <div className="w-3 h-3 rounded-full bg-[#4CAF50]" aria-hidden="true" />
-              <span className="text-sm">Source</span>
-            </div>
-            <div className="flex items-center gap-2" role="presentation">
-              <div className="w-3 h-3 rounded-full bg-[#2196F3]" aria-hidden="true" />
-              <span className="text-sm">Transformation</span>
-            </div>
-            <div className="flex items-center gap-2" role="presentation">
-              <div className="w-3 h-3 rounded-full bg-[#F44336]" aria-hidden="true" />
-              <span className="text-sm">Target</span>
-            </div>
-          </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">Version:</span>
+          <Select
+            value={selectedVersion?.toString()}
+            onValueChange={(value) => setSelectedVersion(Number(value))}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select version" />
+            </SelectTrigger>
+            <SelectContent>
+              {lineageData?.versions.map((v) => (
+                <SelectItem key={v.version} value={v.version.toString()}>
+                  Version {v.version} ({new Date(v.timestamp).toLocaleDateString()})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <Card className="w-full h-[600px] relative">
