@@ -38,6 +38,7 @@ export default function DataProductsPage() {
   const [selectedDataProduct, setSelectedDataProduct] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("metadata");
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -61,119 +62,129 @@ export default function DataProductsPage() {
     <motion.main 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex min-h-screen bg-background"
+      className="flex min-h-screen bg-background relative"
     >
       {/* Quick Filter Sidebar */}
-      <QuickFilterSidebar onFiltersChange={handleFiltersChange} />
+      <QuickFilterSidebar 
+        onFiltersChange={handleFiltersChange} 
+        isExpanded={isSidebarExpanded}
+        onToggleExpand={() => setIsSidebarExpanded(!isSidebarExpanded)}
+      />
 
       {/* Main Content Area */}
-      <div className="flex-1 px-4 py-6">
-        <div className="mb-6">
-          <SearchBar onSelect={setSelectedDataProduct} initialValue={selectedDataProduct} />
+      <div className="flex-1 flex flex-col">
+        {/* Sticky Header with Search */}
+        <div className="sticky top-0 z-10 bg-background border-b border-border shadow-sm">
+          <div className="max-w-3xl mx-auto px-4 py-4 w-full">
+            <SearchBar onSelect={setSelectedDataProduct} initialValue={selectedDataProduct} />
+          </div>
         </div>
 
-        <AnimatePresence mode="wait">
-          {isLoading ? (
-            <motion.div {...fadeIn} key="loading">
-              <Skeleton className="h-8 w-1/3 mb-2" />
-              <Skeleton className="h-4 w-2/3 mb-6" />
-              <Skeleton className="h-[400px]" />
-            </motion.div>
-          ) : selectedProduct ? (
-            <motion.div {...fadeIn} key={selectedProduct.id}>
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold text-foreground">
-                  {selectedProduct.name}
-                </h2>
-                {selectedProduct.description && (
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {selectedProduct.description}
-                  </p>
-                )}
-              </div>
+        {/* Content Area */}
+        <div className="flex-1 px-4 py-6">
+          <AnimatePresence mode="wait">
+            {isLoading ? (
+              <motion.div {...fadeIn} key="loading">
+                <Skeleton className="h-8 w-1/3 mb-2" />
+                <Skeleton className="h-4 w-2/3 mb-6" />
+                <Skeleton className="h-[400px]" />
+              </motion.div>
+            ) : selectedProduct ? (
+              <motion.div {...fadeIn} key={selectedProduct.id}>
+                <div className="mb-6">
+                  <h2 className="text-xl font-semibold text-foreground">
+                    {selectedProduct.name}
+                  </h2>
+                  {selectedProduct.description && (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {selectedProduct.description}
+                    </p>
+                  )}
+                </div>
 
-              <Tabs 
-                value={activeTab} 
-                onValueChange={setActiveTab} 
-                className="space-y-4"
-              >
-                <TabsList>
-                  <TabsTrigger value="metadata">Metadata</TabsTrigger>
-                  <TabsTrigger value="lineage">Lineage</TabsTrigger>
-                  <TabsTrigger value="quality">Quality Metrics</TabsTrigger>
-                </TabsList>
+                <Tabs 
+                  value={activeTab} 
+                  onValueChange={setActiveTab} 
+                  className="space-y-4"
+                >
+                  <TabsList>
+                    <TabsTrigger value="metadata">Metadata</TabsTrigger>
+                    <TabsTrigger value="lineage">Lineage</TabsTrigger>
+                    <TabsTrigger value="quality">Quality Metrics</TabsTrigger>
+                  </TabsList>
 
-                <AnimatePresence mode="wait">
-                  <TabsContent value="metadata" asChild>
-                    <motion.div
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                    >
-                      <div className="space-y-4">
+                  <AnimatePresence mode="wait">
+                    <TabsContent value="metadata" asChild>
+                      <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                      >
+                        <div className="space-y-4">
+                          <Card>
+                            <CardHeader>
+                              <CardTitle>Metadata Management</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <MetadataPanel dataProductId={selectedProduct.id} />
+                            </CardContent>
+                          </Card>
+
+                          <Card>
+                            <CardHeader>
+                              <CardTitle>Comments & Annotations</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <DataProductComments dataProductId={selectedProduct.id} />
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </motion.div>
+                    </TabsContent>
+
+                    <TabsContent value="lineage" asChild>
+                      <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                      >
                         <Card>
                           <CardHeader>
-                            <CardTitle>Metadata Management</CardTitle>
+                            <CardTitle>Data Lineage</CardTitle>
                           </CardHeader>
                           <CardContent>
-                            <MetadataPanel dataProductId={selectedProduct.id} />
+                            <LineageGraph dataProductId={selectedProduct.id} />
                           </CardContent>
                         </Card>
+                      </motion.div>
+                    </TabsContent>
 
+                    <TabsContent value="quality" asChild>
+                      <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                      >
                         <Card>
                           <CardHeader>
-                            <CardTitle>Comments & Annotations</CardTitle>
+                            <CardTitle>Quality Metrics</CardTitle>
                           </CardHeader>
                           <CardContent>
-                            <DataProductComments dataProductId={selectedProduct.id} />
+                            <QualityMetrics dataProductId={selectedProduct.id} />
                           </CardContent>
                         </Card>
-                      </div>
-                    </motion.div>
-                  </TabsContent>
-
-                  <TabsContent value="lineage" asChild>
-                    <motion.div
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                    >
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Data Lineage</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <LineageGraph dataProductId={selectedProduct.id} />
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  </TabsContent>
-
-                  <TabsContent value="quality" asChild>
-                    <motion.div
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                    >
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Quality Metrics</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <QualityMetrics dataProductId={selectedProduct.id} />
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  </TabsContent>
-                </AnimatePresence>
-              </Tabs>
-            </motion.div>
-          ) : (
-            <motion.div {...fadeIn} key="empty" className="text-center py-12 text-muted-foreground">
-              Use the search bar above to find and select a data product
-            </motion.div>
-          )}
-        </AnimatePresence>
+                      </motion.div>
+                    </TabsContent>
+                  </AnimatePresence>
+                </Tabs>
+              </motion.div>
+            ) : (
+              <motion.div {...fadeIn} key="empty" className="text-center py-12 text-muted-foreground">
+                Use the search bar above to find and select a data product
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </motion.main>
   );
