@@ -62,21 +62,17 @@ export default function DataProductsPage() {
     <motion.main 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex min-h-[calc(100vh-73px)] bg-background relative"
+      className="flex min-h-[calc(100vh-73px)] bg-background relative pt-[73px]"
     >
-      {/* Quick Filter Sidebar */}
       <QuickFilterSidebar 
         onFiltersChange={handleFiltersChange} 
         isExpanded={isSidebarExpanded}
         onToggleExpand={() => setIsSidebarExpanded(!isSidebarExpanded)}
       />
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
-        {/* Content Area with Search Bar */}
         <div className="flex-1">
           <div className="max-w-4xl mx-auto px-4 py-8">
-            {/* Centered Search Section */}
             <div className="mb-8 text-center">
               <h2 className="text-2xl font-bold mb-4">Find Data Products</h2>
               <div className="max-w-2xl mx-auto">
@@ -84,7 +80,6 @@ export default function DataProductsPage() {
               </div>
             </div>
 
-            {/* Data Product Content */}
             <AnimatePresence mode="wait">
               {isLoading ? (
                 <motion.div {...fadeIn} key="loading">
@@ -110,7 +105,7 @@ export default function DataProductsPage() {
                     onValueChange={setActiveTab} 
                     className="space-y-4"
                   >
-                    <TabsList className="relative">
+                    <TabsList>
                       <TabsTrigger value="metadata">Metadata</TabsTrigger>
                       <TabsTrigger value="lineage">Lineage</TabsTrigger>
                       <TabsTrigger value="quality">Quality Metrics</TabsTrigger>
