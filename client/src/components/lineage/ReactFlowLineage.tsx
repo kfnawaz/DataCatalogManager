@@ -131,7 +131,7 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
   useEffect(() => {
     if (!lineageData?.nodes?.length) return;
 
-    // Transform nodes
+    // Transform nodes and edges only once per lineageData change
     const flowNodes: Node[] = lineageData.nodes.map((node) => ({
       id: node.id,
       type: node.type,
@@ -142,7 +142,6 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
       position: { x: 0, y: 0 },
     }));
 
-    // Transform edges
     const flowEdges: Edge[] = lineageData.links.map((link, index) => ({
       id: `edge-${index}`,
       source: link.source,
@@ -161,8 +160,8 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
     );
 
     // Update state
-    setNodes(layoutedNodes);
-    setEdges(layoutedEdges);
+    setNodes([...layoutedNodes]);
+    setEdges([...layoutedEdges]);
   }, [lineageData, setNodes, setEdges]);
 
   if (!dataProductId) {

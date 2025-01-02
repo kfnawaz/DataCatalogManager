@@ -19,23 +19,42 @@ export default function LineageGraph({ dataProductId }: LineageGraphProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">Data Lineage</h2>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Visualization:</span>
-          <ToggleGroup
-            type="single"
-            value={visualizationType}
-            onValueChange={(value) => {
-              if (value) setVisualizationType(value);
-            }}
-            aria-label="Visualization type"
-          >
-            <ToggleGroupItem value="reactflow" aria-label="React Flow">
-              React Flow
-            </ToggleGroupItem>
-            <ToggleGroupItem value="d3" aria-label="D3">
-              D3
-            </ToggleGroupItem>
-          </ToggleGroup>
+        <div className="flex items-center gap-4">
+          {/* Legend */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2" role="presentation">
+              <div className="w-3 h-3 rounded-full bg-[#4CAF50]" aria-hidden="true" />
+              <span className="text-sm">Source</span>
+            </div>
+            <div className="flex items-center gap-2" role="presentation">
+              <div className="w-3 h-3 rounded-full bg-[#2196F3]" aria-hidden="true" />
+              <span className="text-sm">Transformation</span>
+            </div>
+            <div className="flex items-center gap-2" role="presentation">
+              <div className="w-3 h-3 rounded-full bg-[#F44336]" aria-hidden="true" />
+              <span className="text-sm">Target</span>
+            </div>
+          </div>
+
+          {/* Visualization Toggle */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">View:</span>
+            <ToggleGroup
+              type="single"
+              value={visualizationType}
+              onValueChange={(value) => {
+                if (value) setVisualizationType(value);
+              }}
+              aria-label="Visualization type"
+            >
+              <ToggleGroupItem value="reactflow" aria-label="React Flow">
+                React Flow
+              </ToggleGroupItem>
+              <ToggleGroupItem value="d3" aria-label="D3">
+                D3
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
         </div>
       </div>
 
