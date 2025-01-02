@@ -132,15 +132,19 @@ interface TourGuideProviderProps {
 export function TourGuideProvider({ children }: TourGuideProviderProps) {
   const { endTour, showCelebration, currentStep, totalSteps } = useTourGuide();
 
-  const CustomNextButton = ({ onClick }: { onClick: () => void }) => {
+  const PrevButton = () => (
+    <Button variant="outline" size="sm">Previous</Button>
+  );
+
+  const NextButton = ({ onClick }: { onClick?: () => void }) => {
     const isLastStep = currentStep === totalSteps - 1;
     return (
-      <Button 
-        size="sm" 
+      <Button
+        size="sm"
         onClick={() => {
           if (isLastStep) {
             endTour();
-          } else {
+          } else if (onClick) {
             onClick();
           }
         }}
@@ -193,8 +197,8 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
       onClickClose={() => endTour()}
       afterClose={() => endTour()}
       showPrevNextButtons={true}
-      prevButton={<Button variant="outline" size="sm">Previous</Button>}
-      nextButton={<CustomNextButton onClick={() => {}} />}
+      prevButton={PrevButton}
+      nextButton={NextButton}
       disableInteraction
       className="tour-guide"
     >
