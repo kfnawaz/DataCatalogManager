@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   LineChart,
   Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -13,8 +15,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
-import { format } from "date-fns";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertCircle, TrendingDown, TrendingUp, Minus } from "lucide-react";
+import { format, subDays } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Tooltip as UITooltip,
@@ -42,13 +45,18 @@ interface QualityMetricsProps {
   dataProductId: number | null;
 }
 
+type ChartType = 'line' | 'bar';
+type TimeRange = '7d' | '30d' | '90d' | 'all';
+
 export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
   const [hoveredMetric, setHoveredMetric] = useState<string | null>(null);
+  const [chartType, setChartType] = useState<ChartType>('line');
+  const [timeRange, setTimeRange] = useState<TimeRange>('30d');
 
   const { data: metrics, isLoading, error } = useQuery<MetricData>({
-    queryKey: [`/api/quality-metrics/${dataProductId}`],
+    queryKey: [`/api/quality-metrics/${dataProductId}`, timeRange],
     enabled: dataProductId !== null,
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 30000,
   });
 
   if (!dataProductId) {
@@ -100,10 +108,24 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
     );
   }
 
-  const formattedData = metrics.history?.map((item) => ({
+  // Filter data based on selected time range
+  const filterDataByTimeRange = (data: MetricHistory[]) => {
+    if (timeRange === 'all') return data;
+
+    const ranges = {
+      '7d': 7,
+      '30d': 30,
+      '90d': 90,
+    };
+
+    const cutoffDate = subDays(new Date(), ranges[timeRange]);
+    return data.filter(item => new Date(item.timestamp) >= cutoffDate);
+  };
+
+  const formattedData = filterDataByTimeRange(metrics.history?.map((item) => ({
     ...item,
     timestamp: format(new Date(item.timestamp), "MMM d, yyyy HH:mm"),
-  })) || [];
+  })) || []);
 
   const getMetricDescription = (metric: string) => {
     switch (metric) {
@@ -132,6 +154,12 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
     return "text-red-500 dark:text-red-400";
   };
 
+  const getTrendIcon = (trend: number) => {
+    if (trend > 0) return <TrendingUp className="h-4 w-4 text-green-500" />;
+    if (trend < 0) return <TrendingDown className="h-4 w-4 text-red-500" />;
+    return <Minus className="h-4 w-4 text-muted-foreground" />;
+  };
+
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -141,6 +169,30 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.3 }}
       >
+        <div className="flex justify-end gap-4 mb-6">
+          <Select value={chartType} onValueChange={(value) => setChartType(value as ChartType)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Chart Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="line">Line Chart</SelectItem>
+              <SelectItem value="bar">Bar Chart</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={timeRange} onValueChange={(value) => setTimeRange(value as TimeRange)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Time Range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7d">Last 7 Days</SelectItem>
+              <SelectItem value="30d">Last 30 Days</SelectItem>
+              <SelectItem value="90d">Last 90 Days</SelectItem>
+              <SelectItem value="all">All Time</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {(['completeness', 'accuracy', 'timeliness'] as const).map((metric) => (
             <UITooltip key={metric}>
@@ -185,87 +237,141 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
 
         {formattedData.length > 0 ? (
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle>Historical Trends</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart 
-                    data={formattedData}
-                    margin={{ top: 5, right: 30, left: 20, bottom: 80 }}
-                  >
-                    <CartesianGrid 
-                      strokeDasharray="3 3" 
-                      stroke="hsl(var(--muted-foreground) / 0.2)"
-                    />
-                    <XAxis 
-                      dataKey="timestamp"
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                      tick={{ 
-                        fill: "hsl(var(--muted-foreground))",
-                        fontSize: 12 
-                      }}
-                      stroke="hsl(var(--muted-foreground))"
-                    />
-                    <YAxis 
-                      domain={[0, 100]}
-                      tick={{ 
-                        fill: "hsl(var(--muted-foreground))",
-                        fontSize: 12 
-                      }}
-                      stroke="hsl(var(--muted-foreground))"
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--background))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "var(--radius)",
-                      }}
-                      labelStyle={{
-                        color: "hsl(var(--foreground))",
-                      }}
-                      itemStyle={{
-                        color: "hsl(var(--foreground))",
-                      }}
-                    />
-                    <Legend 
-                      wrapperStyle={{
-                        paddingTop: "2rem"
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="completeness"
-                      name="Completeness"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{ r: 8 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="accuracy"
-                      name="Accuracy"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={2}
-                      strokeOpacity={0.7}
-                      dot={false}
-                      activeDot={{ r: 8 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="timeliness"
-                      name="Timeliness"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={2}
-                      strokeOpacity={0.4}
-                      dot={false}
-                      activeDot={{ r: 8 }}
-                    />
-                  </LineChart>
+                  {chartType === 'line' ? (
+                    <LineChart 
+                      data={formattedData}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 80 }}
+                    >
+                      <CartesianGrid 
+                        strokeDasharray="3 3" 
+                        stroke="hsl(var(--muted-foreground) / 0.2)"
+                      />
+                      <XAxis 
+                        dataKey="timestamp"
+                        angle={-45}
+                        textAnchor="end"
+                        height={80}
+                        tick={{ 
+                          fill: "hsl(var(--muted-foreground))",
+                          fontSize: 12 
+                        }}
+                        stroke="hsl(var(--muted-foreground))"
+                      />
+                      <YAxis 
+                        domain={[0, 100]}
+                        tick={{ 
+                          fill: "hsl(var(--muted-foreground))",
+                          fontSize: 12 
+                        }}
+                        stroke="hsl(var(--muted-foreground))"
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--background))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "var(--radius)",
+                        }}
+                        labelStyle={{
+                          color: "hsl(var(--foreground))",
+                        }}
+                        itemStyle={{
+                          color: "hsl(var(--foreground))",
+                        }}
+                      />
+                      <Legend wrapperStyle={{ paddingTop: "2rem" }} />
+                      <Line
+                        type="monotone"
+                        dataKey="completeness"
+                        name="Completeness"
+                        stroke="hsl(var(--chart-1))"
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{ r: 8 }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="accuracy"
+                        name="Accuracy"
+                        stroke="hsl(var(--chart-2))"
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{ r: 8 }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="timeliness"
+                        name="Timeliness"
+                        stroke="hsl(var(--chart-3))"
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{ r: 8 }}
+                      />
+                    </LineChart>
+                  ) : (
+                    <BarChart
+                      data={formattedData}
+                      margin={{ top: 5, right: 30, left: 20, bottom: 80 }}
+                    >
+                      <CartesianGrid 
+                        strokeDasharray="3 3" 
+                        stroke="hsl(var(--muted-foreground) / 0.2)"
+                      />
+                      <XAxis 
+                        dataKey="timestamp"
+                        angle={-45}
+                        textAnchor="end"
+                        height={80}
+                        tick={{ 
+                          fill: "hsl(var(--muted-foreground))",
+                          fontSize: 12 
+                        }}
+                        stroke="hsl(var(--muted-foreground))"
+                      />
+                      <YAxis 
+                        domain={[0, 100]}
+                        tick={{ 
+                          fill: "hsl(var(--muted-foreground))",
+                          fontSize: 12 
+                        }}
+                        stroke="hsl(var(--muted-foreground))"
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--background))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "var(--radius)",
+                        }}
+                        labelStyle={{
+                          color: "hsl(var(--foreground))",
+                        }}
+                        itemStyle={{
+                          color: "hsl(var(--foreground))",
+                        }}
+                      />
+                      <Legend wrapperStyle={{ paddingTop: "2rem" }} />
+                      <Bar
+                        dataKey="completeness"
+                        name="Completeness"
+                        fill="hsl(var(--chart-1))"
+                      />
+                      <Bar
+                        dataKey="accuracy"
+                        name="Accuracy"
+                        fill="hsl(var(--chart-2))"
+                      />
+                      <Bar
+                        dataKey="timeliness"
+                        name="Timeliness"
+                        fill="hsl(var(--chart-3))"
+                      />
+                    </BarChart>
+                  )}
                 </ResponsiveContainer>
               </div>
             </CardContent>
@@ -326,10 +432,13 @@ function MetricCard({
           >
             <h4 className="text-sm font-medium text-muted-foreground">{title}</h4>
             <div className="mt-2 flex items-baseline gap-2">
-              <div className="text-3xl font-semibold">{value}%</div>
+              <div className="text-3xl font-semibold">{Math.round(value)}%</div>
               {trend !== undefined && (
-                <div className={`text-sm ${trend > 0 ? 'text-green-500' : trend < 0 ? 'text-red-500' : 'text-muted-foreground'}`}>
-                  {trend > 0 ? '↑' : trend < 0 ? '↓' : '→'} {Math.abs(trend)}%
+                <div className="flex items-center gap-1">
+                  {getTrendIcon(trend)}
+                  <span className="text-sm">
+                    {Math.abs(trend)}%
+                  </span>
                 </div>
               )}
             </div>

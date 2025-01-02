@@ -239,10 +239,34 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Invalid product ID" });
       }
 
+      // Get time range from query parameter
+      const timeRange = req.query.timeRange as string;
+      let dateFilter = new Date(0); // Default to all time
+
+      if (timeRange) {
+        const now = new Date();
+        switch (timeRange) {
+          case '7d':
+            dateFilter = new Date(now.setDate(now.getDate() - 7));
+            break;
+          case '30d':
+            dateFilter = new Date(now.setDate(now.getDate() - 30));
+            break;
+          case '90d':
+            dateFilter = new Date(now.setDate(now.getDate() - 90));
+            break;
+        }
+      }
+
       const metrics = await db
         .select()
         .from(qualityMetrics)
-        .where(eq(qualityMetrics.dataProductId, productId))
+        .where(
+          and(
+            eq(qualityMetrics.dataProductId, productId),
+            sql`${qualityMetrics.timestamp} >= ${dateFilter}`
+          )
+        )
         .orderBy(desc(qualityMetrics.timestamp));
 
       if (metrics.length === 0) {
@@ -258,9 +282,8 @@ export function registerRoutes(app: Express): Server {
 
       // Group metrics by type to get current values
       const currentMetrics = metrics.reduce((acc, metric) => {
-        const metricType = metric.type as keyof typeof acc;
-        if (!acc[metricType]) {
-          acc[metricType] = metric.value;
+        if (!acc[metric.type]) {
+          acc[metric.type] = metric.value;
         }
         return acc;
       }, {} as Record<string, number>);
