@@ -150,6 +150,9 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
         controls: (base) => ({
           ...base,
           marginTop: '1rem',
+          display: 'flex',
+          gap: '0.5rem',
+          justifyContent: 'flex-end',
         }),
         close: (base) => ({
           ...base,
@@ -164,12 +167,29 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
           height: 8,
           margin: '0 4px',
         }),
+        button: (base) => ({
+          ...base,
+          border: 'none',
+          padding: '0.5rem 1rem',
+          background: 'hsl(var(--primary))',
+          color: 'hsl(var(--primary-foreground))',
+          borderRadius: 'var(--radius)',
+          cursor: 'pointer',
+          fontSize: '0.875rem',
+          fontWeight: 500,
+          '&:hover': {
+            opacity: 0.9,
+          },
+        }),
       }}
       padding={16}
       onClickMask={() => endTour()}
       onClickClose={() => endTour()}
       afterClose={() => endTour()}
-      lastStepNextButton={<Button>Finish Tour</Button>}
+      prevButton={<Button variant="outline" size="sm">Previous</Button>}
+      nextButton={<Button size="sm">Next</Button>}
+      disableInteraction
+      className="tour-guide"
     >
       {children}
       <AnimatePresence>
