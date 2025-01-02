@@ -10,22 +10,27 @@ const tourSteps: StepType[] = [
   {
     selector: '.search-bar',
     content: 'Start by searching for a data product using the search bar. You can find products by name, owner, or tags.',
+    position: 'bottom',
   },
   {
     selector: '.metadata-tab',
     content: 'View and manage detailed metadata information about your data products here.',
+    position: 'bottom',
   },
   {
     selector: '.lineage-tab',
     content: 'Explore data lineage to understand relationships and dependencies between data products.',
+    position: 'bottom',
   },
   {
     selector: '.quality-tab',
     content: 'Monitor data quality metrics and track trends over time.',
+    position: 'bottom',
   },
   {
     selector: '.comment-section',
     content: 'Collaborate with your team by adding comments and reactions to discuss data products.',
+    position: 'bottom',
   },
 ];
 
@@ -100,13 +105,9 @@ export function useTourGuide() {
     setIsOpen(false);
     setTourOpen(false);
     localStorage.setItem('tourProgress', '0');
-    const hasSeenTour = localStorage.getItem('hasSeenTour');
-
-    if (!hasSeenTour) {
-      localStorage.setItem('hasSeenTour', 'true');
-      setShowCelebration(true);
-      setTimeout(() => setShowCelebration(false), 5000);
-    }
+    localStorage.setItem('hasSeenTour', 'true');
+    setShowCelebration(true);
+    setTimeout(() => setShowCelebration(false), 5000);
 
     toast({
       title: "Tour Completed! 🎉",
@@ -132,10 +133,12 @@ interface TourGuideProviderProps {
 export function TourGuideProvider({ children }: TourGuideProviderProps) {
   const { endTour, showCelebration, currentStep, totalSteps } = useTourGuide();
 
+  // Component for the previous button
   const PrevButton = () => (
     <Button variant="outline" size="sm">Previous</Button>
   );
 
+  // Component for the next/finish button
   const NextButton = ({ onClick }: { onClick?: () => void }) => {
     const isLastStep = currentStep === totalSteps - 1;
     return (
@@ -165,6 +168,8 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
           color: 'hsl(var(--foreground))',
           borderRadius: 'var(--radius)',
           padding: '1rem',
+          maxWidth: '320px',
+          position: 'relative',
         }),
         badge: (base) => ({
           ...base,
@@ -199,8 +204,10 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
       showPrevNextButtons={true}
       prevButton={PrevButton}
       nextButton={NextButton}
-      disableInteraction
+      disableInteraction={false}
       className="tour-guide"
+      showNavigation={true}
+      showBadge={true}
     >
       {children}
       <AnimatePresence>
