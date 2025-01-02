@@ -135,26 +135,54 @@ export default function CommentReactions({
     }
   };
 
+  // Helper function to get dynamic button classes
+  const getButtonClasses = (type: 'like' | 'helpful' | 'insightful') => {
+    const hasReacted = userReactions[type];
+    const hasCount = localReactions[type] > 0;
+
+    return `
+      gap-1 transition-all duration-200 group
+      ${hasReacted 
+        ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary dark:hover:text-primary dark:hover:bg-primary/20' 
+        : hasCount
+          ? 'text-foreground hover:text-primary/80 dark:text-white hover:bg-primary/5 dark:hover:bg-primary/10'
+          : 'text-foreground hover:text-primary/80 dark:text-white/80 hover:bg-primary/5 dark:hover:bg-primary/10'
+      }
+    `;
+  };
+
+  // Helper function to get icon classes
+  const getIconClasses = (type: 'like' | 'helpful' | 'insightful') => {
+    const hasCount = localReactions[type] > 0;
+
+    return `
+      h-4 w-4 transition-transform duration-200 group-hover:scale-110
+      ${hasCount ? 'text-primary dark:text-white' : ''}
+    `;
+  };
+
+  // Helper function to get count classes
+  const getCountClasses = (type: 'like' | 'helpful' | 'insightful') => {
+    const hasCount = localReactions[type] > 0;
+
+    return `
+      text-sm transition-colors duration-200
+      ${hasCount ? 'font-semibold text-primary dark:text-white' : ''}
+    `;
+  };
+
   return (
     <div className="flex items-center gap-4">
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"
           size="sm"
-          className={`gap-1 transition-all duration-200 group dark:text-white ${
-            userReactions.like 
-              ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary dark:hover:text-primary dark:hover:bg-primary/20' 
-              : 'hover:text-primary/80 dark:hover:text-primary/80 hover:bg-primary/5 dark:hover:bg-primary/10'
-          }`}
+          className={getButtonClasses('like')}
           onClick={() => handleReaction('like')}
           disabled={userReactions.like}
         >
-          <ThumbsUp className={`h-4 w-4 transition-transform duration-200 group-hover:scale-110 ${
-            localReactions.like > 0 ? 'text-primary dark:text-primary' : ''
-          }`} />
-          <span className={`text-sm transition-colors duration-200 ${
-            localReactions.like > 0 ? 'font-semibold text-primary dark:text-primary' : ''
-          }`}>
+          <ThumbsUp className={getIconClasses('like')} />
+          <span className={getCountClasses('like')}>
             {localReactions.like || 0}
           </span>
         </Button>
@@ -162,20 +190,12 @@ export default function CommentReactions({
         <Button
           variant="ghost"
           size="sm"
-          className={`gap-1 transition-all duration-200 group dark:text-white ${
-            userReactions.helpful 
-              ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary dark:hover:text-primary dark:hover:bg-primary/20' 
-              : 'hover:text-primary/80 dark:hover:text-primary/80 hover:bg-primary/5 dark:hover:bg-primary/10'
-          }`}
+          className={getButtonClasses('helpful')}
           onClick={() => handleReaction('helpful')}
           disabled={userReactions.helpful}
         >
-          <Award className={`h-4 w-4 transition-transform duration-200 group-hover:scale-110 ${
-            localReactions.helpful > 0 ? 'text-primary dark:text-primary' : ''
-          }`} />
-          <span className={`text-sm transition-colors duration-200 ${
-            localReactions.helpful > 0 ? 'font-semibold text-primary dark:text-primary' : ''
-          }`}>
+          <Award className={getIconClasses('helpful')} />
+          <span className={getCountClasses('helpful')}>
             {localReactions.helpful || 0}
           </span>
         </Button>
@@ -183,20 +203,12 @@ export default function CommentReactions({
         <Button
           variant="ghost"
           size="sm"
-          className={`gap-1 transition-all duration-200 group dark:text-white ${
-            userReactions.insightful 
-              ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary dark:hover:text-primary dark:hover:bg-primary/20' 
-              : 'hover:text-primary/80 dark:hover:text-primary/80 hover:bg-primary/5 dark:hover:bg-primary/10'
-          }`}
+          className={getButtonClasses('insightful')}
           onClick={() => handleReaction('insightful')}
           disabled={userReactions.insightful}
         >
-          <Brain className={`h-4 w-4 transition-transform duration-200 group-hover:scale-110 ${
-            localReactions.insightful > 0 ? 'text-primary dark:text-primary' : ''
-          }`} />
-          <span className={`text-sm transition-colors duration-200 ${
-            localReactions.insightful > 0 ? 'font-semibold text-primary dark:text-primary' : ''
-          }`}>
+          <Brain className={getIconClasses('insightful')} />
+          <span className={getCountClasses('insightful')}>
             {localReactions.insightful || 0}
           </span>
         </Button>
