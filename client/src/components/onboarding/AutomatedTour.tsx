@@ -10,8 +10,7 @@ import {
   LayoutDashboard,
   GitGraph,
   BarChart3,
-  MessageSquare,
-  CheckCircle
+  MessageSquare
 } from 'lucide-react';
 
 interface TourStep {
@@ -92,7 +91,7 @@ export function AutomatedTour() {
     if (step.route && step.route !== window.location.pathname) {
       setLocation(step.route);
     }
-    
+
     // Wait for navigation and DOM update
     setTimeout(() => {
       const element = document.querySelector(step.selector);
@@ -117,8 +116,7 @@ export function AutomatedTour() {
     localStorage.setItem('hasSeenTour', 'true');
     toast({
       title: "Tour Completed!",
-      description: "You can now explore the platform on your own.",
-      icon: <CheckCircle className="h-5 w-5 text-green-500" />
+      description: "You can now explore the platform on your own."
     });
   };
 
