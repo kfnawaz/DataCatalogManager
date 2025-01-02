@@ -201,10 +201,14 @@ export default function CommentAnalytics({ comments }: CommentAnalyticsProps) {
               {topCommenters.map(([author, count], index) => (
                 <div key={author} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className={`text-sm ${index === 0 ? 'font-medium text-primary' : ''}`}>
+                    <span className={`text-sm ${index === 0 ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
                       {author}
                     </span>
-                    {index === 0 && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">Top Contributor</span>}
+                    {index === 0 && (
+                      <span className="text-xs bg-primary/10 text-primary-foreground px-2 py-0.5 rounded-full border border-primary/20">
+                        Top Contributor
+                      </span>
+                    )}
                   </div>
                   <span className="text-sm font-medium">{count} comments</span>
                 </div>
