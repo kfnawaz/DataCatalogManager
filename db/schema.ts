@@ -37,6 +37,27 @@ export const comments = pgTable("comments", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Comment reactions table for gamification
+export const commentReactions = pgTable("comment_reactions", {
+  id: serial("id").primaryKey(),
+  commentId: integer("comment_id")
+    .references(() => comments.id)
+    .notNull(),
+  type: text("type").notNull(), // 'like', 'helpful', 'insightful'
+  userIdentifier: text("user_identifier").notNull(), // Store user/session identifier
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Comment badges for achievements
+export const commentBadges = pgTable("comment_badges", {
+  id: serial("id").primaryKey(),
+  commentId: integer("comment_id")
+    .references(() => comments.id)
+    .notNull(),
+  type: text("type").notNull(), // 'quality', 'trending', 'influential'
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Metric templates for common use cases
 export const metricTemplates = pgTable("metric_templates", {
   id: serial("id").primaryKey(),
@@ -109,11 +130,13 @@ export const qualityMetricRelations = relations(qualityMetrics, ({ one }) => ({
   }),
 }));
 
-export const commentRelations = relations(comments, ({ one }) => ({
+export const commentRelations = relations(comments, ({ one, many }) => ({
   dataProduct: one(dataProducts, {
     fields: [comments.dataProductId],
     references: [dataProducts.id],
   }),
+  reactions: many(commentReactions),
+  badges: many(commentBadges),
 }));
 
 export const metricDefinitionRelations = relations(metricDefinitions, ({ one, many }) => ({
@@ -146,6 +169,12 @@ export const selectCommentSchema = createSelectSchema(comments);
 // Add schemas for version history
 export const insertMetricDefinitionVersionSchema = createInsertSchema(metricDefinitionVersions);
 export const selectMetricDefinitionVersionSchema = createSelectSchema(metricDefinitionVersions);
+
+// Add new schemas
+export const insertCommentReactionSchema = createInsertSchema(commentReactions);
+export const selectCommentReactionSchema = createSelectSchema(commentReactions);
+export const insertCommentBadgeSchema = createInsertSchema(commentBadges);
+export const selectCommentBadgeSchema = createSelectSchema(commentBadges);
 
 // Add API usage tracking table
 export const apiUsage = pgTable("api_usage", {
@@ -183,3 +212,9 @@ export type NewComment = typeof comments.$inferInsert;
 // Add types for version history
 export type MetricDefinitionVersion = typeof metricDefinitionVersions.$inferSelect;
 export type NewMetricDefinitionVersion = typeof metricDefinitionVersions.$inferInsert;
+
+// Add new types
+export type CommentReaction = typeof commentReactions.$inferSelect;
+export type NewCommentReaction = typeof commentReactions.$inferInsert;
+export type CommentBadge = typeof commentBadges.$inferSelect;
+export type NewCommentBadge = typeof commentBadges.$inferInsert;

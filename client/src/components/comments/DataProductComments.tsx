@@ -9,27 +9,38 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { 
-  SendHorizontal, 
-  MessageSquare, 
-  ChevronDown, 
-  ChevronUp, 
-  BarChart2, 
+import {
+  SendHorizontal,
+  MessageSquare,
+  ChevronDown,
+  ChevronUp,
+  BarChart2,
   Loader2,
   SortAsc,
   Search,
-  Filter
+  Filter,
+  Share2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import CommentAnalytics from "./CommentAnalytics";
 import CommentSummary from "./CommentSummary";
 import EmojiPicker from "./EmojiPicker";
+import CommentReactions from "./CommentReactions";
 
 interface Comment {
   id: number;
   content: string;
   createdAt: string;
   authorName: string;
+  reactions: {
+    like: number;
+    helpful: number;
+    insightful: number;
+  };
+  badges: Array<{
+    type: string;
+    createdAt: string;
+  }>;
 }
 
 interface CommentResponse {
@@ -160,6 +171,40 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
       textareaRef.focus();
     }, 0);
   };
+
+  const shareComment = (comment: Comment) => {
+    const shareText = `Comment by ${comment.authorName}: ${comment.content}`;
+
+    if (navigator.share) {
+      navigator.share({
+        title: 'Shared Comment',
+        text: shareText,
+        url: window.location.href,
+      }).catch((error) => {
+        console.error('Error sharing:', error);
+        // Fallback to clipboard
+        copyToClipboard();
+      });
+    } else {
+      copyToClipboard();
+    }
+
+    function copyToClipboard() {
+      navigator.clipboard.writeText(shareText).then(() => {
+        toast({
+          title: "Copied to clipboard",
+          description: "Comment link has been copied to your clipboard.",
+        });
+      }).catch(() => {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to copy to clipboard.",
+        });
+      });
+    }
+  };
+
 
   return (
     <div className="space-y-4">
@@ -316,11 +361,21 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{comment.authorName}</span>
-                <span className="text-sm text-muted-foreground">
-                  {format(new Date(comment.createdAt), "PPp")}
-                </span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{comment.authorName}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {format(new Date(comment.createdAt), "PPp")}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => shareComment(comment)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Share2 className="h-4 w-4" />
+                </Button>
               </div>
               <motion.p
                 initial={{ opacity: 0 }}
@@ -329,6 +384,13 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
               >
                 {comment.content}
               </motion.p>
+              <div className="mt-2">
+                <CommentReactions
+                  commentId={comment.id}
+                  reactions={comment.reactions}
+                  badges={comment.badges}
+                />
+              </div>
             </div>
           </motion.div>
         ))}
