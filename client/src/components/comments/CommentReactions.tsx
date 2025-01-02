@@ -141,12 +141,16 @@ export default function CommentReactions({
         <Button
           variant="ghost"
           size="sm"
-          className={`gap-1 ${userReactions.like ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary dark:hover:text-primary dark:hover:bg-primary/20' : 'dark:text-white dark:hover:text-white/80'}`}
+          className={`gap-1 dark:text-white ${
+            userReactions.like 
+              ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary dark:hover:text-primary dark:hover:bg-primary/20' 
+              : 'hover:text-foreground/80 dark:hover:text-white/80'
+          }`}
           onClick={() => handleReaction('like')}
           disabled={userReactions.like}
         >
           <ThumbsUp className="h-4 w-4" />
-          <span className={`text-sm ${localReactions.like > 0 ? 'font-semibold dark:text-white' : ''}`}>
+          <span className={`text-sm ${localReactions.like > 0 ? 'font-semibold' : ''}`}>
             {localReactions.like || 0}
           </span>
         </Button>
@@ -154,12 +158,16 @@ export default function CommentReactions({
         <Button
           variant="ghost"
           size="sm"
-          className={`gap-1 ${userReactions.helpful ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary dark:hover:text-primary dark:hover:bg-primary/20' : 'dark:text-white dark:hover:text-white/80'}`}
+          className={`gap-1 dark:text-white ${
+            userReactions.helpful 
+              ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary dark:hover:text-primary dark:hover:bg-primary/20' 
+              : 'hover:text-foreground/80 dark:hover:text-white/80'
+          }`}
           onClick={() => handleReaction('helpful')}
           disabled={userReactions.helpful}
         >
           <Award className="h-4 w-4" />
-          <span className={`text-sm ${localReactions.helpful > 0 ? 'font-semibold dark:text-white' : ''}`}>
+          <span className={`text-sm ${localReactions.helpful > 0 ? 'font-semibold' : ''}`}>
             {localReactions.helpful || 0}
           </span>
         </Button>
@@ -167,12 +175,16 @@ export default function CommentReactions({
         <Button
           variant="ghost"
           size="sm"
-          className={`gap-1 ${userReactions.insightful ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary dark:hover:text-primary dark:hover:bg-primary/20' : 'dark:text-white dark:hover:text-white/80'}`}
+          className={`gap-1 dark:text-white ${
+            userReactions.insightful 
+              ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary dark:hover:text-primary dark:hover:bg-primary/20' 
+              : 'hover:text-foreground/80 dark:hover:text-white/80'
+          }`}
           onClick={() => handleReaction('insightful')}
           disabled={userReactions.insightful}
         >
           <Brain className="h-4 w-4" />
-          <span className={`text-sm ${localReactions.insightful > 0 ? 'font-semibold dark:text-white' : ''}`}>
+          <span className={`text-sm ${localReactions.insightful > 0 ? 'font-semibold' : ''}`}>
             {localReactions.insightful || 0}
           </span>
         </Button>
