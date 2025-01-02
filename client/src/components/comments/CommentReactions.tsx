@@ -40,13 +40,14 @@ export default function CommentReactions({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Load user's previous reactions
+  // Load user's previous reactions and initialize reaction counts
   useEffect(() => {
+    setLocalReactions(initialReactions);
     const savedReactions = localStorage.getItem(`reactions_${commentId}`);
     if (savedReactions) {
       setUserReactions(JSON.parse(savedReactions));
     }
-  }, [commentId]);
+  }, [commentId, initialReactions]);
 
   const reactionMutation = useMutation({
     mutationFn: async ({ type }: { type: string }) => {
@@ -92,7 +93,7 @@ export default function CommentReactions({
       // Revert the optimistic update
       setLocalReactions(prev => ({
         ...prev,
-        [type]: (prev[type as keyof typeof prev] || 1) - 1
+        [type]: Math.max((prev[type as keyof typeof prev] || 1) - 1, 0)
       }));
 
       toast({
