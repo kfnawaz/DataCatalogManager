@@ -19,12 +19,32 @@ interface ReactFlowLineageProps {
   dataProductId: number | null;
 }
 
+interface LineageNode {
+  id: string;
+  type: 'source' | 'transformation' | 'target';
+  label: string;
+  metadata?: Record<string, any>;
+}
+
+interface LineageLink {
+  source: string;
+  target: string;
+  transformationLogic?: string;
+}
+
+interface LineageData {
+  nodes: LineageNode[];
+  links: LineageLink[];
+  version: number;
+  versions: { version: number; timestamp: string }[];
+}
+
 // Custom node types
 const sourceStyle = { background: '#4CAF50', color: 'white' };
 const transformStyle = { background: '#2196F3', color: 'white' };
 const targetStyle = { background: '#F44336', color: 'white' };
 
-function LineageNode({ data, type }: { data: any; type: string }) {
+function LineageNodeComponent({ data, type }: { data: any; type: string }) {
   let style = sourceStyle;
   if (type === 'transformation') style = transformStyle;
   if (type === 'target') style = targetStyle;
@@ -57,9 +77,9 @@ function LineageNode({ data, type }: { data: any; type: string }) {
 }
 
 const nodeTypes = {
-  source: LineageNode,
-  transformation: LineageNode,
-  target: LineageNode,
+  source: LineageNodeComponent,
+  transformation: LineageNodeComponent,
+  target: LineageNodeComponent,
 };
 
 // Custom layout function
@@ -102,44 +122,48 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  const { data: lineageData, isLoading } = useQuery({
+  const { data: lineageData, isLoading } = useQuery<LineageData>({
     queryKey: [`/api/lineage?dataProductId=${dataProductId}`],
     enabled: dataProductId !== null,
-    onSuccess: (data: LineageData | undefined) => {
-      if (!data?.nodes?.length) return;
-
-      // Transform data for React Flow
-      const flowNodes: Node[] = data.nodes.map((node: any) => ({
-        id: node.id,
-        type: node.type,
-        data: {
-          label: node.label,
-          metadata: node.metadata,
-        },
-        position: { x: 0, y: 0 },
-      }));
-
-      const flowEdges: Edge[] = data.links.map((link: any, index: number) => ({
-        id: `edge-${index}`,
-        source: link.source,
-        target: link.target,
-        animated: true,
-        label: link.transformationLogic,
-        style: { stroke: '#666' },
-        labelStyle: { fill: '#666', fontSize: 12 },
-        type: 'smoothstep',
-      }));
-
-      // Apply layout
-      const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-        flowNodes,
-        flowEdges
-      );
-
-      setNodes(layoutedNodes);
-      setEdges(layoutedEdges);
-    },
   });
+
+  // Transform data for React Flow whenever lineageData changes
+  useCallback(() => {
+    if (!lineageData?.nodes?.length) return;
+
+    // Transform nodes
+    const flowNodes: Node[] = lineageData.nodes.map((node) => ({
+      id: node.id,
+      type: node.type,
+      data: {
+        label: node.label,
+        metadata: node.metadata,
+      },
+      position: { x: 0, y: 0 },
+    }));
+
+    // Transform edges
+    const flowEdges: Edge[] = lineageData.links.map((link, index) => ({
+      id: `edge-${index}`,
+      source: link.source,
+      target: link.target,
+      animated: true,
+      label: link.transformationLogic,
+      style: { stroke: '#666' },
+      labelStyle: { fill: '#666', fontSize: 12 },
+      type: 'smoothstep',
+    }));
+
+    // Apply layout
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+      flowNodes,
+      flowEdges
+    );
+
+    // Update state
+    setNodes(layoutedNodes);
+    setEdges(layoutedEdges);
+  }, [lineageData, setNodes, setEdges]);
 
   if (!dataProductId) {
     return (
@@ -170,11 +194,4 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
       </ReactFlow>
     </Card>
   );
-}
-
-interface LineageData {
-  nodes: any[];
-  links: any[];
-  version: number;
-  versions: { version: number; timestamp: string }[];
 }
