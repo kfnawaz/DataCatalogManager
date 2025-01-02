@@ -304,34 +304,37 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
                       />
                       <Legend wrapperStyle={{ paddingTop: "2rem" }} />
                       <Line
-                        type="monotone"
+                        type="natural"
                         dataKey="completeness"
                         name="Completeness"
                         stroke="hsl(var(--chart-1))"
-                        strokeWidth={2}
+                        strokeWidth={3}
                         dot={false}
                         activeDot={{ r: 6, strokeWidth: 2 }}
                         connectNulls
+                        strokeOpacity={0.8}
                       />
                       <Line
-                        type="monotone"
+                        type="natural"
                         dataKey="accuracy"
                         name="Accuracy"
                         stroke="hsl(var(--chart-2))"
-                        strokeWidth={2}
+                        strokeWidth={3}
                         dot={false}
                         activeDot={{ r: 6, strokeWidth: 2 }}
                         connectNulls
+                        strokeOpacity={0.8}
                       />
                       <Line
-                        type="monotone"
+                        type="natural"
                         dataKey="timeliness"
                         name="Timeliness"
                         stroke="hsl(var(--chart-3))"
-                        strokeWidth={2}
+                        strokeWidth={3}
                         dot={false}
                         activeDot={{ r: 6, strokeWidth: 2 }}
                         connectNulls
+                        strokeOpacity={0.8}
                       />
                     </LineChart>
                   ) : (
