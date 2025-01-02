@@ -39,6 +39,7 @@ export default function CommentReactions({
 }: CommentReactionsProps) {
   const [userReactions, setUserReactions] = useState<Record<string, boolean>>({});
   const [localReactions, setLocalReactions] = useState(initialReactions);
+  const [animatingReaction, setAnimatingReaction] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -83,6 +84,10 @@ export default function CommentReactions({
       // Update reaction counts with actual data from server
       setLocalReactions(data.reactions);
 
+      // Trigger animation
+      setAnimatingReaction(type);
+      setTimeout(() => setAnimatingReaction(null), 1000);
+
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({
         queryKey: [`/api/data-products/${dataProductId}/comments`]
@@ -107,32 +112,6 @@ export default function CommentReactions({
       return;
     }
     reactionMutation.mutate({ type });
-  };
-
-  const getBadgeIcon = (type: string) => {
-    switch (type) {
-      case 'quality':
-        return <Award className="h-4 w-4" />;
-      case 'trending':
-        return <TrendingUp className="h-4 w-4" />;
-      case 'influential':
-        return <Brain className="h-4 w-4" />;
-      default:
-        return null;
-    }
-  };
-
-  const getBadgeLabel = (type: string) => {
-    switch (type) {
-      case 'quality':
-        return 'High Quality Contribution';
-      case 'trending':
-        return 'Trending Comment';
-      case 'influential':
-        return 'Influential Insight';
-      default:
-        return '';
-    }
   };
 
   // Helper function to get dynamic button classes
@@ -174,53 +153,66 @@ export default function CommentReactions({
   return (
     <div className="flex items-center gap-4">
       <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className={getButtonClasses('like')}
-          onClick={() => handleReaction('like')}
-          disabled={userReactions.like}
-        >
-          <ThumbsUp className={getIconClasses('like')} />
-          <span className={getCountClasses('like')}>
-            {localReactions.like || 0}
-          </span>
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          className={getButtonClasses('helpful')}
-          onClick={() => handleReaction('helpful')}
-          disabled={userReactions.helpful}
-        >
-          <Award className={getIconClasses('helpful')} />
-          <span className={getCountClasses('helpful')}>
-            {localReactions.helpful || 0}
-          </span>
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          className={getButtonClasses('insightful')}
-          onClick={() => handleReaction('insightful')}
-          disabled={userReactions.insightful}
-        >
-          <Brain className={getIconClasses('insightful')} />
-          <span className={getCountClasses('insightful')}>
-            {localReactions.insightful || 0}
-          </span>
-        </Button>
+        {(['like', 'helpful', 'insightful'] as const).map((type) => (
+          <motion.div
+            key={type}
+            initial={false}
+            animate={{
+              scale: animatingReaction === type ? [1, 1.2, 1] : 1,
+              rotate: animatingReaction === type ? [0, -10, 10, 0] : 0
+            }}
+            transition={{
+              duration: 0.4,
+              type: "spring",
+              stiffness: 260,
+              damping: 20
+            }}
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              className={getButtonClasses(type)}
+              onClick={() => handleReaction(type)}
+              disabled={userReactions[type]}
+            >
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 17
+                }}
+              >
+                {type === 'like' && <ThumbsUp className={getIconClasses(type)} />}
+                {type === 'helpful' && <Award className={getIconClasses(type)} />}
+                {type === 'insightful' && <Brain className={getIconClasses(type)} />}
+              </motion.div>
+              <motion.span
+                key={localReactions[type]}
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className={getCountClasses(type)}
+              >
+                {localReactions[type] || 0}
+              </motion.span>
+            </Button>
+          </motion.div>
+        ))}
       </div>
 
-      <AnimatePresence>
+      <AnimatePresence mode="sync">
         {badges?.map((badge) => (
           <motion.div
             key={`${badge.type}-${badge.createdAt}`}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0, scale: 0.8, x: -20 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.8, x: 20 }}
+            transition={{
+              type: "spring",
+              stiffness: 300,
+              damping: 25
+            }}
           >
             <Tooltip>
               <TooltipTrigger asChild>
@@ -228,12 +220,18 @@ export default function CommentReactions({
                   variant="secondary"
                   className="flex items-center gap-1 bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
                 >
-                  {getBadgeIcon(badge.type)}
+                  {badge.type === 'quality' && <Award className="h-4 w-4" />}
+                  {badge.type === 'trending' && <TrendingUp className="h-4 w-4" />}
+                  {badge.type === 'influential' && <Brain className="h-4 w-4" />}
                   <span className="text-xs">{badge.type}</span>
                 </Badge>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{getBadgeLabel(badge.type)}</p>
+                <p>
+                  {badge.type === 'quality' && 'High Quality Contribution'}
+                  {badge.type === 'trending' && 'Trending Comment'}
+                  {badge.type === 'influential' && 'Influential Insight'}
+                </p>
               </TooltipContent>
             </Tooltip>
           </motion.div>
