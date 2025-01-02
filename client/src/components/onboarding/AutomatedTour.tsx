@@ -73,6 +73,7 @@ export function AutomatedTour() {
   useEffect(() => {
     const hasSeenTour = localStorage.getItem('hasSeenTour');
     if (!hasSeenTour) {
+      console.log('First visit detected, starting tour...');
       setShowTour(true);
     }
   }, []);
@@ -120,7 +121,7 @@ export function AutomatedTour() {
           <CarouselNext />
           <div className="flex justify-end mt-6">
             <Button onClick={completeTour}>
-              Skip Tour
+              Complete Tour
             </Button>
           </div>
         </Carousel>
