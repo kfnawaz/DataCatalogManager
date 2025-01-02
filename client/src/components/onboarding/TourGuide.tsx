@@ -186,7 +186,7 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
           }),
         }}
         padding={16}
-        prevButton={({ currentStep, setCurrentStep }) => (
+        prevButton={({ currentStep }) => (
           <Button 
             variant="outline" 
             size="sm"
@@ -200,7 +200,7 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
             Previous
           </Button>
         )}
-        nextButton={({ currentStep, setCurrentStep, stepsLength }) => {
+        nextButton={({ currentStep, stepsLength }) => {
           const isLastStep = (currentStep ?? 0) === stepsLength - 1;
           return (
             <Button
@@ -232,24 +232,26 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
 }
 
 export function TourStartButton() {
-    const { startTour, isOpen } = useTourGuide();
-    const tourProgress = parseInt(localStorage.getItem('tourProgress') || '0');
-    const totalSteps = tourSteps.length;
+  const { startTour, isOpen } = useTourGuide();
+  const tourProgress = parseInt(localStorage.getItem('tourProgress') || '0');
+  const totalSteps = tourSteps.length;
 
-    console.log('Tour state:', { isOpen, tourProgress, totalSteps });
+  if (isOpen) return null;
 
-    return (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={startTour}
-        className="fixed bottom-4 right-4 z-50 gap-2"
-      >
-        {tourProgress > 0 && tourProgress < totalSteps ? (
-          <>Continue Tour ({tourProgress}/{totalSteps})</>
-        ) : (
-          'Start Tour'
-        )}
-      </Button>
-    );
-  }
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => {
+        startTour();
+      }}
+      className="fixed bottom-4 right-4 z-50 gap-2"
+    >
+      {tourProgress > 0 && tourProgress < totalSteps ? (
+        <>Continue Tour ({tourProgress}/{totalSteps})</>
+      ) : (
+        'Start Tour'
+      )}
+    </Button>
+  );
+}
