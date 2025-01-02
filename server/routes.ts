@@ -813,14 +813,16 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // Create a properly formatted array of node IDs
-      const nodeIdArray = `{${nodes.map(n => n.id).join(',')}}`;
+      // Get all node IDs
+      const nodeIds = nodes.map(n => n.id);
 
-      // Fetch edges where both source and target are in the node IDs
+      // Fetch edges using OR conditions instead of array operations
       const edges = await db
         .select()
         .from(lineageEdges)
-        .where(sql`(${lineageEdges.sourceId}, ${lineageEdges.targetId}) IN (SELECT unnest(${sql.raw(nodeIdArray)}::int[]), unnest(${sql.raw(nodeIdArray)}::int[]))`);
+        .where(
+          sql`(${lineageEdges.sourceId} = ANY(ARRAY[${sql.join(nodeIds)}]::int[]) AND ${lineageEdges.targetId} = ANY(ARRAY[${sql.join(nodeIds)}]::int[]))`
+        );
 
       // Get all versions
       const versions = await db
