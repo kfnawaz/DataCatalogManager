@@ -3,7 +3,7 @@ import { TourProvider, useTour, type StepType } from '@reactour/tour';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { Confetti, Medal, PartyPopper } from 'lucide-react';
+import { Medal, PartyPopper } from 'lucide-react';
 
 // Define tour steps
 const tourSteps: StepType[] = [
@@ -99,6 +99,7 @@ export function useTourGuide() {
   const endTour = () => {
     setIsOpen(false);
     setTourOpen(false);
+    localStorage.setItem('tourProgress', '0'); // Reset progress on completion
     const hasSeenTour = localStorage.getItem('hasSeenTour');
 
     if (!hasSeenTour) {
@@ -127,7 +128,7 @@ interface TourGuideProviderProps {
 }
 
 export function TourGuideProvider({ children }: TourGuideProviderProps) {
-  const { showCelebration } = useTourGuide();
+  const { endTour, showCelebration } = useTourGuide();
 
   return (
     <TourProvider
@@ -165,9 +166,10 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
         }),
       }}
       padding={16}
-      onClickMask={({ setIsOpen }) => {
-        setIsOpen(false);
-      }}
+      onClickMask={() => endTour()}
+      onClickClose={() => endTour()}
+      afterClose={() => endTour()}
+      lastStepNextButton={<Button>Finish Tour</Button>}
     >
       {children}
       <AnimatePresence>
