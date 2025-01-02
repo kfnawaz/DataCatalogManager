@@ -12,7 +12,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -38,7 +38,7 @@ interface QualityMetricsProps {
 
 export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
   const { data: metrics, isLoading, error } = useQuery<MetricData>({
-    queryKey: ["/api/quality-metrics", dataProductId],
+    queryKey: [`/api/quality-metrics/${dataProductId}`],
     enabled: dataProductId !== null,
     refetchInterval: 30000, // Refresh every 30 seconds
   });

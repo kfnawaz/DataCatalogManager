@@ -256,14 +256,33 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      const current = metrics[0];
+      // Group metrics by type to get current values
+      const currentMetrics = metrics.reduce((acc, metric) => {
+        const metricType = metric.type as keyof typeof acc;
+        if (!acc[metricType]) {
+          acc[metricType] = metric.value;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Format history data
       const history = metrics.map(m => ({
         timestamp: m.timestamp,
-        value: m.value,
+        [m.type]: m.value,
         metadata: m.metadata,
       }));
 
-      res.json({ current, history });
+      res.json({
+        current: {
+          completeness: currentMetrics.completeness || 0,
+          accuracy: currentMetrics.accuracy || 0,
+          timeliness: currentMetrics.timeliness || 0,
+          customMetrics: Object.entries(currentMetrics)
+            .filter(([key]) => !['completeness', 'accuracy', 'timeliness'].includes(key))
+            .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})
+        },
+        history
+      });
     } catch (error) {
       console.error("Error fetching quality metrics:", error);
       res.status(500).json({ error: "Failed to fetch quality metrics" });
