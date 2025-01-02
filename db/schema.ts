@@ -113,10 +113,55 @@ export const qualityMetrics = pgTable("quality_metrics", {
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
+// Add lineage node types enum
+export const lineageNodeTypeEnum = pgEnum('lineage_node_type', [
+  'source',
+  'transformation',
+  'target'
+]);
+
+// Add lineage nodes table
+export const lineageNodes = pgTable("lineage_nodes", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  type: lineageNodeTypeEnum("type").notNull(),
+  dataProductId: integer("data_product_id").references(() => dataProducts.id),
+  metadata: jsonb("metadata"),
+  version: integer("version").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Add lineage edges table
+export const lineageEdges = pgTable("lineage_edges", {
+  id: serial("id").primaryKey(),
+  sourceId: integer("source_id").references(() => lineageNodes.id).notNull(),
+  targetId: integer("target_id").references(() => lineageNodes.id).notNull(),
+  metadata: jsonb("metadata"),
+  transformationLogic: text("transformation_logic"),
+  version: integer("version").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Add lineage version history
+export const lineageVersions = pgTable("lineage_versions", {
+  id: serial("id").primaryKey(),
+  dataProductId: integer("data_product_id").references(() => dataProducts.id).notNull(),
+  version: integer("version").notNull(),
+  snapshot: jsonb("snapshot").notNull(),
+  changeMessage: text("change_message"),
+  createdBy: text("created_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+
 // Relations
 export const dataProductRelations = relations(dataProducts, ({ many }) => ({
   qualityMetrics: many(qualityMetrics),
   comments: many(comments),
+  lineageNodes: many(lineageNodes),
+  lineageVersions: many(lineageVersions),
 }));
 
 export const qualityMetricRelations = relations(qualityMetrics, ({ one }) => ({
@@ -151,6 +196,28 @@ export const metricDefinitionVersionRelations = relations(metricDefinitionVersio
   metricDefinition: one(metricDefinitions, {
     fields: [metricDefinitionVersions.metricDefinitionId],
     references: [metricDefinitions.id],
+  }),
+}));
+
+export const lineageNodeRelations = relations(lineageNodes, ({ one, many }) => ({
+  dataProduct: one(dataProducts, {
+    fields: [lineageNodes.dataProductId],
+    references: [dataProducts.id],
+  }),
+  outgoingEdges: many(lineageEdges, { relationName: "source" }),
+  incomingEdges: many(lineageEdges, { relationName: "target" }),
+}));
+
+export const lineageEdgeRelations = relations(lineageEdges, ({ one }) => ({
+  source: one(lineageNodes, {
+    fields: [lineageEdges.sourceId],
+    references: [lineageNodes.id],
+    relationName: "source",
+  }),
+  target: one(lineageNodes, {
+    fields: [lineageEdges.targetId],
+    references: [lineageNodes.id],
+    relationName: "target",
   }),
 }));
 
@@ -192,10 +259,13 @@ export const apiUsage = pgTable("api_usage", {
 export const insertApiUsageSchema = createInsertSchema(apiUsage);
 export const selectApiUsageSchema = createSelectSchema(apiUsage);
 
-// Add types for API usage
-export type ApiUsage = typeof apiUsage.$inferSelect;
-export type NewApiUsage = typeof apiUsage.$inferInsert;
-
+// Add new schemas for lineage
+export const insertLineageNodeSchema = createInsertSchema(lineageNodes);
+export const selectLineageNodeSchema = createSelectSchema(lineageNodes);
+export const insertLineageEdgeSchema = createInsertSchema(lineageEdges);
+export const selectLineageEdgeSchema = createSelectSchema(lineageEdges);
+export const insertLineageVersionSchema = createInsertSchema(lineageVersions);
+export const selectLineageVersionSchema = createSelectSchema(lineageVersions);
 
 // Types
 export type DataProduct = typeof dataProducts.$inferSelect;
@@ -218,3 +288,15 @@ export type CommentReaction = typeof commentReactions.$inferSelect;
 export type NewCommentReaction = typeof commentReactions.$inferInsert;
 export type CommentBadge = typeof commentBadges.$inferSelect;
 export type NewCommentBadge = typeof commentBadges.$inferInsert;
+
+// Add new types for lineage
+export type LineageNode = typeof lineageNodes.$inferSelect;
+export type NewLineageNode = typeof lineageNodes.$inferInsert;
+export type LineageEdge = typeof lineageEdges.$inferSelect;
+export type NewLineageEdge = typeof lineageEdges.$inferInsert;
+export type LineageVersion = typeof lineageVersions.$inferSelect;
+export type NewLineageVersion = typeof lineageVersions.$inferInsert;
+
+// Add types for API usage
+export type ApiUsage = typeof apiUsage.$inferSelect;
+export type NewApiUsage = typeof apiUsage.$inferInsert;
