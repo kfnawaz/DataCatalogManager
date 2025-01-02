@@ -131,31 +131,7 @@ interface TourGuideProviderProps {
 }
 
 export function TourGuideProvider({ children }: TourGuideProviderProps) {
-  const { endTour, showCelebration, currentStep, totalSteps } = useTourGuide();
-
-  // Component for the previous button
-  const PrevButton = () => (
-    <Button variant="outline" size="sm">Previous</Button>
-  );
-
-  // Component for the next/finish button
-  const NextButton = ({ onClick }: { onClick?: () => void }) => {
-    const isLastStep = currentStep === totalSteps - 1;
-    return (
-      <Button
-        size="sm"
-        onClick={() => {
-          if (isLastStep) {
-            endTour();
-          } else if (onClick) {
-            onClick();
-          }
-        }}
-      >
-        {isLastStep ? 'Finish Tour' : 'Next'}
-      </Button>
-    );
-  };
+  const { endTour, showCelebration } = useTourGuide();
 
   return (
     <TourProvider
@@ -169,7 +145,6 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
           borderRadius: 'var(--radius)',
           padding: '1rem',
           maxWidth: '320px',
-          position: 'relative',
         }),
         badge: (base) => ({
           ...base,
@@ -201,13 +176,36 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
       onClickMask={() => endTour()}
       onClickClose={() => endTour()}
       afterClose={() => endTour()}
-      showPrevNextButtons={true}
-      prevButton={PrevButton}
-      nextButton={NextButton}
-      disableInteraction={false}
-      className="tour-guide"
       showNavigation={true}
       showBadge={true}
+      showButtons={true}
+      prevButton={({ currentStep, setCurrentStep }) => (
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => setCurrentStep((s) => (s ?? 0) - 1)}
+          disabled={currentStep === 0}
+        >
+          Previous
+        </Button>
+      )}
+      nextButton={({ currentStep, setCurrentStep, stepsLength }) => {
+        const isLastStep = (currentStep ?? 0) === stepsLength - 1;
+        return (
+          <Button
+            size="sm"
+            onClick={() => {
+              if (isLastStep) {
+                endTour();
+              } else {
+                setCurrentStep((s) => (s ?? 0) + 1);
+              }
+            }}
+          >
+            {isLastStep ? 'Finish Tour' : 'Next'}
+          </Button>
+        );
+      }}
     >
       {children}
       <AnimatePresence>
