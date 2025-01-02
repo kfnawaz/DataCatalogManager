@@ -31,11 +31,11 @@ const getUserIdentifier = () => {
   return identifier;
 };
 
-export default function CommentReactions({ 
+export default function CommentReactions({
   commentId,
   dataProductId,
-  reactions: initialReactions = { like: 0, helpful: 0, insightful: 0 }, 
-  badges = [] 
+  reactions: initialReactions = { like: 0, helpful: 0, insightful: 0 },
+  badges = []
 }: CommentReactionsProps) {
   const [userReactions, setUserReactions] = useState<Record<string, boolean>>({});
   const [localReactions, setLocalReactions] = useState(initialReactions);
@@ -84,8 +84,8 @@ export default function CommentReactions({
       setLocalReactions(data.reactions);
 
       // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ 
-        queryKey: [`/api/data-products/${dataProductId}/comments`] 
+      queryClient.invalidateQueries({
+        queryKey: [`/api/data-products/${dataProductId}/comments`]
       });
     },
     onError: (error: Error) => {
@@ -141,34 +141,40 @@ export default function CommentReactions({
         <Button
           variant="ghost"
           size="sm"
-          className={`gap-1 ${userReactions.like ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary dark:hover:text-primary dark:hover:bg-primary/20' : ''}`}
+          className={`gap-1 ${userReactions.like ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary dark:hover:text-primary dark:hover:bg-primary/20' : 'dark:text-white dark:hover:text-white/80'}`}
           onClick={() => handleReaction('like')}
           disabled={userReactions.like}
         >
           <ThumbsUp className="h-4 w-4" />
-          <span className="text-sm">{localReactions.like || 0}</span>
+          <span className={`text-sm ${localReactions.like > 0 ? 'font-semibold dark:text-white' : ''}`}>
+            {localReactions.like || 0}
+          </span>
         </Button>
 
         <Button
           variant="ghost"
           size="sm"
-          className={`gap-1 ${userReactions.helpful ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary dark:hover:text-primary dark:hover:bg-primary/20' : ''}`}
+          className={`gap-1 ${userReactions.helpful ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary dark:hover:text-primary dark:hover:bg-primary/20' : 'dark:text-white dark:hover:text-white/80'}`}
           onClick={() => handleReaction('helpful')}
           disabled={userReactions.helpful}
         >
           <Award className="h-4 w-4" />
-          <span className="text-sm">{localReactions.helpful || 0}</span>
+          <span className={`text-sm ${localReactions.helpful > 0 ? 'font-semibold dark:text-white' : ''}`}>
+            {localReactions.helpful || 0}
+          </span>
         </Button>
 
         <Button
           variant="ghost"
           size="sm"
-          className={`gap-1 ${userReactions.insightful ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary dark:hover:text-primary dark:hover:bg-primary/20' : ''}`}
+          className={`gap-1 ${userReactions.insightful ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary dark:hover:text-primary dark:hover:bg-primary/20' : 'dark:text-white dark:hover:text-white/80'}`}
           onClick={() => handleReaction('insightful')}
           disabled={userReactions.insightful}
         >
           <Brain className="h-4 w-4" />
-          <span className="text-sm">{localReactions.insightful || 0}</span>
+          <span className={`text-sm ${localReactions.insightful > 0 ? 'font-semibold dark:text-white' : ''}`}>
+            {localReactions.insightful || 0}
+          </span>
         </Button>
       </div>
 
@@ -182,7 +188,7 @@ export default function CommentReactions({
           >
             <Tooltip>
               <TooltipTrigger asChild>
-                <Badge 
+                <Badge
                   variant="secondary"
                   className="flex items-center gap-1 bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
                 >
