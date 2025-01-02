@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -6,9 +6,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { SendHorizontal, MessageSquare, AlertCircle, ChevronDown, ChevronUp, BarChart2, Loader2 } from "lucide-react";
+import { 
+  SendHorizontal, 
+  MessageSquare, 
+  ChevronDown, 
+  ChevronUp, 
+  BarChart2, 
+  Loader2,
+  SortAsc,
+  Search,
+  Filter
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import CommentAnalytics from "./CommentAnalytics";
 import CommentSummary from "./CommentSummary";
@@ -38,18 +49,50 @@ interface ValidationErrors {
   authorName?: string;
 }
 
+type SortOption = "newest" | "oldest" | "author";
+
 export default function DataProductComments({ dataProductId }: DataProductCommentsProps) {
   const [newComment, setNewComment] = useState("");
   const [authorName, setAuthorName] = useState("");
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [textareaRef, setTextareaRef] = useState<HTMLTextAreaElement | null>(null);
+  const [filterText, setFilterText] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: comments = [], isLoading } = useQuery<Comment[]>({
     queryKey: [`/api/data-products/${dataProductId}/comments`],
   });
+
+  // Filter and sort comments
+  const filteredAndSortedComments = useMemo(() => {
+    let filtered = comments;
+
+    // Apply text filter
+    if (filterText) {
+      const searchLower = filterText.toLowerCase();
+      filtered = filtered.filter(
+        comment =>
+          comment.content.toLowerCase().includes(searchLower) ||
+          comment.authorName.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Apply sorting
+    return [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case "oldest":
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case "author":
+          return a.authorName.localeCompare(b.authorName);
+        case "newest":
+        default:
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+    });
+  }, [comments, filterText, sortBy]);
 
   const addCommentMutation = useMutation({
     mutationFn: async (data: { content: string; authorName: string }) => {
@@ -231,8 +274,34 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
         </div>
       </form>
 
+      {/* Filter and Sort Controls */}
+      <div className="flex items-center gap-4 py-2">
+        <div className="flex-1 relative">
+          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+            placeholder="Search comments..."
+            className="pl-8"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest First</SelectItem>
+              <SelectItem value="oldest">Oldest First</SelectItem>
+              <SelectItem value="author">By Author</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <AnimatePresence mode="popLayout">
-        {comments.map((comment) => (
+        {filteredAndSortedComments.map((comment) => (
           <motion.div
             key={comment.id}
             initial={{ opacity: 0, y: 20 }}
@@ -276,14 +345,14 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
           </motion.div>
         )}
 
-        {!isLoading && comments.length === 0 && (
+        {!isLoading && filteredAndSortedComments.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="text-center py-8 text-sm text-muted-foreground"
           >
-            No comments yet. Be the first to comment!
+            {filterText ? "No comments match your search." : "No comments yet. Be the first to comment!"}
           </motion.div>
         )}
       </AnimatePresence>
