@@ -304,43 +304,42 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
                       />
                       <Legend wrapperStyle={{ paddingTop: "2rem" }} />
                       <Line
-                        type="natural"
+                        type="monotone"
                         dataKey="completeness"
                         name="Completeness"
-                        stroke="hsl(var(--chart-1))"
-                        strokeWidth={3}
+                        stroke="#22c55e"
+                        strokeWidth={2.5}
                         dot={false}
                         activeDot={{ r: 6, strokeWidth: 2 }}
                         connectNulls
-                        strokeOpacity={0.8}
                       />
                       <Line
-                        type="natural"
+                        type="monotone"
                         dataKey="accuracy"
                         name="Accuracy"
-                        stroke="hsl(var(--chart-2))"
-                        strokeWidth={3}
+                        stroke="#3b82f6"
+                        strokeWidth={2.5}
                         dot={false}
                         activeDot={{ r: 6, strokeWidth: 2 }}
                         connectNulls
-                        strokeOpacity={0.8}
                       />
                       <Line
-                        type="natural"
+                        type="monotone"
                         dataKey="timeliness"
                         name="Timeliness"
-                        stroke="hsl(var(--chart-3))"
-                        strokeWidth={3}
+                        stroke="#f59e0b"
+                        strokeWidth={2.5}
                         dot={false}
                         activeDot={{ r: 6, strokeWidth: 2 }}
                         connectNulls
-                        strokeOpacity={0.8}
                       />
                     </LineChart>
                   ) : (
                     <BarChart
                       data={formattedData}
                       margin={{ top: 5, right: 30, left: 20, bottom: 80 }}
+                      barGap={0}
+                      barCategoryGap="20%"
                     >
                       <CartesianGrid 
                         strokeDasharray="3 3" 
@@ -382,17 +381,23 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
                       <Bar
                         dataKey="completeness"
                         name="Completeness"
-                        fill="hsl(var(--chart-1))"
+                        fill="#22c55e"
+                        opacity={0.85}
+                        radius={[4, 4, 0, 0]}
                       />
                       <Bar
                         dataKey="accuracy"
                         name="Accuracy"
-                        fill="hsl(var(--chart-2))"
+                        fill="#3b82f6"
+                        opacity={0.85}
+                        radius={[4, 4, 0, 0]}
                       />
                       <Bar
                         dataKey="timeliness"
                         name="Timeliness"
-                        fill="hsl(var(--chart-3))"
+                        fill="#f59e0b"
+                        opacity={0.85}
+                        radius={[4, 4, 0, 0]}
                       />
                     </BarChart>
                   )}
