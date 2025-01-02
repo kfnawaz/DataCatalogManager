@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useEffect } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -71,21 +71,61 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
   });
 
   // Transform data when it's loaded
-  useCallback(() => {
+  useEffect(() => {
     if (!lineageData) return;
 
-    // Transform nodes
-    const flowNodes: Node[] = lineageData.nodes.map((node, index) => ({
-      id: node.id,
-      type: 'custom',
-      position: { x: index * 200, y: 100 }, // Simple horizontal layout
-      data: {
-        label: node.label,
-        type: node.type,
-      },
-    }));
+    // Calculate layout positions
+    const HORIZONTAL_SPACING = 200;
+    const VERTICAL_SPACING = 100;
+    const INITIAL_X = 50;
+    const INITIAL_Y = 50;
 
-    // Transform edges
+    // Group nodes by type to create layers
+    const sourceNodes = lineageData.nodes.filter(n => n.type === 'source');
+    const transformNodes = lineageData.nodes.filter(n => n.type === 'transformation');
+    const targetNodes = lineageData.nodes.filter(n => n.type === 'target');
+
+    // Create nodes with positions
+    const flowNodes: Node[] = [
+      ...sourceNodes.map((node, i) => ({
+        id: node.id,
+        type: 'custom',
+        position: { 
+          x: INITIAL_X, 
+          y: INITIAL_Y + (i * VERTICAL_SPACING) 
+        },
+        data: {
+          label: node.label,
+          type: node.type,
+        },
+      })),
+      ...transformNodes.map((node, i) => ({
+        id: node.id,
+        type: 'custom',
+        position: { 
+          x: INITIAL_X + HORIZONTAL_SPACING, 
+          y: INITIAL_Y + (i * VERTICAL_SPACING)
+        },
+        data: {
+          label: node.label,
+          type: node.type,
+        },
+      })),
+      ...targetNodes.map((node, i) => ({
+        id: node.id,
+        type: 'custom',
+        position: { 
+          x: INITIAL_X + (HORIZONTAL_SPACING * 2), 
+          y: INITIAL_Y + (i * VERTICAL_SPACING)
+        },
+        data: {
+          label: node.label,
+          type: node.type,
+        },
+      })),
+    ];
+
+    // Create edges
     const flowEdges: Edge[] = lineageData.links.map((link, index) => ({
       id: `edge-${link.source}-${link.target}-${index}`,
       source: link.source,
@@ -93,6 +133,7 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
       animated: true,
       label: link.transformationLogic,
       style: { stroke: '#666' },
+      type: 'smoothstep',
     }));
 
     setNodes(flowNodes);
