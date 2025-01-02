@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -13,6 +13,13 @@ import 'reactflow/dist/style.css';
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ReactFlowLineageProps {
   dataProductId: number | null;
@@ -34,6 +41,8 @@ interface LineageLink {
 interface LineageData {
   nodes: LineageNode[];
   links: LineageLink[];
+  version: number;
+  versions: { version: number; timestamp: string }[];
 }
 
 // Custom node component
@@ -64,11 +73,19 @@ const nodeTypes = {
 export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
 
   const { data: lineageData, isLoading } = useQuery<LineageData>({
-    queryKey: [`/api/lineage?dataProductId=${dataProductId}`],
+    queryKey: [`/api/lineage?dataProductId=${dataProductId}${selectedVersion ? `&version=${selectedVersion}` : ''}`],
     enabled: dataProductId !== null,
   });
+
+  // Set initial version when data is loaded
+  useEffect(() => {
+    if (lineageData?.version && !selectedVersion) {
+      setSelectedVersion(lineageData.version);
+    }
+  }, [lineageData?.version, selectedVersion]);
 
   // Transform data when it's loaded
   useEffect(() => {
@@ -153,20 +170,41 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
   }
 
   return (
-    <Card className="w-full h-[600px]">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        nodeTypes={nodeTypes}
-        fitView
-        proOptions={{ hideAttribution: true }}
-        className="bg-background"
-      >
-        <Background />
-        <Controls />
-      </ReactFlow>
-    </Card>
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium">Version:</span>
+        <Select
+          value={selectedVersion?.toString()}
+          onValueChange={(value) => setSelectedVersion(Number(value))}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Select version" />
+          </SelectTrigger>
+          <SelectContent>
+            {lineageData?.versions.map((v) => (
+              <SelectItem key={v.version} value={v.version.toString()}>
+                Version {v.version} ({new Date(v.timestamp).toLocaleDateString()})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Card className="w-full h-[600px]">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          nodeTypes={nodeTypes}
+          fitView
+          proOptions={{ hideAttribution: true }}
+          className="bg-background"
+        >
+          <Background />
+          <Controls />
+        </ReactFlow>
+      </Card>
+    </div>
   );
 }
