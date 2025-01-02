@@ -27,8 +27,10 @@ import {
 
 interface MetricHistory {
   timestamp: string;
-  value: number;
-  metadata: Record<string, any>;
+  completeness: number | null;
+  accuracy: number | null;
+  timeliness: number | null;
+  metadata?: Record<string, any>;
 }
 
 interface MetricData {
@@ -47,6 +49,28 @@ interface QualityMetricsProps {
 
 type ChartType = 'line' | 'bar';
 type TimeRange = '7d' | '30d' | '90d' | 'all';
+
+// Helper function to get trend icon
+function getTrendIcon(trend: number) {
+  if (trend > 0) return <TrendingUp className="h-4 w-4 text-green-500" />;
+  if (trend < 0) return <TrendingDown className="h-4 w-4 text-red-500" />;
+  return <Minus className="h-4 w-4 text-muted-foreground" />;
+}
+
+// Helper function to calculate trend
+function calculateTrend(data: MetricHistory[], metric: keyof Pick<MetricHistory, 'completeness' | 'accuracy' | 'timeliness'>): number | undefined {
+  if (data.length < 2) return undefined;
+
+  const validPoints = data.filter(point => point[metric] !== null);
+  if (validPoints.length < 2) return undefined;
+
+  const current = validPoints[validPoints.length - 1][metric];
+  const previous = validPoints[validPoints.length - 2][metric];
+
+  if (current === null || previous === null) return undefined;
+
+  return Number(((current - previous) / previous * 100).toFixed(1));
+}
 
 export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
   const [hoveredMetric, setHoveredMetric] = useState<string | null>(null);
@@ -85,6 +109,7 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
   }
 
   if (error) {
+    console.error("Quality metrics error:", error);
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
@@ -96,7 +121,7 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
     );
   }
 
-  if (!metrics) {
+  if (!metrics || !metrics.history) {
     return (
       <Alert>
         <AlertCircle className="h-4 w-4" />
@@ -122,10 +147,10 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
     return data.filter(item => new Date(item.timestamp) >= cutoffDate);
   };
 
-  const formattedData = filterDataByTimeRange(metrics.history?.map((item) => ({
+  const formattedData = filterDataByTimeRange(metrics.history.map(item => ({
     ...item,
     timestamp: format(new Date(item.timestamp), "MMM d, yyyy HH:mm"),
-  })) || []);
+  })));
 
   const getMetricDescription = (metric: string) => {
     switch (metric) {
@@ -152,12 +177,6 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
     if (value >= 75) return "text-blue-500 dark:text-blue-400";
     if (value >= 60) return "text-yellow-500 dark:text-yellow-400";
     return "text-red-500 dark:text-red-400";
-  };
-
-  const getTrendIcon = (trend: number) => {
-    if (trend > 0) return <TrendingUp className="h-4 w-4 text-green-500" />;
-    if (trend < 0) return <TrendingDown className="h-4 w-4 text-red-500" />;
-    return <Minus className="h-4 w-4 text-muted-foreground" />;
   };
 
   return (
@@ -205,7 +224,7 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
                     title={metric.charAt(0).toUpperCase() + metric.slice(1)}
                     value={metrics.current[metric]}
                     description={getMetricDescription(metric)}
-                    trend={calculateTrend(formattedData, metric)}
+                    trend={calculateTrend(metrics.history, metric)}
                     health={getHealthStatus(metrics.current[metric])}
                     healthColor={getHealthColor(metrics.current[metric])}
                     isHovered={hoveredMetric === metric}
@@ -224,10 +243,9 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
             {Object.entries(metrics.current.customMetrics).map(([key, value]) => (
               <MetricCard
                 key={key}
-                title={formatMetricName(key)}
+                title={key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')}
                 value={value}
                 description="Custom metric value"
-                trend={calculateTrend(formattedData, key)}
                 health={getHealthStatus(value)}
                 healthColor={getHealthColor(value)}
               />
@@ -455,17 +473,6 @@ function MetricCard({
       </Card>
     </motion.div>
   );
-}
-
-function calculateTrend(data: any[], metric: string): number | undefined {
-  if (data.length < 2) return undefined;
-
-  const current = data[data.length - 1][metric];
-  const previous = data[data.length - 2][metric];
-
-  if (typeof current !== 'number' || typeof previous !== 'number') return undefined;
-
-  return Number(((current - previous) / previous * 100).toFixed(1));
 }
 
 function formatMetricName(key: string): string {
