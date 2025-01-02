@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface CommentReactionsProps {
   commentId: number;
+  dataProductId: number;
   reactions?: {
     like: number;
     helpful: number;
@@ -31,7 +32,8 @@ const getUserIdentifier = () => {
 };
 
 export default function CommentReactions({ 
-  commentId, 
+  commentId,
+  dataProductId,
   reactions: initialReactions = { like: 0, helpful: 0, insightful: 0 }, 
   badges = [] 
 }: CommentReactionsProps) {
@@ -47,6 +49,11 @@ export default function CommentReactions({
       setUserReactions(JSON.parse(savedReactions));
     }
   }, [commentId]);
+
+  // Update local state when initialReactions change
+  useEffect(() => {
+    setLocalReactions(initialReactions);
+  }, [initialReactions]);
 
   const reactionMutation = useMutation({
     mutationFn: async ({ type }: { type: string }) => {
@@ -67,13 +74,6 @@ export default function CommentReactions({
 
       return response.json();
     },
-    onMutate: ({ type }) => {
-      // Optimistically update the UI
-      setLocalReactions(prev => ({
-        ...prev,
-        [type]: (prev[type as keyof typeof prev] || 0) + 1
-      }));
-    },
     onSuccess: (data, { type }) => {
       // Update local storage
       const newUserReactions = { ...userReactions, [type]: true };
@@ -85,16 +85,10 @@ export default function CommentReactions({
 
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ 
-        queryKey: [`/api/data-products/${commentId}/comments`] 
+        queryKey: [`/api/data-products/${dataProductId}/comments`] 
       });
     },
-    onError: (error: Error, { type }) => {
-      // Revert the optimistic update
-      setLocalReactions(prev => ({
-        ...prev,
-        [type]: (prev[type as keyof typeof prev] || 1) - 1
-      }));
-
+    onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: "Error",
