@@ -63,14 +63,14 @@ export default function DataProductsPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-73px)] bg-background">
+    <div className="flex flex-col items-center justify-start min-h-[calc(100vh-73px)] bg-background pt-[73px]">
       <motion.main 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="flex relative"
+        className="flex w-full relative"
       >
-        <QuickFilterSidebar
-          onFiltersChange={handleFiltersChange}
+        <QuickFilterSidebar 
+          onFiltersChange={handleFiltersChange} 
           isExpanded={isSidebarExpanded}
           onToggleExpand={() => setIsSidebarExpanded(!isSidebarExpanded)}
         />
