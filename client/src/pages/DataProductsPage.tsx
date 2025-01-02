@@ -62,7 +62,7 @@ export default function DataProductsPage() {
     <motion.main 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex min-h-screen bg-background relative"
+      className="flex min-h-[calc(100vh-73px)] bg-background relative"
     >
       {/* Quick Filter Sidebar */}
       <QuickFilterSidebar 
@@ -74,7 +74,7 @@ export default function DataProductsPage() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
         {/* Content Area with Search Bar */}
-        <div className="flex-1"> 
+        <div className="flex-1">
           <div className="max-w-4xl mx-auto px-4 py-8">
             {/* Centered Search Section */}
             <div className="mb-8 text-center">
@@ -93,7 +93,7 @@ export default function DataProductsPage() {
                   <Skeleton className="h-[400px]" />
                 </motion.div>
               ) : selectedProduct ? (
-                <motion.div {...fadeIn} key={selectedProduct.id} className="relative"> 
+                <motion.div {...fadeIn} key={selectedProduct.id}>
                   <div className="mb-6">
                     <h2 className="text-xl font-semibold text-foreground">
                       {selectedProduct.name}
@@ -110,7 +110,7 @@ export default function DataProductsPage() {
                     onValueChange={setActiveTab} 
                     className="space-y-4"
                   >
-                    <TabsList className="relative"> 
+                    <TabsList className="relative">
                       <TabsTrigger value="metadata">Metadata</TabsTrigger>
                       <TabsTrigger value="lineage">Lineage</TabsTrigger>
                       <TabsTrigger value="quality">Quality Metrics</TabsTrigger>
