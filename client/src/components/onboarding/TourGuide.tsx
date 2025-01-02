@@ -70,7 +70,7 @@ function Celebration() {
 export function useTourGuide() {
   const [isOpen, setIsOpen] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
-  const { setIsOpen: setTourOpen, setCurrentStep, currentStep } = useTour();
+  const { setIsOpen: setTourOpen, setCurrentStep, currentStep, steps } = useTour();
   const { toast } = useToast();
 
   // Check if it's the user's first visit
@@ -99,7 +99,7 @@ export function useTourGuide() {
   const endTour = () => {
     setIsOpen(false);
     setTourOpen(false);
-    localStorage.setItem('tourProgress', '0'); // Reset progress on completion
+    localStorage.setItem('tourProgress', '0');
     const hasSeenTour = localStorage.getItem('hasSeenTour');
 
     if (!hasSeenTour) {
@@ -119,6 +119,8 @@ export function useTourGuide() {
     startTour,
     endTour,
     showCelebration,
+    currentStep,
+    totalSteps: steps?.length || tourSteps.length,
   };
 }
 
@@ -128,7 +130,25 @@ interface TourGuideProviderProps {
 }
 
 export function TourGuideProvider({ children }: TourGuideProviderProps) {
-  const { endTour, showCelebration } = useTourGuide();
+  const { endTour, showCelebration, currentStep, totalSteps } = useTourGuide();
+
+  const CustomNextButton = ({ onClick }: { onClick: () => void }) => {
+    const isLastStep = currentStep === totalSteps - 1;
+    return (
+      <Button 
+        size="sm" 
+        onClick={() => {
+          if (isLastStep) {
+            endTour();
+          } else {
+            onClick();
+          }
+        }}
+      >
+        {isLastStep ? 'Finish Tour' : 'Next'}
+      </Button>
+    );
+  };
 
   return (
     <TourProvider
@@ -167,27 +187,14 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
           height: 8,
           margin: '0 4px',
         }),
-        button: (base) => ({
-          ...base,
-          border: 'none',
-          padding: '0.5rem 1rem',
-          background: 'hsl(var(--primary))',
-          color: 'hsl(var(--primary-foreground))',
-          borderRadius: 'var(--radius)',
-          cursor: 'pointer',
-          fontSize: '0.875rem',
-          fontWeight: 500,
-          '&:hover': {
-            opacity: 0.9,
-          },
-        }),
       }}
       padding={16}
       onClickMask={() => endTour()}
       onClickClose={() => endTour()}
       afterClose={() => endTour()}
+      showPrevNextButtons={true}
       prevButton={<Button variant="outline" size="sm">Previous</Button>}
-      nextButton={<Button size="sm">Next</Button>}
+      nextButton={<CustomNextButton onClick={() => {}} />}
       disableInteraction
       className="tour-guide"
     >
