@@ -309,7 +309,8 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
                         name="Completeness"
                         stroke="hsl(var(--chart-1))"
                         strokeWidth={2}
-                        dot={false}
+                        connectNulls={true}
+                        dot={{ fill: "hsl(var(--chart-1))", r: 4 }}
                         activeDot={{ r: 8 }}
                       />
                       <Line
@@ -318,7 +319,8 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
                         name="Accuracy"
                         stroke="hsl(var(--chart-2))"
                         strokeWidth={2}
-                        dot={false}
+                        connectNulls={true}
+                        dot={{ fill: "hsl(var(--chart-2))", r: 4 }}
                         activeDot={{ r: 8 }}
                       />
                       <Line
@@ -327,7 +329,8 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
                         name="Timeliness"
                         stroke="hsl(var(--chart-3))"
                         strokeWidth={2}
-                        dot={false}
+                        connectNulls={true}
+                        dot={{ fill: "hsl(var(--chart-3))", r: 4 }}
                         activeDot={{ r: 8 }}
                       />
                     </LineChart>
