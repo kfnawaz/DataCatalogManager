@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { TourProvider, useTour, type StepType } from '@reactour/tour';
+import { useState, useEffect, createContext, useContext } from 'react';
+import { TourProvider as BaseTourProvider, useTour, type StepType } from '@reactour/tour';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -70,9 +70,31 @@ function Celebration() {
   );
 }
 
+// Create a context to manage tour state globally
+const TourContext = createContext<{
+  startTour: () => void;
+  endTour: () => void;
+  isOpen: boolean;
+  showCelebration: boolean;
+}>({
+  startTour: () => {},
+  endTour: () => {},
+  isOpen: false,
+  showCelebration: false,
+});
+
 export function useTourGuide() {
+  return useContext(TourContext);
+}
+
+interface TourGuideProviderProps {
+  children: React.ReactNode;
+}
+
+export function TourGuideProvider({ children }: TourGuideProviderProps) {
+  const [isOpen, setIsOpen] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
-  const { isOpen, setIsOpen, setCurrentStep } = useTour();
+  const [currentStep, setCurrentStep] = useState(0);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -81,7 +103,7 @@ export function useTourGuide() {
       setIsOpen(true);
       localStorage.setItem('tourProgress', '0');
     }
-  }, [setIsOpen]);
+  }, []);
 
   const startTour = () => {
     const lastProgress = parseInt(localStorage.getItem('tourProgress') || '0');
@@ -105,96 +127,96 @@ export function useTourGuide() {
     });
   };
 
-  return {
-    isOpen,
+  const tourContextValue = {
     startTour,
     endTour,
+    isOpen,
     showCelebration,
   };
-}
-
-interface TourGuideProviderProps {
-  children: React.ReactNode;
-}
-
-export function TourGuideProvider({ children }: TourGuideProviderProps) {
-  const { endTour, showCelebration } = useTourGuide();
 
   return (
-    <TourProvider
-      steps={tourSteps}
-      styles={{
-        popover: (base) => ({
-          ...base,
-          '--reactour-accent': 'hsl(var(--primary))',
-          background: 'hsl(var(--background))',
-          color: 'hsl(var(--foreground))',
-          borderRadius: 'var(--radius)',
-          padding: '1rem',
-          maxWidth: '320px',
-        }),
-        badge: (base) => ({
-          ...base,
-          background: 'hsl(var(--primary))',
-          color: 'hsl(var(--primary-foreground))',
-        }),
-        controls: (base) => ({
-          ...base,
-          marginTop: '1rem',
-          display: 'flex',
-          gap: '0.5rem',
-          justifyContent: 'flex-end',
-        }),
-        close: (base) => ({
-          ...base,
-          color: 'hsl(var(--foreground))',
-          right: 8,
-          top: 8,
-        }),
-        dot: (base) => ({ //Simplified dot style
-          ...base,
-          background: 'hsl(var(--primary))',
-          width: 8,
-          height: 8,
-          margin: '0 4px',
-        }),
-      }}
-      padding={16}
-      onClose={endTour}
-      prevButton={({ currentStep, setCurrentStep }) => (
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => setCurrentStep((s) => (s ?? 0) - 1)}
-          disabled={currentStep === 0}
-        >
-          Previous
-        </Button>
-      )}
-      nextButton={({ currentStep, setCurrentStep, stepsLength }) => {
-        const isLastStep = (currentStep ?? 0) === stepsLength - 1;
-        return (
-          <Button
+    <TourContext.Provider value={tourContextValue}>
+      <BaseTourProvider
+        steps={tourSteps}
+        currentStep={currentStep}
+        setCurrentStep={setCurrentStep}
+        isOpen={isOpen}
+        onClose={endTour}
+        styles={{
+          popover: (base) => ({
+            ...base,
+            '--reactour-accent': 'hsl(var(--primary))',
+            background: 'hsl(var(--background))',
+            color: 'hsl(var(--foreground))',
+            borderRadius: 'var(--radius)',
+            padding: '1rem',
+            maxWidth: '320px',
+          }),
+          badge: (base) => ({
+            ...base,
+            background: 'hsl(var(--primary))',
+            color: 'hsl(var(--primary-foreground))',
+          }),
+          controls: (base) => ({
+            ...base,
+            marginTop: '1rem',
+            display: 'flex',
+            gap: '0.5rem',
+            justifyContent: 'flex-end',
+          }),
+          close: (base) => ({
+            ...base,
+            color: 'hsl(var(--foreground))',
+            right: 8,
+            top: 8,
+          }),
+          dot: (base) => ({
+            ...base,
+            background: 'hsl(var(--primary))',
+            width: 8,
+            height: 8,
+            margin: '0 4px',
+          }),
+        }}
+        padding={16}
+        prevButton={({ currentStep, setCurrentStep }) => (
+          <Button 
+            variant="outline" 
             size="sm"
-            onClick={() => {
-              if (isLastStep) {
-                endTour();
-              } else {
-                setCurrentStep((s) => (s ?? 0) + 1);
-                localStorage.setItem('tourProgress', ((currentStep ?? 0) + 1).toString());
-              }
-            }}
+            onClick={() => setCurrentStep((s) => (s ?? 0) - 1)}
+            disabled={currentStep === 0}
           >
-            {isLastStep ? 'Finish Tour' : 'Next'}
+            Previous
           </Button>
-        );
-      }}
-    >
-      {children}
-      <AnimatePresence>
-        {showCelebration && <Celebration />}
-      </AnimatePresence>
-    </TourProvider>
+        )}
+        nextButton={({ currentStep, setCurrentStep, stepsLength }) => {
+          const isLastStep = (currentStep ?? 0) === stepsLength - 1;
+          return (
+            <Button
+              size="sm"
+              onClick={() => {
+                if (isLastStep) {
+                  endTour();
+                } else {
+                  setCurrentStep((s) => {
+                    const nextStep = (s ?? 0) + 1;
+                    localStorage.setItem('tourProgress', nextStep.toString());
+                    return nextStep;
+                  });
+                }
+              }}
+            >
+              {isLastStep ? 'Finish Tour' : 'Next'}
+            </Button>
+          );
+        }}
+      >
+        {children}
+        <AnimatePresence>
+          {showCelebration && <Celebration />}
+        </AnimatePresence>
+      </BaseTourProvider>
+    </TourContext.Provider>
   );
 }
 
