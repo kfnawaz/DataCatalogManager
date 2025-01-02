@@ -59,18 +59,18 @@ export default function DataProductsPage() {
   };
 
   return (
-    <motion.main 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="flex min-h-[calc(100vh-73px)] bg-background relative pt-[73px]"
-    >
-      <QuickFilterSidebar 
-        onFiltersChange={handleFiltersChange} 
-        isExpanded={isSidebarExpanded}
-        onToggleExpand={() => setIsSidebarExpanded(!isSidebarExpanded)}
-      />
+    <div className="min-h-[calc(100vh-73px)] bg-background">
+      <motion.main 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex relative"
+      >
+        <QuickFilterSidebar 
+          onFiltersChange={handleFiltersChange} 
+          isExpanded={isSidebarExpanded}
+          onToggleExpand={() => setIsSidebarExpanded(!isSidebarExpanded)}
+        />
 
-      <div className="flex-1 flex flex-col">
         <div className="flex-1">
           <div className="max-w-4xl mx-auto px-4 py-8">
             <div className="mb-8 text-center">
@@ -184,7 +184,7 @@ export default function DataProductsPage() {
             </AnimatePresence>
           </div>
         </div>
-      </div>
-    </motion.main>
+      </motion.main>
+    </div>
   );
 }
