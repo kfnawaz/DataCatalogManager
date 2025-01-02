@@ -31,18 +31,22 @@ interface DataProduct {
 const fadeIn = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -20 }
+  exit: { opacity: 0, y: -20 },
 };
 
 export default function DataProductsPage() {
-  const [selectedDataProduct, setSelectedDataProduct] = useState<number | null>(null);
+  const [selectedDataProduct, setSelectedDataProduct] = useState<number | null>(
+    null,
+  );
   const [activeTab, setActiveTab] = useState("metadata");
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const productId = params.get('product');
+    const productId = params.get("product");
     if (productId) {
       setSelectedDataProduct(parseInt(productId));
     }
@@ -65,8 +69,8 @@ export default function DataProductsPage() {
         animate={{ opacity: 1 }}
         className="flex relative"
       >
-        <QuickFilterSidebar 
-          onFiltersChange={handleFiltersChange} 
+        <QuickFilterSidebar
+          onFiltersChange={handleFiltersChange}
           isExpanded={isSidebarExpanded}
           onToggleExpand={() => setIsSidebarExpanded(!isSidebarExpanded)}
         />
@@ -76,7 +80,10 @@ export default function DataProductsPage() {
             <div className="mb-8 text-center">
               <h2 className="text-2xl font-bold mb-4">Find Data Products</h2>
               <div className="max-w-2xl mx-auto">
-                <SearchBar onSelect={setSelectedDataProduct} initialValue={selectedDataProduct} />
+                <SearchBar
+                  onSelect={setSelectedDataProduct}
+                  initialValue={selectedDataProduct}
+                />
               </div>
             </div>
 
@@ -100,9 +107,9 @@ export default function DataProductsPage() {
                     )}
                   </div>
 
-                  <Tabs 
-                    value={activeTab} 
-                    onValueChange={setActiveTab} 
+                  <Tabs
+                    value={activeTab}
+                    onValueChange={setActiveTab}
                     className="space-y-4"
                   >
                     <TabsList>
@@ -124,7 +131,9 @@ export default function DataProductsPage() {
                                 <CardTitle>Metadata Management</CardTitle>
                               </CardHeader>
                               <CardContent>
-                                <MetadataPanel dataProductId={selectedProduct.id} />
+                                <MetadataPanel
+                                  dataProductId={selectedProduct.id}
+                                />
                               </CardContent>
                             </Card>
 
@@ -133,7 +142,9 @@ export default function DataProductsPage() {
                                 <CardTitle>Comments & Annotations</CardTitle>
                               </CardHeader>
                               <CardContent>
-                                <DataProductComments dataProductId={selectedProduct.id} />
+                                <DataProductComments
+                                  dataProductId={selectedProduct.id}
+                                />
                               </CardContent>
                             </Card>
                           </div>
@@ -151,7 +162,9 @@ export default function DataProductsPage() {
                               <CardTitle>Data Lineage</CardTitle>
                             </CardHeader>
                             <CardContent>
-                              <LineageGraph dataProductId={selectedProduct.id} />
+                              <LineageGraph
+                                dataProductId={selectedProduct.id}
+                              />
                             </CardContent>
                           </Card>
                         </motion.div>
@@ -168,7 +181,9 @@ export default function DataProductsPage() {
                               <CardTitle>Quality Metrics</CardTitle>
                             </CardHeader>
                             <CardContent>
-                              <QualityMetrics dataProductId={selectedProduct.id} />
+                              <QualityMetrics
+                                dataProductId={selectedProduct.id}
+                              />
                             </CardContent>
                           </Card>
                         </motion.div>
@@ -177,7 +192,11 @@ export default function DataProductsPage() {
                   </Tabs>
                 </motion.div>
               ) : (
-                <motion.div {...fadeIn} key="empty" className="text-center py-12 text-muted-foreground">
+                <motion.div
+                  {...fadeIn}
+                  key="empty"
+                  className="text-center py-12 text-muted-foreground"
+                >
                   Please use the search above to find and select a data product
                 </motion.div>
               )}
