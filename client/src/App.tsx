@@ -3,7 +3,6 @@ import DataProductsPage from "./pages/DataProductsPage";
 import MetricDefinitionsPage from "./pages/MetricDefinitionsPage";
 import HomePage from "./pages/HomePage";
 import NavBar from "./components/navigation/NavBar";
-import { AutomatedTour } from "./components/onboarding/AutomatedTour";
 
 function App() {
   return (
@@ -14,7 +13,6 @@ function App() {
         <Route path="/data-products" component={DataProductsPage} />
         <Route path="/metric-definitions" component={MetricDefinitionsPage} />
       </Switch>
-      <AutomatedTour />
     </div>
   );
 }
