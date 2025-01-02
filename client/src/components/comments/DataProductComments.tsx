@@ -5,14 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { SendHorizontal, MessageSquare, AlertCircle, ChevronDown, ChevronUp, BarChart2, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import CommentAnalytics from "./CommentAnalytics";
 import CommentSummary from "./CommentSummary";
+import EmojiPicker from "./EmojiPicker";
 
 interface Comment {
   id: number;
@@ -43,6 +43,7 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
   const [authorName, setAuthorName] = useState("");
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [textareaRef, setTextareaRef] = useState<HTMLTextAreaElement | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -98,6 +99,23 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
     if (newComment.trim() && authorName.trim()) {
       addCommentMutation.mutate({ content: newComment, authorName });
     }
+  };
+
+  const handleEmojiSelect = (emoji: any) => {
+    if (!textareaRef) return;
+
+    const start = textareaRef.selectionStart;
+    const end = textareaRef.selectionEnd;
+    const text = newComment;
+    const newText = text.substring(0, start) + emoji.native + text.substring(end);
+
+    setNewComment(newText);
+
+    setTimeout(() => {
+      textareaRef.selectionStart = start + emoji.native.length;
+      textareaRef.selectionEnd = start + emoji.native.length;
+      textareaRef.focus();
+    }, 0);
   };
 
   return (
@@ -167,15 +185,21 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
         <div className="space-y-2">
           <Label htmlFor="comment">Comment</Label>
           <div className="flex gap-2">
-            <Textarea
-              id="comment"
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Add a comment..."
-              className={`min-h-[80px] ${validationErrors.content ? "border-red-500" : ""}`}
-              required
-              disabled={addCommentMutation.isPending}
-            />
+            <div className="flex-1 relative">
+              <Textarea
+                id="comment"
+                ref={setTextareaRef}
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Add a comment..."
+                className={`min-h-[80px] pr-10 ${validationErrors.content ? "border-red-500" : ""}`}
+                required
+                disabled={addCommentMutation.isPending}
+              />
+              <div className="absolute right-2 bottom-2">
+                <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+              </div>
+            </div>
             <Button
               type="submit"
               size="icon"
