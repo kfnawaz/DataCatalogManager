@@ -758,7 +758,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Add lineage data endpoint
+  // Update lineage API endpoint to fix the array query
   app.get("/api/lineage", async (req, res) => {
     try {
       const dataProductId = parseInt(req.query.dataProductId as string);
@@ -783,7 +783,8 @@ export function registerRoutes(app: Express): Server {
 
         if (lineageVersion) {
           return res.json({
-            ...lineageVersion.snapshot,
+            nodes: lineageVersion.snapshot.nodes,
+            links: lineageVersion.snapshot.links,
             version: lineageVersion.version,
             versions: await db
               .select({
@@ -803,15 +804,17 @@ export function registerRoutes(app: Express): Server {
         .from(lineageNodes)
         .where(eq(lineageNodes.dataProductId, dataProductId));
 
+      // Get all node IDs for this data product
       const nodeIds = nodes.map(n => n.id);
 
+      // Fetch edges where both source and target are in the node IDs
       const edges = await db
         .select()
         .from(lineageEdges)
         .where(
           and(
-            sql`${lineageEdges.sourceId} = ANY(${nodeIds})`,
-            sql`${lineageEdges.targetId} = ANY(${nodeIds})`
+            sql`${lineageEdges.sourceId} = ANY(${nodeIds}::int[])`,
+            sql`${lineageEdges.targetId} = ANY(${nodeIds}::int[])`
           )
         );
 
