@@ -48,7 +48,7 @@ export default function LineageGraph({ dataProductId }: LineageGraphProps) {
   const [tooltipContent, setTooltipContent] = useState<string | null>(null);
 
   const { data: lineageData, isLoading } = useQuery<LineageData>({
-    queryKey: ["/api/lineage", dataProductId, selectedVersion],
+    queryKey: [`/api/lineage?dataProductId=${dataProductId}${selectedVersion ? `&version=${selectedVersion}` : ''}`],
     enabled: dataProductId !== null,
   });
 
@@ -126,7 +126,7 @@ export default function LineageGraph({ dataProductId }: LineageGraphProps) {
       .attr("stroke-width", 2)
       .attr("fill", "none")
       .attr("marker-end", "url(#end-arrow)")
-      .on("mouseover", function(event, d) {
+      .on("mouseover", function(event, d: any) {
         if (d.transformationLogic) {
           setTooltipContent(d.transformationLogic);
         }
