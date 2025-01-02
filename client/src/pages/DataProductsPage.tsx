@@ -73,15 +73,8 @@ export default function DataProductsPage() {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
-        {/* Fixed Header */}
-        <div className="fixed top-0 left-0 right-0 z-[1] bg-background/80 backdrop-blur-sm border-b border-border shadow-sm">
-          <div className="h-14 flex items-center px-6">
-            <h1 className="text-lg font-semibold">Data Products</h1>
-          </div>
-        </div>
-
         {/* Content Area with Search Bar */}
-        <div className="flex-1 mt-14"> 
+        <div className="flex-1"> 
           <div className="max-w-4xl mx-auto px-4 py-8">
             {/* Centered Search Section */}
             <div className="mb-8 text-center">
@@ -100,7 +93,7 @@ export default function DataProductsPage() {
                   <Skeleton className="h-[400px]" />
                 </motion.div>
               ) : selectedProduct ? (
-                <motion.div {...fadeIn} key={selectedProduct.id} className="relative z-[2]"> 
+                <motion.div {...fadeIn} key={selectedProduct.id} className="relative"> 
                   <div className="mb-6">
                     <h2 className="text-xl font-semibold text-foreground">
                       {selectedProduct.name}
@@ -117,7 +110,7 @@ export default function DataProductsPage() {
                     onValueChange={setActiveTab} 
                     className="space-y-4"
                   >
-                    <TabsList className="relative z-[5]"> 
+                    <TabsList className="relative"> 
                       <TabsTrigger value="metadata">Metadata</TabsTrigger>
                       <TabsTrigger value="lineage">Lineage</TabsTrigger>
                       <TabsTrigger value="quality">Quality Metrics</TabsTrigger>
