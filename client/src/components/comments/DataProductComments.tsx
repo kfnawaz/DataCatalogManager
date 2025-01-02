@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { SendHorizontal, MessageSquare, AlertCircle, ChevronDown, ChevronUp, BarChart2 } from "lucide-react";
+import { SendHorizontal, MessageSquare, AlertCircle, ChevronDown, ChevronUp, BarChart2, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import CommentAnalytics from "./CommentAnalytics";
@@ -151,9 +151,16 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
             placeholder="Enter your name"
             required
             className={validationErrors.authorName ? "border-red-500" : ""}
+            disabled={addCommentMutation.isPending}
           />
           {validationErrors.authorName && (
-            <p className="text-sm text-red-500">{validationErrors.authorName}</p>
+            <motion.p
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-sm text-red-500"
+            >
+              {validationErrors.authorName}
+            </motion.p>
           )}
         </div>
 
@@ -167,13 +174,35 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
               placeholder="Add a comment..."
               className={`min-h-[80px] ${validationErrors.content ? "border-red-500" : ""}`}
               required
+              disabled={addCommentMutation.isPending}
             />
-            <Button type="submit" size="icon" disabled={addCommentMutation.isPending}>
-              <SendHorizontal className="h-4 w-4" />
+            <Button
+              type="submit"
+              size="icon"
+              disabled={addCommentMutation.isPending}
+              className="relative"
+            >
+              {addCommentMutation.isPending ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                </motion.div>
+              ) : (
+                <SendHorizontal className="h-4 w-4" />
+              )}
             </Button>
           </div>
           {validationErrors.content && (
-            <p className="text-sm text-red-500">{validationErrors.content}</p>
+            <motion.p
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-sm text-red-500"
+            >
+              {validationErrors.content}
+            </motion.p>
           )}
         </div>
       </form>
@@ -185,6 +214,7 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="flex gap-4 py-4 border-b last:border-0"
           >
             <Avatar>
@@ -199,21 +229,38 @@ export default function DataProductComments({ dataProductId }: DataProductCommen
                   {format(new Date(comment.createdAt), "PPp")}
                 </span>
               </div>
-              <p className="text-sm text-foreground">{comment.content}</p>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-sm text-foreground"
+              >
+                {comment.content}
+              </motion.p>
             </div>
           </motion.div>
         ))}
 
         {isLoading && (
-          <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex items-center justify-center py-8 text-sm text-muted-foreground"
+          >
+            <Loader2 className="h-5 w-5 animate-spin mr-2" />
             Loading comments...
-          </div>
+          </motion.div>
         )}
 
         {!isLoading && comments.length === 0 && (
-          <div className="text-center py-8 text-sm text-muted-foreground">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="text-center py-8 text-sm text-muted-foreground"
+          >
             No comments yet. Be the first to comment!
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
