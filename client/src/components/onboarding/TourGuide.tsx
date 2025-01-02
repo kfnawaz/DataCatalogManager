@@ -102,11 +102,11 @@ export function useTourGuide() {
   };
 
   const endTour = () => {
+    setTourOpen(false);
     localStorage.setItem('hasSeenTour', 'true');
     localStorage.setItem('tourProgress', '0');
     setShowCelebration(true);
     setIsOpen(false);
-    setTourOpen(false);
 
     setTimeout(() => {
       setShowCelebration(false);
@@ -176,11 +176,11 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
         }),
       }}
       padding={16}
-      onClickMask={() => endTour()}
-      onClickClose={() => endTour()}
+      onClickMask={endTour}
+      onClickClose={endTour}
       showNavigation={true}
       showBadge={true}
-      showButtons={true}
+      showCloseButton={true}
       prevButton={({ currentStep, setCurrentStep }) => (
         <Button 
           variant="outline" 
