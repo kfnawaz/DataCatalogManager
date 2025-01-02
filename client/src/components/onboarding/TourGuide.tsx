@@ -71,29 +71,27 @@ function Celebration() {
   );
 }
 
-// Tour progress tracking hook
 export function useTourGuide() {
   const [showCelebration, setShowCelebration] = useState(false);
-  const { setIsOpen: setTourOpen, setCurrentStep } = useTour();
+  const { setIsOpen, setCurrentStep } = useTour();
   const { toast } = useToast();
 
-  // Check if it's the user's first visit
   useEffect(() => {
     const hasSeenTour = localStorage.getItem('hasSeenTour');
     if (!hasSeenTour) {
-      setTourOpen(true);
+      setIsOpen(true);
       localStorage.setItem('tourProgress', '0');
     }
-  }, [setTourOpen]);
+  }, [setIsOpen]);
 
   const startTour = () => {
-    setTourOpen(true);
     const lastProgress = parseInt(localStorage.getItem('tourProgress') || '0');
     setCurrentStep(lastProgress);
+    setIsOpen(true);
   };
 
   const endTour = () => {
-    setTourOpen(false);
+    setIsOpen(false);
     localStorage.setItem('hasSeenTour', 'true');
     localStorage.setItem('tourProgress', '0');
 
@@ -115,17 +113,24 @@ export function useTourGuide() {
   };
 }
 
-// Tour Provider Component
 interface TourGuideProviderProps {
   children: React.ReactNode;
 }
 
 export function TourGuideProvider({ children }: TourGuideProviderProps) {
+  const [isOpen, setIsOpen] = useState(false);
   const { endTour, showCelebration } = useTourGuide();
+
+  const handleClose = () => {
+    setIsOpen(false);
+    endTour();
+  };
 
   return (
     <TourProvider
       steps={tourSteps}
+      isOpen={isOpen}
+      onClose={handleClose}
       styles={{
         popover: (base) => ({
           ...base,
@@ -163,10 +168,6 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
         }),
       }}
       padding={16}
-      onClickClose={endTour}
-      showNavigation={true}
-      showBadge={true}
-      showCloseButton={true}
       prevButton={({ currentStep, setCurrentStep }) => (
         <Button 
           variant="outline" 
@@ -184,10 +185,11 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
             size="sm"
             onClick={() => {
               if (isLastStep) {
-                endTour();
+                handleClose();
               } else {
                 setCurrentStep((s) => (s ?? 0) + 1);
               }
+              localStorage.setItem('tourProgress', ((currentStep ?? 0) + 1).toString());
             }}
           >
             {isLastStep ? 'Finish Tour' : 'Next'}
@@ -203,7 +205,6 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
   );
 }
 
-// Tour Start Button Component
 export function TourStartButton() {
   const { startTour } = useTourGuide();
   const tourProgress = parseInt(localStorage.getItem('tourProgress') || '0');
@@ -217,9 +218,7 @@ export function TourStartButton() {
       className="fixed bottom-4 right-4 z-50 gap-2"
     >
       {tourProgress > 0 && tourProgress < totalSteps ? (
-        <>
-          Continue Tour ({tourProgress}/{totalSteps})
-        </>
+        <>Continue Tour ({tourProgress}/{totalSteps})</>
       ) : (
         'Start Tour'
       )}
