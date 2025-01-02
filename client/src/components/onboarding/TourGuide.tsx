@@ -93,14 +93,13 @@ interface TourGuideProviderProps {
 
 export function TourGuideProvider({ children }: TourGuideProviderProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [showCelebration, setShowCelebration] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [showCelebration, setShowCelebration] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     const hasSeenTour = localStorage.getItem('hasSeenTour');
     if (!hasSeenTour) {
-      setIsOpen(true);
       localStorage.setItem('tourProgress', '0');
     }
   }, []);
@@ -236,15 +235,14 @@ export function TourStartButton() {
   const tourProgress = parseInt(localStorage.getItem('tourProgress') || '0');
   const totalSteps = tourSteps.length;
 
-  if (isOpen) return null;
+  // Only hide the button when the tour is actually being shown
+  if (isOpen && tourProgress < totalSteps) return null;
 
   return (
     <Button
       variant="outline"
       size="sm"
-      onClick={() => {
-        startTour();
-      }}
+      onClick={startTour}
       className="fixed bottom-4 right-4 z-50 gap-2"
     >
       {tourProgress > 0 && tourProgress < totalSteps ? (
