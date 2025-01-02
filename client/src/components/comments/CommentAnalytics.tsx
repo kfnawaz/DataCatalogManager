@@ -28,6 +28,29 @@ export default function CommentAnalytics({ comments }: CommentAnalyticsProps) {
     return acc;
   }, {});
 
+  // Calculate health score (0-100)
+  const healthScore = Math.min(100, Math.round(
+    // Author diversity (0-25)
+    (uniqueAuthors / Math.max(5, totalComments) * 25) +
+    // Comment frequency (0-25)
+    (Math.min(totalComments, 10) / 10 * 25) +
+    // Average comment length (0-25)
+    (Math.min(avgCommentLength, 200) / 200 * 25) +
+    // Engagement consistency (0-25)
+    (Object.values(commentsByAuthor).reduce((acc, count) => acc + Math.min(count, 5), 0) / 
+    (Object.keys(commentsByAuthor).length * 5) * 25)
+  ));
+
+  // Get health status and color
+  const getHealthStatus = (score: number) => {
+    if (score >= 80) return { status: 'Excellent', color: 'text-green-500' };
+    if (score >= 60) return { status: 'Good', color: 'text-blue-500' };
+    if (score >= 40) return { status: 'Fair', color: 'text-yellow-500' };
+    return { status: 'Needs Improvement', color: 'text-red-500' };
+  };
+
+  const healthStatus = getHealthStatus(healthScore);
+
   // Get top commenters
   const topCommenters = Object.entries(commentsByAuthor)
     .sort(([, a], [, b]) => b - a)
@@ -100,6 +123,29 @@ export default function CommentAnalytics({ comments }: CommentAnalyticsProps) {
         </Button>
       </CardHeader>
       <CardContent>
+        {/* Health Score */}
+        <div className="mb-6 p-4 rounded-lg bg-background border">
+          <h4 className="text-sm font-medium text-muted-foreground mb-2">Comment Health Score</h4>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl font-bold">{healthScore}</span>
+              <span className={`text-sm font-medium ${healthStatus.color}`}>
+                {healthStatus.status}
+              </span>
+            </div>
+            <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className="h-full transition-all duration-500 ease-in-out"
+                style={{ 
+                  width: `${healthScore}%`,
+                  backgroundColor: `hsl(var(--primary))`,
+                  opacity: healthScore / 100
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="p-4 rounded-lg bg-background border">
             <h4 className="text-sm font-medium text-muted-foreground mb-2">Total Comments</h4>
