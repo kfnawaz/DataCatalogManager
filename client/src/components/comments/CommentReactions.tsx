@@ -9,18 +9,22 @@ import { useToast } from "@/hooks/use-toast";
 
 interface CommentReactionsProps {
   commentId: number;
-  reactions: {
+  reactions?: {
     like: number;
     helpful: number;
     insightful: number;
   };
-  badges: Array<{
+  badges?: Array<{
     type: string;
     createdAt: string;
   }>;
 }
 
-export default function CommentReactions({ commentId, reactions, badges }: CommentReactionsProps) {
+export default function CommentReactions({ 
+  commentId, 
+  reactions = { like: 0, helpful: 0, insightful: 0 }, 
+  badges = [] 
+}: CommentReactionsProps) {
   const [userReactions, setUserReactions] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -55,7 +59,7 @@ export default function CommentReactions({ commentId, reactions, badges }: Comme
 
   const handleReaction = (type: string) => {
     if (userReactions[type]) return;
-    
+
     reactionMutation.mutate({ type });
     setUserReactions(prev => ({ ...prev, [type]: true }));
   };
@@ -97,7 +101,7 @@ export default function CommentReactions({ commentId, reactions, badges }: Comme
           disabled={userReactions.like}
         >
           <ThumbsUp className="h-4 w-4" />
-          <span className="text-sm">{reactions.like || 0}</span>
+          <span className="text-sm">{reactions?.like || 0}</span>
         </Button>
 
         <Button
@@ -108,7 +112,7 @@ export default function CommentReactions({ commentId, reactions, badges }: Comme
           disabled={userReactions.helpful}
         >
           <Award className="h-4 w-4" />
-          <span className="text-sm">{reactions.helpful || 0}</span>
+          <span className="text-sm">{reactions?.helpful || 0}</span>
         </Button>
 
         <Button
@@ -119,12 +123,12 @@ export default function CommentReactions({ commentId, reactions, badges }: Comme
           disabled={userReactions.insightful}
         >
           <Brain className="h-4 w-4" />
-          <span className="text-sm">{reactions.insightful || 0}</span>
+          <span className="text-sm">{reactions?.insightful || 0}</span>
         </Button>
       </div>
 
       <AnimatePresence>
-        {badges.map((badge) => (
+        {badges?.map((badge) => (
           <motion.div
             key={`${badge.type}-${badge.createdAt}`}
             initial={{ opacity: 0, scale: 0.8 }}

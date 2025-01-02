@@ -77,12 +77,30 @@ export function registerRoutes(app: Express): Server {
       }
 
       const productComments = await db
-        .select()
+        .select({
+          id: comments.id,
+          content: comments.content,
+          authorName: comments.authorName,
+          createdAt: comments.createdAt,
+          updatedAt: comments.updatedAt,
+          dataProductId: comments.dataProductId,
+        })
         .from(comments)
         .where(eq(comments.dataProductId, productId))
         .orderBy(desc(comments.createdAt));
 
-      res.json(productComments);
+      // Add default reaction and badge data for each comment
+      const commentsWithMetadata = productComments.map(comment => ({
+        ...comment,
+        reactions: {
+          like: 0,
+          helpful: 0,
+          insightful: 0
+        },
+        badges: []
+      }));
+
+      res.json(commentsWithMetadata);
     } catch (error) {
       console.error("Error fetching comments:", error);
       res.status(500).json({ error: "Failed to fetch comments" });
@@ -559,6 +577,28 @@ export function registerRoutes(app: Express): Server {
         error: "Internal server error",
         details: "Failed to generate comment summary. Please try again later."
       });
+    }
+  });
+
+  // Add reaction endpoint
+  app.post("/api/comments/:id/reactions", async (req, res) => {
+    try {
+      const commentId = parseInt(req.params.id);
+      const { type } = req.body;
+
+      if (isNaN(commentId)) {
+        return res.status(400).json({ error: "Invalid comment ID" });
+      }
+
+      if (!['like', 'helpful', 'insightful'].includes(type)) {
+        return res.status(400).json({ error: "Invalid reaction type" });
+      }
+
+      // For now, just return success since we're just setting up the UI
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error adding reaction:", error);
+      res.status(500).json({ error: "Failed to add reaction" });
     }
   });
 
