@@ -145,6 +145,14 @@ function getLayoutedElements(nodes: Node[], edges: Edge[]) {
   return { nodes: positionedNodes, edges };
 }
 
+function generateUniqueEdgeId(source: string, target: string, index: number, transformationLogic?: string): string {
+  // Include a hash of the transformation logic if it exists to ensure uniqueness
+  const logicHash = transformationLogic ? 
+    transformationLogic.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) : 
+    '';
+  return `edge-${source}-${target}-${logicHash}-${index}`;
+}
+
 export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -158,46 +166,51 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
   const flowElements = useMemo(() => {
     if (!lineageData?.nodes?.length) return { nodes: [], edges: [] };
 
-    // Create a Set of unique node IDs
-    const uniqueNodeIds = new Set(lineageData.nodes.map(n => n.id));
+    // Create a Map to store unique nodes by their ID and content
+    const uniqueNodesMap = new Map();
 
-    // Create unique nodes
-    const flowNodes: Node[] = Array.from(uniqueNodeIds).map(id => {
-      const node = lineageData.nodes.find(n => n.id === id)!;
-      return {
-        id: node.id,
-        type: node.type,
-        data: {
-          label: node.label,
-          metadata: node.metadata,
-        },
-        position: { x: 0, y: 0 },
-      };
+    // Process nodes and ensure uniqueness
+    lineageData.nodes.forEach(node => {
+      const nodeKey = `${node.id}-${node.label}-${node.type}`;
+      if (!uniqueNodesMap.has(nodeKey)) {
+        uniqueNodesMap.set(nodeKey, {
+          id: node.id,
+          type: node.type,
+          data: {
+            label: node.label,
+            metadata: node.metadata,
+          },
+          position: { x: 0, y: 0 },
+        });
+      }
     });
 
-    // Create unique edges by using a Set with stringified edge objects
-    const uniqueEdges = new Set(
-      lineageData.links.map(link => JSON.stringify({
-        source: link.source,
-        target: link.target,
-        transformationLogic: link.transformationLogic
-      }))
-    );
+    // Convert unique nodes map to array
+    const flowNodes = Array.from(uniqueNodesMap.values());
 
-    // Convert back to Edge objects with unique IDs
-    const flowEdges: Edge[] = Array.from(uniqueEdges).map((edgeStr, index) => {
-      const edge = JSON.parse(edgeStr);
-      return {
-        id: `edge-${edge.source}-${edge.target}-${index}`, // Added index for uniqueness
-        source: edge.source,
-        target: edge.target,
-        animated: true,
-        label: edge.transformationLogic,
-        style: { stroke: '#666' },
-        labelStyle: { fill: '#666', fontSize: 12 },
-        type: 'smoothstep',
-      };
+    // Create a Map to store unique edges
+    const uniqueEdgesMap = new Map();
+
+    // Process edges and ensure uniqueness
+    lineageData.links.forEach((link, index) => {
+      const edgeId = generateUniqueEdgeId(link.source, link.target, index, link.transformationLogic);
+
+      if (!uniqueEdgesMap.has(edgeId)) {
+        uniqueEdgesMap.set(edgeId, {
+          id: edgeId,
+          source: link.source,
+          target: link.target,
+          animated: true,
+          label: link.transformationLogic,
+          style: { stroke: '#666' },
+          labelStyle: { fill: '#666', fontSize: 12 },
+          type: 'smoothstep',
+        });
+      }
     });
+
+    // Convert unique edges map to array
+    const flowEdges = Array.from(uniqueEdgesMap.values());
 
     return getLayoutedElements(flowNodes, flowEdges);
   }, [lineageData]);
@@ -205,15 +218,8 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
   // Update flow elements when they change
   useEffect(() => {
     if (flowElements.nodes.length > 0 || flowElements.edges.length > 0) {
-      // Reset state before updating
-      setNodes([]);
-      setEdges([]);
-
-      // Update with new elements after a short delay
-      setTimeout(() => {
-        setNodes(flowElements.nodes);
-        setEdges(flowElements.edges);
-      }, 0);
+      setNodes(flowElements.nodes);
+      setEdges(flowElements.edges);
     }
   }, [flowElements, setNodes, setEdges]);
 
