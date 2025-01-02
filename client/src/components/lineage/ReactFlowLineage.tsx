@@ -82,40 +82,58 @@ const nodeTypes = {
   target: LineageNodeComponent,
 };
 
-// Custom layout function
+// Enhanced layout function with better node positioning
 function getLayoutedElements(nodes: Node[], edges: Edge[]) {
-  const sourceNodes = nodes.filter(n => n.type === 'source');
-  const transformNodes = nodes.filter(n => n.type === 'transformation');
-  const targetNodes = nodes.filter(n => n.type === 'target');
+  const levels: { [key: string]: number } = {};
+  const processedNodes = new Set<string>();
 
-  const columnSpacing = 300;
-  const verticalSpacing = 150;
-  const startX = 50;
-  const startY = 50;
+  // Calculate node levels based on dependencies
+  function calculateLevels(nodeId: string, level: number) {
+    if (processedNodes.has(nodeId)) return;
+    processedNodes.add(nodeId);
+    levels[nodeId] = Math.max(level, levels[nodeId] || 0);
 
-  // Position nodes in columns
-  sourceNodes.forEach((node, i) => {
-    node.position = {
-      x: startX,
-      y: startY + (i * verticalSpacing),
+    // Find all target nodes connected to this node
+    edges.forEach(edge => {
+      if (edge.source === nodeId) {
+        calculateLevels(edge.target, level + 1);
+      }
+    });
+  }
+
+  // Start with source nodes (nodes with no incoming edges)
+  const sourceNodes = nodes.filter(node => 
+    !edges.some(edge => edge.target === node.id)
+  );
+
+  sourceNodes.forEach(node => calculateLevels(node.id, 0));
+
+  // Calculate max nodes per level
+  const nodesPerLevel: { [level: number]: number } = {};
+  Object.entries(levels).forEach(([nodeId, level]) => {
+    nodesPerLevel[level] = (nodesPerLevel[level] || 0) + 1;
+  });
+
+  // Position nodes with proper spacing
+  const HORIZONTAL_SPACING = 250;
+  const VERTICAL_SPACING = 100;
+  const updatedNodes = nodes.map(node => {
+    const level = levels[node.id] || 0;
+    const nodesInLevel = nodesPerLevel[level];
+    const indexInLevel = Object.entries(levels)
+      .filter(([, l]) => l === level)
+      .findIndex(([id]) => id === node.id);
+
+    return {
+      ...node,
+      position: {
+        x: level * HORIZONTAL_SPACING + 50,
+        y: (indexInLevel - (nodesInLevel - 1) / 2) * VERTICAL_SPACING + 300,
+      },
     };
   });
 
-  transformNodes.forEach((node, i) => {
-    node.position = {
-      x: startX + columnSpacing,
-      y: startY + (i * verticalSpacing),
-    };
-  });
-
-  targetNodes.forEach((node, i) => {
-    node.position = {
-      x: startX + (columnSpacing * 2),
-      y: startY + (i * verticalSpacing),
-    };
-  });
-
-  return { nodes, edges };
+  return { nodes: updatedNodes, edges };
 }
 
 export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProps) {
@@ -131,7 +149,7 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
   useEffect(() => {
     if (!lineageData?.nodes?.length) return;
 
-    // Transform nodes and edges only once per lineageData change
+    // Create flow nodes with unique IDs
     const flowNodes: Node[] = lineageData.nodes.map((node) => ({
       id: node.id,
       type: node.type,
@@ -139,11 +157,12 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
         label: node.label,
         metadata: node.metadata,
       },
-      position: { x: 0, y: 0 },
+      position: { x: 0, y: 0 }, // Initial positions will be set by layout function
     }));
 
+    // Create edges with unique IDs
     const flowEdges: Edge[] = lineageData.links.map((link, index) => ({
-      id: `edge-${index}`,
+      id: `edge-${link.source}-${link.target}`,
       source: link.source,
       target: link.target,
       animated: true,
@@ -159,9 +178,13 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
       flowEdges
     );
 
-    // Update state
-    setNodes([...layoutedNodes]);
-    setEdges([...layoutedEdges]);
+    // Clear previous state and set new nodes/edges
+    setNodes([]);
+    setEdges([]);
+    setTimeout(() => {
+      setNodes(layoutedNodes);
+      setEdges(layoutedEdges);
+    }, 0);
   }, [lineageData, setNodes, setEdges]);
 
   if (!dataProductId) {
