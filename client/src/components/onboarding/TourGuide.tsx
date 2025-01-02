@@ -221,22 +221,24 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
 }
 
 export function TourStartButton() {
-  const { startTour } = useTourGuide();
-  const tourProgress = parseInt(localStorage.getItem('tourProgress') || '0');
-  const totalSteps = tourSteps.length;
+    const { startTour, isOpen } = useTourGuide();
+    const tourProgress = parseInt(localStorage.getItem('tourProgress') || '0');
+    const totalSteps = tourSteps.length;
+    
+    console.log('Tour state:', { isOpen, tourProgress, totalSteps });
 
-  return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={startTour}
-      className="fixed bottom-4 right-4 z-50 gap-2"
-    >
-      {tourProgress > 0 && tourProgress < totalSteps ? (
-        <>Continue Tour ({tourProgress}/{totalSteps})</>
-      ) : (
-        'Start Tour'
-      )}
-    </Button>
-  );
-}
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={startTour}
+        className="fixed bottom-4 right-4 z-50 gap-2"
+      >
+        {tourProgress > 0 && tourProgress < totalSteps ? (
+          <>Continue Tour ({tourProgress}/{totalSteps})</>
+        ) : (
+          'Start Tour'
+        )}
+      </Button>
+    );
+  }
