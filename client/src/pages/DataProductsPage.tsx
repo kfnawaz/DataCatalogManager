@@ -59,7 +59,7 @@ export default function DataProductsPage() {
         className="container mx-auto px-4 py-6"
       >
         <div className="mb-6">
-          <SearchBar onSelect={setSelectedDataProduct} initialValue={selectedDataProduct} />
+          <SearchBar onSelect={setSelectedDataProduct} initialValue={selectedDataProduct} className="search-bar" />
         </div>
 
         <AnimatePresence mode="wait">
@@ -88,9 +88,9 @@ export default function DataProductsPage() {
                 className="space-y-4"
               >
                 <TabsList>
-                  <TabsTrigger value="metadata">Metadata</TabsTrigger>
-                  <TabsTrigger value="lineage">Lineage</TabsTrigger>
-                  <TabsTrigger value="quality">Quality Metrics</TabsTrigger>
+                  <TabsTrigger value="metadata" className="metadata-tab">Metadata</TabsTrigger>
+                  <TabsTrigger value="lineage" className="lineage-tab">Lineage</TabsTrigger>
+                  <TabsTrigger value="quality" className="quality-tab">Quality Metrics</TabsTrigger>
                 </TabsList>
 
                 <AnimatePresence mode="wait">
@@ -114,7 +114,7 @@ export default function DataProductsPage() {
                           <CardHeader>
                             <CardTitle>Comments & Annotations</CardTitle>
                           </CardHeader>
-                          <CardContent>
+                          <CardContent className="comment-section">
                             <DataProductComments dataProductId={selectedDataProduct} />
                           </CardContent>
                         </Card>
