@@ -34,7 +34,6 @@ const tourSteps: StepType[] = [
   },
 ];
 
-// Celebration component
 function Celebration() {
   return (
     <motion.div
@@ -73,7 +72,7 @@ function Celebration() {
 
 export function useTourGuide() {
   const [showCelebration, setShowCelebration] = useState(false);
-  const { setIsOpen, setCurrentStep } = useTour();
+  const { isOpen, setIsOpen, setCurrentStep } = useTour();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -107,6 +106,7 @@ export function useTourGuide() {
   };
 
   return {
+    isOpen,
     startTour,
     endTour,
     showCelebration,
@@ -151,9 +151,9 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
           right: 8,
           top: 8,
         }),
-        dot: (base, { current }) => ({
+        dot: (base) => ({ //Simplified dot style
           ...base,
-          background: current ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+          background: 'hsl(var(--primary))',
           width: 8,
           height: 8,
           margin: '0 4px',
