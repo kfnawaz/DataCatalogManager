@@ -50,7 +50,7 @@ export default function NavBar() {
           <div className="text-2xl font-bold">
             <Link 
               href="/" 
-              className="text-foreground hover:text-primary/90 transition-colors duration-200"
+              className="text-foreground hover:text-muted-foreground dark:hover:text-muted-foreground transition-colors duration-200"
             >
               Data Catalog
             </Link>
@@ -58,13 +58,13 @@ export default function NavBar() {
           <nav className="hidden md:flex items-center gap-6">
             <Link 
               href="/data-products" 
-              className="text-sm font-medium text-muted-foreground hover:text-primary/90 dark:hover:text-primary/90 transition-all duration-200 hover:scale-105"
+              className="text-sm font-medium text-foreground hover:text-muted-foreground dark:hover:text-muted-foreground transition-all duration-200 hover:scale-105"
             >
               Data Products
             </Link>
             <Link 
               href="/metric-definitions" 
-              className="text-sm font-medium text-muted-foreground hover:text-primary/90 dark:hover:text-primary/90 transition-all duration-200 hover:scale-105"
+              className="text-sm font-medium text-foreground hover:text-muted-foreground dark:hover:text-muted-foreground transition-all duration-200 hover:scale-105"
             >
               Metric Definitions
             </Link>
