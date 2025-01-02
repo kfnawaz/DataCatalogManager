@@ -92,7 +92,7 @@ export default function LineageGraph({ dataProductId }: LineageGraphProps) {
 
     const g = svg.append("g");
 
-    // Define arrow marker
+    // Define arrow marker with adjusted dimensions
     svg.append("defs")
       .selectAll("marker")
       .data(["end-arrow"])
@@ -100,14 +100,14 @@ export default function LineageGraph({ dataProductId }: LineageGraphProps) {
       .append("marker")
       .attr("id", String)
       .attr("viewBox", "0 -5 10 10")
-      .attr("refX", nodeRadius + 10)
+      .attr("refX", 35) // Increased refX to move arrow away from node
       .attr("refY", 0)
-      .attr("markerWidth", 6)
-      .attr("markerHeight", 6)
+      .attr("markerWidth", 8) // Increased marker size
+      .attr("markerHeight", 8)
       .attr("orient", "auto")
       .append("path")
       .attr("d", "M0,-5L10,0L0,5")
-      .attr("fill", "#999");
+      .attr("fill", "#666"); // Darker color for better visibility
 
     const simulation = d3
       .forceSimulation(lineageData.nodes as any)
@@ -116,19 +116,20 @@ export default function LineageGraph({ dataProductId }: LineageGraphProps) {
         d3
           .forceLink(lineageData.links)
           .id((d: any) => d.id)
-          .distance(150)
+          .distance(200) // Increased distance between nodes
       )
       .force("charge", d3.forceManyBody().strength(-1000))
       .force("center", d3.forceCenter(width / 2, height / 2))
       .force("collision", d3.forceCollide().radius(nodeRadius * 1.5));
 
+    // Draw curved edges with proper arrow positioning
     const links = g
       .append("g")
       .selectAll("path")
       .data(lineageData.links)
       .enter()
       .append("path")
-      .attr("stroke", "#999")
+      .attr("stroke", "#666")
       .attr("stroke-opacity", 0.6)
       .attr("stroke-width", 2)
       .attr("fill", "none")
@@ -166,21 +167,30 @@ export default function LineageGraph({ dataProductId }: LineageGraphProps) {
       .attr("stroke", "#fff")
       .attr("stroke-width", 2);
 
-    // Add text labels
+    // Add text labels with a white background for better readability
     nodes
       .append("text")
       .text((d: Node) => d.label)
       .attr("text-anchor", "middle")
       .attr("dy", nodeRadius + 20)
       .attr("fill", "currentColor")
-      .attr("font-size", "12px");
+      .attr("font-size", "12px")
+      .attr("aria-label", (d: Node) => `Node: ${d.label}, Type: ${d.type}`);
 
     simulation.on("tick", () => {
+      // Update edge paths with smoother curves and proper arrow positioning
       links.attr("d", (d: any) => {
         const dx = d.target.x - d.source.x;
         const dy = d.target.y - d.source.y;
         const dr = Math.sqrt(dx * dx + dy * dy);
-        return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+
+        // Calculate the point where the edge should stop before reaching the target node
+        const offsetX = dx * (nodeRadius / dr);
+        const offsetY = dy * (nodeRadius / dr);
+
+        return `M${d.source.x},${d.source.y}
+                Q${(d.source.x + d.target.x) / 2},${(d.source.y + d.target.y) / 2}
+                ${d.target.x - offsetX},${d.target.y - offsetY}`;
       });
 
       nodes.attr("transform", (d: any) => `translate(${d.x},${d.y})`);
@@ -244,23 +254,28 @@ export default function LineageGraph({ dataProductId }: LineageGraphProps) {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#4CAF50]" />
+            <div className="flex items-center gap-2" role="presentation">
+              <div className="w-3 h-3 rounded-full bg-[#4CAF50]" aria-hidden="true" />
               <span className="text-sm">Source</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#2196F3]" />
+            <div className="flex items-center gap-2" role="presentation">
+              <div className="w-3 h-3 rounded-full bg-[#2196F3]" aria-hidden="true" />
               <span className="text-sm">Transformation</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#F44336]" />
+            <div className="flex items-center gap-2" role="presentation">
+              <div className="w-3 h-3 rounded-full bg-[#F44336]" aria-hidden="true" />
               <span className="text-sm">Target</span>
             </div>
           </div>
         </div>
 
         <div className="relative">
-          <svg ref={svgRef} className="w-full border rounded-lg" />
+          <svg 
+            ref={svgRef} 
+            className="w-full border rounded-lg"
+            role="img"
+            aria-label="Data lineage graph showing relationships between data sources, transformations, and targets"
+          />
           {tooltipContent && (
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogContent>
