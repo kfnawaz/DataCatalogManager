@@ -1,20 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import * as d3 from "d3";
-import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useState } from "react";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@/components/ui/toggle-group";
 import { Info } from "lucide-react";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import ReactFlowLineage from "./ReactFlowLineage";
@@ -24,28 +12,8 @@ interface LineageGraphProps {
   dataProductId: number | null;
 }
 
-interface Node {
-  id: string;
-  type: 'source' | 'transformation' | 'target';
-  label: string;
-  metadata?: Record<string, any>;
-}
-
-interface Link {
-  source: string;
-  target: string;
-  transformationLogic?: string;
-}
-
-interface LineageData {
-  nodes: Node[];
-  links: Link[];
-  version: number;
-  versions: { version: number; timestamp: string }[];
-}
-
 export default function LineageGraph({ dataProductId }: LineageGraphProps) {
-  const [useReactFlow, setUseReactFlow] = useState(true);
+  const [visualizationType, setVisualizationType] = useState<string>("reactflow");
 
   return (
     <div className="space-y-4">
@@ -53,22 +21,25 @@ export default function LineageGraph({ dataProductId }: LineageGraphProps) {
         <h2 className="text-2xl font-semibold">Data Lineage</h2>
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">Visualization:</span>
-          <Select
-            value={useReactFlow ? "reactflow" : "d3"}
-            onValueChange={(value) => setUseReactFlow(value === "reactflow")}
+          <ToggleGroup
+            type="single"
+            value={visualizationType}
+            onValueChange={(value) => {
+              if (value) setVisualizationType(value);
+            }}
+            aria-label="Visualization type"
           >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Select view" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="reactflow">React Flow</SelectItem>
-              <SelectItem value="d3">D3</SelectItem>
-            </SelectContent>
-          </Select>
+            <ToggleGroupItem value="reactflow" aria-label="React Flow">
+              React Flow
+            </ToggleGroupItem>
+            <ToggleGroupItem value="d3" aria-label="D3">
+              D3
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
       </div>
 
-      {useReactFlow ? (
+      {visualizationType === "reactflow" ? (
         <ReactFlowLineage dataProductId={dataProductId} />
       ) : (
         <D3LineageGraph dataProductId={dataProductId} />

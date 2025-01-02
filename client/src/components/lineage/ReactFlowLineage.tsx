@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -8,30 +8,15 @@ import ReactFlow, {
   Position,
   useNodesState,
   useEdgesState,
-  useReactFlow,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 
 interface ReactFlowLineageProps {
   dataProductId: number | null;
-}
-
-interface LineageData {
-  nodes: any[];
-  links: any[];
-  version: number;
-  versions: { version: number; timestamp: string }[];
 }
 
 // Custom node types
@@ -77,7 +62,7 @@ const nodeTypes = {
   target: LineageNode,
 };
 
-// Custom layout function to position nodes
+// Custom layout function
 function getLayoutedElements(nodes: Node[], edges: Edge[]) {
   const sourceNodes = nodes.filter(n => n.type === 'source');
   const transformNodes = nodes.filter(n => n.type === 'transformation');
@@ -85,26 +70,28 @@ function getLayoutedElements(nodes: Node[], edges: Edge[]) {
 
   const columnSpacing = 300;
   const verticalSpacing = 150;
+  const startX = 50;
+  const startY = 50;
 
   // Position nodes in columns
   sourceNodes.forEach((node, i) => {
     node.position = {
-      x: 100,
-      y: 100 + (i * verticalSpacing),
+      x: startX,
+      y: startY + (i * verticalSpacing),
     };
   });
 
   transformNodes.forEach((node, i) => {
     node.position = {
-      x: 100 + columnSpacing,
-      y: 100 + (i * verticalSpacing),
+      x: startX + columnSpacing,
+      y: startY + (i * verticalSpacing),
     };
   });
 
   targetNodes.forEach((node, i) => {
     node.position = {
-      x: 100 + (columnSpacing * 2),
-      y: 100 + (i * verticalSpacing),
+      x: startX + (columnSpacing * 2),
+      y: startY + (i * verticalSpacing),
     };
   });
 
@@ -115,22 +102,24 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  const { data: lineageData, isLoading } = useQuery<LineageData>({
+  const { data: lineageData, isLoading } = useQuery({
     queryKey: [`/api/lineage?dataProductId=${dataProductId}`],
     enabled: dataProductId !== null,
-    onSuccess: (data) => {
+    onSuccess: (data: LineageData | undefined) => {
+      if (!data?.nodes?.length) return;
+
       // Transform data for React Flow
-      const flowNodes: Node[] = data.nodes.map((node) => ({
+      const flowNodes: Node[] = data.nodes.map((node: any) => ({
         id: node.id,
         type: node.type,
         data: {
           label: node.label,
           metadata: node.metadata,
         },
-        position: { x: 0, y: 0 }, // Initial positions will be updated by layout
+        position: { x: 0, y: 0 },
       }));
 
-      const flowEdges: Edge[] = data.links.map((link, index) => ({
+      const flowEdges: Edge[] = data.links.map((link: any, index: number) => ({
         id: `edge-${index}`,
         source: link.source,
         target: link.target,
@@ -142,7 +131,11 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
       }));
 
       // Apply layout
-      const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(flowNodes, flowEdges);
+      const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+        flowNodes,
+        flowEdges
+      );
+
       setNodes(layoutedNodes);
       setEdges(layoutedEdges);
     },
@@ -161,60 +154,27 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Version:</span>
-          <Select
-            value={lineageData?.version?.toString()}
-            onValueChange={(value) => {
-              // Handle version change
-            }}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select version" />
-            </SelectTrigger>
-            <SelectContent>
-              {lineageData?.versions.map((v) => (
-                <SelectItem key={v.version} value={v.version.toString()}>
-                  Version {v.version} ({new Date(v.timestamp).toLocaleDateString()})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2" role="presentation">
-            <div className="w-3 h-3 rounded-full bg-[#4CAF50]" aria-hidden="true" />
-            <span className="text-sm">Source</span>
-          </div>
-          <div className="flex items-center gap-2" role="presentation">
-            <div className="w-3 h-3 rounded-full bg-[#2196F3]" aria-hidden="true" />
-            <span className="text-sm">Transformation</span>
-          </div>
-          <div className="flex items-center gap-2" role="presentation">
-            <div className="w-3 h-3 rounded-full bg-[#F44336]" aria-hidden="true" />
-            <span className="text-sm">Target</span>
-          </div>
-        </div>
-      </div>
-
-      <Card className="w-full h-[600px]">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          nodeTypes={nodeTypes}
-          fitView
-          proOptions={{ hideAttribution: true }}
-          className="bg-background"
-        >
-          <Background />
-          <Controls />
-        </ReactFlow>
-      </Card>
-    </div>
+    <Card className="w-full h-[600px]">
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        nodeTypes={nodeTypes}
+        fitView
+        proOptions={{ hideAttribution: true }}
+        className="bg-background"
+      >
+        <Background />
+        <Controls />
+      </ReactFlow>
+    </Card>
   );
+}
+
+interface LineageData {
+  nodes: any[];
+  links: any[];
+  version: number;
+  versions: { version: number; timestamp: string }[];
 }

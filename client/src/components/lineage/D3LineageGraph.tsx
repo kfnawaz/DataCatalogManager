@@ -60,23 +60,29 @@ export default function D3LineageGraph({ dataProductId }: D3LineageGraphProps) {
       setSelectedVersion(lineageData.version);
     }
 
-    const width = 800;
-    const height = 600;
+    // Get container dimensions
+    const container = svgRef.current.parentElement;
+    if (!container) return;
+
+    const width = container.clientWidth;
+    const height = container.clientHeight;
     const nodeRadius = 25;
+    const padding = 50; // Add padding to prevent nodes from touching edges
 
     // Clear previous graph
     d3.select(svgRef.current).selectAll("*").remove();
 
     const svg = d3
       .select(svgRef.current)
-      .attr("width", width)
-      .attr("height", height)
-      .attr("viewBox", [0, 0, width, height])
-      .attr("style", "max-width: 100%; height: auto;");
+      .attr("width", "100%")
+      .attr("height", "100%")
+      .attr("viewBox", [-padding, -padding, width + (2 * padding), height + (2 * padding)])
+      .attr("preserveAspectRatio", "xMidYMid meet");
 
-    // Add zoom behavior
+    // Add zoom behavior with limits
     const zoom = d3.zoom()
-      .scaleExtent([0.5, 2])
+      .scaleExtent([0.1, 2])
+      .extent([[0, 0], [width, height]])
       .on("zoom", (event) => {
         g.attr("transform", event.transform);
       });
@@ -113,7 +119,9 @@ export default function D3LineageGraph({ dataProductId }: D3LineageGraphProps) {
       )
       .force("charge", d3.forceManyBody().strength(-1000))
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide().radius(nodeRadius * 1.5));
+      .force("collision", d3.forceCollide().radius(nodeRadius * 1.5))
+      .force("x", d3.forceX(width / 2).strength(0.1))
+      .force("y", d3.forceY(height / 2).strength(0.1));
 
     // Draw curved edges
     const links = g
@@ -261,8 +269,8 @@ export default function D3LineageGraph({ dataProductId }: D3LineageGraphProps) {
         </div>
 
         <Card className="w-full h-[600px] relative">
-          <svg 
-            ref={svgRef} 
+          <svg
+            ref={svgRef}
             className="w-full h-full"
             role="img"
             aria-label="Data lineage graph showing relationships between data sources, transformations, and targets"
