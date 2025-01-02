@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@/components/ui/toggle-group";
-import { Info } from "lucide-react";
-import { VisuallyHidden } from "@/components/ui/visually-hidden";
+import { useQuery } from "@tanstack/react-query";
 import ReactFlowLineage from "./ReactFlowLineage";
 import D3LineageGraph from "./D3LineageGraph";
 
@@ -12,8 +11,37 @@ interface LineageGraphProps {
   dataProductId: number | null;
 }
 
+interface LineageData {
+  nodes: Array<{
+    id: string;
+    type: 'source' | 'transformation' | 'target';
+    label: string;
+    metadata?: Record<string, any>;
+  }>;
+  links: Array<{
+    source: string;
+    target: string;
+    transformationLogic?: string;
+  }>;
+  version: number;
+  versions: { version: number; timestamp: string }[];
+}
+
 export default function LineageGraph({ dataProductId }: LineageGraphProps) {
   const [visualizationType, setVisualizationType] = useState<string>("reactflow");
+  const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
+
+  const { data: lineageData, isLoading } = useQuery<LineageData>({
+    queryKey: [`/api/lineage?dataProductId=${dataProductId}${selectedVersion ? `&version=${selectedVersion}` : ''}`],
+    enabled: dataProductId !== null,
+  });
+
+  // Set initial version when data is loaded
+  useEffect(() => {
+    if (lineageData?.version && !selectedVersion) {
+      setSelectedVersion(lineageData.version);
+    }
+  }, [lineageData?.version, selectedVersion]);
 
   return (
     <div className="space-y-4">
@@ -60,9 +88,17 @@ export default function LineageGraph({ dataProductId }: LineageGraphProps) {
       </div>
 
       {visualizationType === "reactflow" ? (
-        <ReactFlowLineage dataProductId={dataProductId} />
+        <ReactFlowLineage 
+          dataProductId={dataProductId} 
+          lineageData={lineageData} 
+          isLoading={isLoading}
+        />
       ) : (
-        <D3LineageGraph dataProductId={dataProductId} />
+        <D3LineageGraph 
+          dataProductId={dataProductId} 
+          selectedVersion={selectedVersion}
+          onVersionChange={setSelectedVersion}
+        />
       )}
     </div>
   );

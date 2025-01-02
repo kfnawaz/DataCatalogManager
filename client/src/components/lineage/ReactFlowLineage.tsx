@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -10,43 +10,28 @@ import ReactFlow, {
   useEdgesState,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface ReactFlowLineageProps {
   dataProductId: number | null;
-}
-
-interface LineageNode {
-  id: string;
-  type: 'source' | 'transformation' | 'target';
-  label: string;
-  metadata?: Record<string, any>;
-}
-
-interface LineageLink {
-  source: string;
-  target: string;
-  transformationLogic?: string;
-}
-
-interface LineageData {
-  nodes: LineageNode[];
-  links: LineageLink[];
-  version: number;
-  versions: { version: number; timestamp: string }[];
+  lineageData: {
+    nodes: Array<{
+      id: string;
+      type: 'source' | 'transformation' | 'target';
+      label: string;
+      metadata?: Record<string, any>;
+    }>;
+    links: Array<{
+      source: string;
+      target: string;
+      transformationLogic?: string;
+    }>;
+  } | null;
+  isLoading: boolean;
 }
 
 // Custom node component
-function LineageNodeComponent({ data }: { data: { label: string; type: string } }) {
+function LineageNodeComponent({ data }: { data: { label: string; type: string; metadata?: Record<string, any> } }) {
   const style = {
     padding: '10px',
     border: '1px solid #ccc',
@@ -58,9 +43,22 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string } 
   };
 
   return (
-    <div style={style}>
+    <div style={style} className="relative group">
       <Handle type="target" position={Position.Left} />
-      {data.label}
+      <div>
+        {data.label}
+        {data.metadata && (
+          <div className="absolute invisible group-hover:visible bg-black/80 text-white p-2 rounded-md -top-12 left-1/2 transform -translate-x-1/2 w-48 z-10">
+            <div className="text-xs">
+              {Object.entries(data.metadata).map(([key, value]) => (
+                <div key={key} className="mb-1">
+                  <span className="font-semibold">{key}:</span> {value}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
       <Handle type="source" position={Position.Right} />
     </div>
   );
@@ -70,22 +68,9 @@ const nodeTypes = {
   custom: LineageNodeComponent,
 };
 
-export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProps) {
+export default function ReactFlowLineage({ dataProductId, lineageData, isLoading }: ReactFlowLineageProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
-
-  const { data: lineageData, isLoading } = useQuery<LineageData>({
-    queryKey: [`/api/lineage?dataProductId=${dataProductId}${selectedVersion ? `&version=${selectedVersion}` : ''}`],
-    enabled: dataProductId !== null,
-  });
-
-  // Set initial version when data is loaded
-  useEffect(() => {
-    if (lineageData?.version && !selectedVersion) {
-      setSelectedVersion(lineageData.version);
-    }
-  }, [lineageData?.version, selectedVersion]);
 
   // Transform data when it's loaded
   useEffect(() => {
@@ -114,6 +99,7 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
         data: {
           label: node.label,
           type: node.type,
+          metadata: node.metadata,
         },
       })),
       ...transformNodes.map((node, i) => ({
@@ -126,6 +112,7 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
         data: {
           label: node.label,
           type: node.type,
+          metadata: node.metadata,
         },
       })),
       ...targetNodes.map((node, i) => ({
@@ -138,6 +125,7 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
         data: {
           label: node.label,
           type: node.type,
+          metadata: node.metadata,
         },
       })),
     ];
@@ -155,42 +143,22 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
 
     setNodes(flowNodes);
     setEdges(flowEdges);
-  }, [lineageData, setNodes, setEdges]);
-
-  if (!dataProductId) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        Select a data product to view its lineage
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return <Skeleton className="w-full h-[600px]" />;
-  }
+  }, [lineageData]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium">Version:</span>
-        <Select
-          value={selectedVersion?.toString()}
-          onValueChange={(value) => setSelectedVersion(Number(value))}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select version" />
-          </SelectTrigger>
-          <SelectContent>
-            {lineageData?.versions.map((v) => (
-              <SelectItem key={v.version} value={v.version.toString()}>
-                Version {v.version} ({new Date(v.timestamp).toLocaleDateString()})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <Card className="w-full h-[600px]">
+    <Card className="w-full h-[600px]">
+      {isLoading ? (
+        <div className="w-full h-full flex items-center justify-center">
+          <div className="space-y-4 w-full p-8">
+            <div className="h-8 bg-gray-200 rounded-md animate-pulse" />
+            <div className="h-[500px] bg-gray-100 rounded-lg animate-pulse">
+              <div className="h-full w-full flex items-center justify-center text-gray-400">
+                Loading lineage data...
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -204,7 +172,7 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
           <Background />
           <Controls />
         </ReactFlow>
-      </Card>
-    </div>
+      )}
+    </Card>
   );
 }
