@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   LineChart,
@@ -15,6 +16,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  Tooltip as UITooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface MetricHistory {
   timestamp: string;
@@ -37,6 +43,8 @@ interface QualityMetricsProps {
 }
 
 export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
+  const [hoveredMetric, setHoveredMetric] = useState<string | null>(null);
+
   const { data: metrics, isLoading, error } = useQuery<MetricData>({
     queryKey: [`/api/quality-metrics/${dataProductId}`],
     enabled: dataProductId !== null,
@@ -97,6 +105,33 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
     timestamp: format(new Date(item.timestamp), "MMM d, yyyy HH:mm"),
   })) || [];
 
+  const getMetricDescription = (metric: string) => {
+    switch (metric) {
+      case 'completeness':
+        return "Measures the percentage of non-null values across all fields. Higher values indicate more complete data.";
+      case 'accuracy':
+        return "Indicates the percentage of data points that meet predefined accuracy criteria. Higher values suggest more reliable data.";
+      case 'timeliness':
+        return "Reflects how up-to-date the data is based on expected update frequencies. Higher scores mean fresher data.";
+      default:
+        return "Custom metric measuring specific data quality aspects defined for this product.";
+    }
+  };
+
+  const getHealthStatus = (value: number) => {
+    if (value >= 90) return "Excellent";
+    if (value >= 75) return "Good";
+    if (value >= 60) return "Fair";
+    return "Needs Attention";
+  };
+
+  const getHealthColor = (value: number) => {
+    if (value >= 90) return "text-green-500 dark:text-green-400";
+    if (value >= 75) return "text-blue-500 dark:text-blue-400";
+    if (value >= 60) return "text-yellow-500 dark:text-yellow-400";
+    return "text-red-500 dark:text-red-400";
+  };
+
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -107,24 +142,29 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
         transition={{ duration: 0.3 }}
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <MetricCard
-            title="Completeness"
-            value={metrics.current?.completeness ?? 0}
-            description="Percentage of non-null values"
-            trend={calculateTrend(formattedData, 'completeness')}
-          />
-          <MetricCard
-            title="Accuracy"
-            value={metrics.current?.accuracy ?? 0}
-            description="Percentage of accurate data points"
-            trend={calculateTrend(formattedData, 'accuracy')}
-          />
-          <MetricCard
-            title="Timeliness"
-            value={metrics.current?.timeliness ?? 0}
-            description="Data freshness score"
-            trend={calculateTrend(formattedData, 'timeliness')}
-          />
+          {(['completeness', 'accuracy', 'timeliness'] as const).map((metric) => (
+            <UITooltip key={metric}>
+              <TooltipTrigger asChild>
+                <div 
+                  onMouseEnter={() => setHoveredMetric(metric)}
+                  onMouseLeave={() => setHoveredMetric(null)}
+                >
+                  <MetricCard
+                    title={metric.charAt(0).toUpperCase() + metric.slice(1)}
+                    value={metrics.current[metric]}
+                    description={getMetricDescription(metric)}
+                    trend={calculateTrend(formattedData, metric)}
+                    health={getHealthStatus(metrics.current[metric])}
+                    healthColor={getHealthColor(metrics.current[metric])}
+                    isHovered={hoveredMetric === metric}
+                  />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs">
+                <p className="text-sm">{getMetricDescription(metric)}</p>
+              </TooltipContent>
+            </UITooltip>
+          ))}
         </div>
 
         {metrics.current?.customMetrics && Object.keys(metrics.current.customMetrics).length > 0 && (
@@ -136,6 +176,8 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
                 value={value}
                 description="Custom metric value"
                 trend={calculateTrend(formattedData, key)}
+                health={getHealthStatus(value)}
+                healthColor={getHealthColor(value)}
               />
             ))}
           </div>
@@ -149,16 +191,33 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
             <CardContent>
               <div className="h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={formattedData}>
-                    <CartesianGrid strokeDasharray="3 3" />
+                  <LineChart 
+                    data={formattedData}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 80 }}
+                  >
+                    <CartesianGrid 
+                      strokeDasharray="3 3" 
+                      stroke="hsl(var(--muted-foreground) / 0.2)"
+                    />
                     <XAxis 
                       dataKey="timestamp"
                       angle={-45}
                       textAnchor="end"
                       height={80}
-                      tick={{ fontSize: 12 }}
+                      tick={{ 
+                        fill: "hsl(var(--muted-foreground))",
+                        fontSize: 12 
+                      }}
+                      stroke="hsl(var(--muted-foreground))"
                     />
-                    <YAxis domain={[0, 100]} />
+                    <YAxis 
+                      domain={[0, 100]}
+                      tick={{ 
+                        fill: "hsl(var(--muted-foreground))",
+                        fontSize: 12 
+                      }}
+                      stroke="hsl(var(--muted-foreground))"
+                    />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: "hsl(var(--background))",
@@ -168,8 +227,15 @@ export default function QualityMetrics({ dataProductId }: QualityMetricsProps) {
                       labelStyle={{
                         color: "hsl(var(--foreground))",
                       }}
+                      itemStyle={{
+                        color: "hsl(var(--foreground))",
+                      }}
                     />
-                    <Legend />
+                    <Legend 
+                      wrapperStyle={{
+                        paddingTop: "2rem"
+                      }}
+                    />
                     <Line
                       type="monotone"
                       dataKey="completeness"
@@ -223,31 +289,59 @@ interface MetricCardProps {
   value: number;
   description: string;
   trend?: number;
+  health?: string;
+  healthColor?: string;
+  isHovered?: boolean;
 }
 
-function MetricCard({ title, value, description, trend }: MetricCardProps) {
+function MetricCard({ 
+  title, 
+  value, 
+  description, 
+  trend,
+  health,
+  healthColor,
+  isHovered
+}: MetricCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
+      animate={{ 
+        opacity: 1, 
+        scale: isHovered ? 1.02 : 1,
+        y: isHovered ? -4 : 0
+      }}
       transition={{
         type: "spring",
         stiffness: 300,
         damping: 30
       }}
+      className="cursor-pointer"
     >
-      <Card>
+      <Card className="overflow-hidden">
         <CardContent className="pt-6">
-          <h4 className="text-sm font-medium text-muted-foreground">{title}</h4>
-          <div className="mt-2 flex items-baseline gap-2">
-            <div className="text-3xl font-semibold">{value}%</div>
-            {trend !== undefined && (
-              <div className={`text-sm ${trend > 0 ? 'text-green-500' : trend < 0 ? 'text-red-500' : 'text-muted-foreground'}`}>
-                {trend > 0 ? '↑' : trend < 0 ? '↓' : '→'} {Math.abs(trend)}%
-              </div>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">{description}</p>
+          <motion.div
+            initial={false}
+            animate={{ height: isHovered ? 'auto' : 'auto' }}
+          >
+            <h4 className="text-sm font-medium text-muted-foreground">{title}</h4>
+            <div className="mt-2 flex items-baseline gap-2">
+              <div className="text-3xl font-semibold">{value}%</div>
+              {trend !== undefined && (
+                <div className={`text-sm ${trend > 0 ? 'text-green-500' : trend < 0 ? 'text-red-500' : 'text-muted-foreground'}`}>
+                  {trend > 0 ? '↑' : trend < 0 ? '↓' : '→'} {Math.abs(trend)}%
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-xs text-muted-foreground">{description}</p>
+              {health && (
+                <span className={`text-xs font-medium ${healthColor}`}>
+                  {health}
+                </span>
+              )}
+            </div>
+          </motion.div>
         </CardContent>
       </Card>
     </motion.div>
