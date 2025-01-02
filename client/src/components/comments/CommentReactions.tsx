@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,16 @@ interface CommentReactionsProps {
   }>;
 }
 
+// Function to get or create user identifier
+const getUserIdentifier = () => {
+  let identifier = localStorage.getItem('userIdentifier');
+  if (!identifier) {
+    identifier = `user_${Math.random().toString(36).substr(2, 9)}_${Date.now()}`;
+    localStorage.setItem('userIdentifier', identifier);
+  }
+  return identifier;
+};
+
 export default function CommentReactions({ 
   commentId, 
   reactions: initialReactions = { like: 0, helpful: 0, insightful: 0 }, 
@@ -30,33 +40,55 @@ export default function CommentReactions({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Load user's previous reactions
+  useEffect(() => {
+    const savedReactions = localStorage.getItem(`reactions_${commentId}`);
+    if (savedReactions) {
+      setUserReactions(JSON.parse(savedReactions));
+    }
+  }, [commentId]);
+
   const reactionMutation = useMutation({
     mutationFn: async ({ type }: { type: string }) => {
+      const userIdentifier = getUserIdentifier();
       const response = await fetch(`/api/comments/${commentId}/reactions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type }),
+        body: JSON.stringify({ type, userIdentifier }),
       });
 
       if (!response.ok) {
+        const error = await response.json();
+        if (error.error === "Already reacted") {
+          throw new Error("You have already reacted to this comment");
+        }
         throw new Error("Failed to add reaction");
       }
 
       return response.json();
     },
     onMutate: ({ type }) => {
-      // Optimistically update the local state
+      // Optimistically update the UI
       setLocalReactions(prev => ({
         ...prev,
         [type]: (prev[type as keyof typeof prev] || 0) + 1
       }));
     },
-    onSuccess: () => {
+    onSuccess: (data, { type }) => {
+      // Update local storage
+      const newUserReactions = { ...userReactions, [type]: true };
+      localStorage.setItem(`reactions_${commentId}`, JSON.stringify(newUserReactions));
+      setUserReactions(newUserReactions);
+
+      // Update reaction counts with actual data from server
+      setLocalReactions(data.reactions);
+
+      // Invalidate queries to refresh data
       queryClient.invalidateQueries({ 
         queryKey: [`/api/data-products/${commentId}/comments`] 
       });
     },
-    onError: (error, { type }) => {
+    onError: (error: Error, { type }) => {
       // Revert the optimistic update
       setLocalReactions(prev => ({
         ...prev,
@@ -66,15 +98,21 @@ export default function CommentReactions({
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to add reaction. Please try again.",
+        description: error.message || "Failed to add reaction. Please try again.",
       });
     },
   });
 
   const handleReaction = (type: string) => {
-    if (userReactions[type]) return;
+    if (userReactions[type]) {
+      toast({
+        variant: "default",
+        title: "Already Reacted",
+        description: "You have already reacted to this comment.",
+      });
+      return;
+    }
     reactionMutation.mutate({ type });
-    setUserReactions(prev => ({ ...prev, [type]: true }));
   };
 
   const getBadgeIcon = (type: string) => {
@@ -109,7 +147,7 @@ export default function CommentReactions({
         <Button
           variant="ghost"
           size="sm"
-          className={`gap-1 ${userReactions.like ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary-foreground dark:hover:text-primary-foreground dark:hover:bg-primary/20' : ''}`}
+          className={`gap-1 ${userReactions.like ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary dark:hover:text-primary dark:hover:bg-primary/20' : ''}`}
           onClick={() => handleReaction('like')}
           disabled={userReactions.like}
         >
@@ -120,7 +158,7 @@ export default function CommentReactions({
         <Button
           variant="ghost"
           size="sm"
-          className={`gap-1 ${userReactions.helpful ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary-foreground dark:hover:text-primary-foreground dark:hover:bg-primary/20' : ''}`}
+          className={`gap-1 ${userReactions.helpful ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary dark:hover:text-primary dark:hover:bg-primary/20' : ''}`}
           onClick={() => handleReaction('helpful')}
           disabled={userReactions.helpful}
         >
@@ -131,7 +169,7 @@ export default function CommentReactions({
         <Button
           variant="ghost"
           size="sm"
-          className={`gap-1 ${userReactions.insightful ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary-foreground dark:hover:text-primary-foreground dark:hover:bg-primary/20' : ''}`}
+          className={`gap-1 ${userReactions.insightful ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary dark:hover:text-primary dark:hover:bg-primary/20' : ''}`}
           onClick={() => handleReaction('insightful')}
           disabled={userReactions.insightful}
         >
@@ -152,7 +190,7 @@ export default function CommentReactions({
               <TooltipTrigger asChild>
                 <Badge 
                   variant="secondary"
-                  className="flex items-center gap-1 bg-primary/10 text-primary-foreground dark:bg-primary/20"
+                  className="flex items-center gap-1 bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
                 >
                   {getBadgeIcon(badge.type)}
                   <span className="text-xs">{badge.type}</span>

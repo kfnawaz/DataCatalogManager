@@ -7,9 +7,10 @@ import {
   metricDefinitionVersions,
   qualityMetrics, 
   metricTemplates,
-  comments 
+  comments,
+  commentReactions,
 } from "@db/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and } from "drizzle-orm";
 import OpenAI from "openai";
 import { trackApiUsage, getApiUsageStats } from "./utils/apiTracker";
 
@@ -89,18 +90,39 @@ export function registerRoutes(app: Express): Server {
         .where(eq(comments.dataProductId, productId))
         .orderBy(desc(comments.createdAt));
 
-      // Add default reaction and badge data for each comment
-      const commentsWithMetadata = productComments.map(comment => ({
-        ...comment,
-        reactions: {
-          like: 0,
-          helpful: 0,
-          insightful: 0
-        },
-        badges: []
-      }));
+      // Get reaction counts for each comment
+      const commentsWithReactions = await Promise.all(
+        productComments.map(async (comment) => {
+          const reactions = await db
+            .select({
+              type: commentReactions.type,
+              count: sql<number>`count(*)::int`,
+            })
+            .from(commentReactions)
+            .where(eq(commentReactions.commentId, comment.id))
+            .groupBy(commentReactions.type);
 
-      res.json(commentsWithMetadata);
+          const reactionCounts = {
+            like: 0,
+            helpful: 0,
+            insightful: 0,
+          };
+
+          reactions.forEach((r) => {
+            if (r.type in reactionCounts) {
+              reactionCounts[r.type as keyof typeof reactionCounts] = r.count;
+            }
+          });
+
+          return {
+            ...comment,
+            reactions: reactionCounts,
+            badges: [], // Keep badges empty for now
+          };
+        })
+      );
+
+      res.json(commentsWithReactions);
     } catch (error) {
       console.error("Error fetching comments:", error);
       res.status(500).json({ error: "Failed to fetch comments" });
@@ -580,11 +602,11 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Add reaction endpoint
+  // Update POST reaction endpoint to store reactions
   app.post("/api/comments/:id/reactions", async (req, res) => {
     try {
       const commentId = parseInt(req.params.id);
-      const { type } = req.body;
+      const { type, userIdentifier } = req.body;
 
       if (isNaN(commentId)) {
         return res.status(400).json({ error: "Invalid comment ID" });
@@ -594,8 +616,63 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Invalid reaction type" });
       }
 
-      // For now, just return success since we're just setting up the UI
-      res.json({ success: true });
+      if (!userIdentifier) {
+        return res.status(400).json({ error: "User identifier is required" });
+      }
+
+      // Check if user has already reacted
+      const existingReaction = await db
+        .select()
+        .from(commentReactions)
+        .where(
+          and(
+            eq(commentReactions.commentId, commentId),
+            eq(commentReactions.type, type),
+            eq(commentReactions.userIdentifier, userIdentifier)
+          )
+        )
+        .limit(1);
+
+      if (existingReaction.length > 0) {
+        return res.status(400).json({ 
+          error: "Already reacted",
+          message: "You have already reacted to this comment" 
+        });
+      }
+
+      // Add new reaction
+      await db.insert(commentReactions).values({
+        commentId,
+        type,
+        userIdentifier,
+      });
+
+      // Get updated reaction count
+      const updatedReactions = await db
+        .select({
+          type: commentReactions.type,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(commentReactions)
+        .where(eq(commentReactions.commentId, commentId))
+        .groupBy(commentReactions.type);
+
+      const reactionCounts = {
+        like: 0,
+        helpful: 0,
+        insightful: 0,
+      };
+
+      updatedReactions.forEach((r) => {
+        if (r.type in reactionCounts) {
+          reactionCounts[r.type as keyof typeof reactionCounts] = r.count;
+        }
+      });
+
+      res.json({ 
+        success: true,
+        reactions: reactionCounts
+      });
     } catch (error) {
       console.error("Error adding reaction:", error);
       res.status(500).json({ error: "Failed to add reaction" });
