@@ -56,17 +56,31 @@ export default function CommentAnalytics({ comments }: CommentAnalyticsProps) {
     .sort(([, a], [, b]) => b - a)
     .slice(0, 5);
 
-  // Prepare data for the activity chart
-  const activityData = comments.reduce((acc: Record<string, number>, comment) => {
-    const date = format(new Date(comment.createdAt), 'MMM d');
-    acc[date] = (acc[date] || 0) + 1;
+  // Calculate comment growth trends
+  const sortedComments = [...comments].sort((a, b) => 
+    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
+
+  // Get weekly activity data
+  const weeklyActivity = sortedComments.reduce((acc: Record<string, number>, comment) => {
+    const week = format(new Date(comment.createdAt), 'MMM d');
+    acc[week] = (acc[week] || 0) + 1;
     return acc;
   }, {});
 
-  const chartData = Object.entries(activityData).map(([date, count]) => ({
+  const activityData = Object.entries(weeklyActivity).map(([date, count]) => ({
     date,
     comments: count
-  })).slice(-7); // Show last 7 days
+  })).slice(-7);
+
+  // Calculate growth rate
+  const getGrowthRate = () => {
+    if (comments.length < 2) return 0;
+    const oldestDate = new Date(sortedComments[0].createdAt).getTime();
+    const newestDate = new Date(sortedComments[sortedComments.length - 1].createdAt).getTime();
+    const daysDiff = (newestDate - oldestDate) / (1000 * 60 * 60 * 24) || 1;
+    return (comments.length / daysDiff).toFixed(1);
+  };
 
   // Export comments to CSV
   const exportComments = () => {
@@ -156,8 +170,27 @@ export default function CommentAnalytics({ comments }: CommentAnalyticsProps) {
             <p className="text-2xl font-bold">{uniqueAuthors}</p>
           </div>
           <div className="p-4 rounded-lg bg-background border">
-            <h4 className="text-sm font-medium text-muted-foreground mb-2">Avg. Length</h4>
-            <p className="text-2xl font-bold">{Math.round(avgCommentLength)}</p>
+            <h4 className="text-sm font-medium text-muted-foreground mb-2">Growth Rate</h4>
+            <p className="text-2xl font-bold">{getGrowthRate()} /day</p>
+          </div>
+        </div>
+
+        {/* Historical Trends */}
+        <div className="mb-6">
+          <h4 className="text-sm font-medium text-muted-foreground mb-3">Comment Activity Trends</h4>
+          <div className="h-[200px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={activityData}>
+                <XAxis dataKey="date" />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Bar 
+                  dataKey="comments" 
+                  fill="hsl(var(--primary))" 
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
@@ -165,27 +198,20 @@ export default function CommentAnalytics({ comments }: CommentAnalyticsProps) {
           <div className="mb-6">
             <h4 className="text-sm font-medium text-muted-foreground mb-3">Top Commenters</h4>
             <div className="space-y-2">
-              {topCommenters.map(([author, count]) => (
+              {topCommenters.map(([author, count], index) => (
                 <div key={author} className="flex items-center justify-between">
-                  <span className="text-sm">{author}</span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm ${index === 0 ? 'font-medium text-primary' : ''}`}>
+                      {author}
+                    </span>
+                    {index === 0 && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">Top Contributor</span>}
+                  </div>
                   <span className="text-sm font-medium">{count} comments</span>
                 </div>
               ))}
             </div>
           </div>
         )}
-
-        <div className="h-[200px] mt-4">
-          <h4 className="text-sm font-medium text-muted-foreground mb-3">Comment Activity</h4>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData}>
-              <XAxis dataKey="date" />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Bar dataKey="comments" fill="hsl(var(--primary))" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
       </CardContent>
     </Card>
   );
