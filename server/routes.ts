@@ -17,6 +17,11 @@ import { eq, desc, sql, and, inArray } from "drizzle-orm";
 import OpenAI from "openai";
 import { trackApiUsage, getApiUsageStats } from "./utils/apiTracker";
 
+// Initialize OpenAI with API key
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
 export function registerRoutes(app: Express): Server {
   // Add usage stats endpoint
   app.get("/api/usage-stats", async (req, res) => {
