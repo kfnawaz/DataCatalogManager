@@ -6,6 +6,8 @@ import ReactFlow, {
   Handle,
   Node,
   Position,
+  useNodesState,
+  useEdgesState,
   useReactFlow,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -19,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 
 interface ReactFlowLineageProps {
   dataProductId: number | null;
@@ -74,46 +77,76 @@ const nodeTypes = {
   target: LineageNode,
 };
 
+// Custom layout function to position nodes
+function getLayoutedElements(nodes: Node[], edges: Edge[]) {
+  const sourceNodes = nodes.filter(n => n.type === 'source');
+  const transformNodes = nodes.filter(n => n.type === 'transformation');
+  const targetNodes = nodes.filter(n => n.type === 'target');
+
+  const columnSpacing = 300;
+  const verticalSpacing = 150;
+
+  // Position nodes in columns
+  sourceNodes.forEach((node, i) => {
+    node.position = {
+      x: 100,
+      y: 100 + (i * verticalSpacing),
+    };
+  });
+
+  transformNodes.forEach((node, i) => {
+    node.position = {
+      x: 100 + columnSpacing,
+      y: 100 + (i * verticalSpacing),
+    };
+  });
+
+  targetNodes.forEach((node, i) => {
+    node.position = {
+      x: 100 + (columnSpacing * 2),
+      y: 100 + (i * verticalSpacing),
+    };
+  });
+
+  return { nodes, edges };
+}
+
 export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProps) {
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+
   const { data: lineageData, isLoading } = useQuery<LineageData>({
     queryKey: [`/api/lineage?dataProductId=${dataProductId}`],
     enabled: dataProductId !== null,
+    onSuccess: (data) => {
+      // Transform data for React Flow
+      const flowNodes: Node[] = data.nodes.map((node) => ({
+        id: node.id,
+        type: node.type,
+        data: {
+          label: node.label,
+          metadata: node.metadata,
+        },
+        position: { x: 0, y: 0 }, // Initial positions will be updated by layout
+      }));
+
+      const flowEdges: Edge[] = data.links.map((link, index) => ({
+        id: `edge-${index}`,
+        source: link.source,
+        target: link.target,
+        animated: true,
+        label: link.transformationLogic,
+        style: { stroke: '#666' },
+        labelStyle: { fill: '#666', fontSize: 12 },
+        type: 'smoothstep',
+      }));
+
+      // Apply layout
+      const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(flowNodes, flowEdges);
+      setNodes(layoutedNodes);
+      setEdges(layoutedEdges);
+    },
   });
-
-  // Transform data for React Flow
-  const { nodes, edges } = useMemo(() => {
-    if (!lineageData) return { nodes: [], edges: [] };
-
-    const nodes: Node[] = lineageData.nodes.map((node) => ({
-      id: node.id,
-      type: node.type,
-      data: {
-        label: node.label,
-        metadata: node.metadata,
-      },
-      position: { x: 0, y: 0 }, // Initial positions will be handled by layout
-    }));
-
-    const edges: Edge[] = lineageData.links.map((link, index) => ({
-      id: `edge-${index}`,
-      source: link.source,
-      target: link.target,
-      animated: true,
-      label: link.transformationLogic,
-      style: { stroke: '#666' },
-      labelStyle: { fill: '#666', fontSize: 12 },
-      type: 'smoothstep',
-    }));
-
-    return { nodes, edges };
-  }, [lineageData]);
-
-  const onLayout = useCallback((direction: string) => {
-    const { fitView } = useReactFlow();
-    setTimeout(() => {
-      fitView({ padding: 0.2 });
-    }, 0);
-  }, []);
 
   if (!dataProductId) {
     return (
@@ -171,9 +204,10 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
         <ReactFlow
           nodes={nodes}
           edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
           nodeTypes={nodeTypes}
           fitView
-          onLayout={onLayout}
           proOptions={{ hideAttribution: true }}
           className="bg-background"
         >

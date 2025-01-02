@@ -11,12 +11,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   Dialog,
   DialogContent,
   DialogTitle,
@@ -24,7 +18,7 @@ import {
 import { Info } from "lucide-react";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import ReactFlowLineage from "./ReactFlowLineage";
-import D3LineageGraph from "./D3LineageGraph"; // Previous implementation
+import D3LineageGraph from "./D3LineageGraph";
 
 interface LineageGraphProps {
   dataProductId: number | null;
@@ -53,10 +47,33 @@ interface LineageData {
 export default function LineageGraph({ dataProductId }: LineageGraphProps) {
   const [useReactFlow, setUseReactFlow] = useState(true);
 
-  return useReactFlow ? (
-    <ReactFlowLineage dataProductId={dataProductId} />
-  ) : (
-    <D3LineageGraph dataProductId={dataProductId} />
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-semibold">Data Lineage</h2>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">Visualization:</span>
+          <Select
+            value={useReactFlow ? "reactflow" : "d3"}
+            onValueChange={(value) => setUseReactFlow(value === "reactflow")}
+          >
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Select view" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="reactflow">React Flow</SelectItem>
+              <SelectItem value="d3">D3</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {useReactFlow ? (
+        <ReactFlowLineage dataProductId={dataProductId} />
+      ) : (
+        <D3LineageGraph dataProductId={dataProductId} />
+      )}
+    </div>
   );
 }
 
