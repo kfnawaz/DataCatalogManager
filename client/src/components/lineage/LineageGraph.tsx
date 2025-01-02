@@ -16,7 +16,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Info } from "lucide-react";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 
 interface LineageGraphProps {
   dataProductId: number | null;
@@ -46,6 +52,7 @@ export default function LineageGraph({ dataProductId }: LineageGraphProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
   const [tooltipContent, setTooltipContent] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const { data: lineageData, isLoading } = useQuery<LineageData>({
     queryKey: [`/api/lineage?dataProductId=${dataProductId}${selectedVersion ? `&version=${selectedVersion}` : ''}`],
@@ -129,10 +136,12 @@ export default function LineageGraph({ dataProductId }: LineageGraphProps) {
       .on("mouseover", function(event, d: any) {
         if (d.transformationLogic) {
           setTooltipContent(d.transformationLogic);
+          setDialogOpen(true);
         }
       })
       .on("mouseout", () => {
         setTooltipContent(null);
+        setDialogOpen(false);
       });
 
     const nodes = g
@@ -253,16 +262,12 @@ export default function LineageGraph({ dataProductId }: LineageGraphProps) {
         <div className="relative">
           <svg ref={svgRef} className="w-full border rounded-lg" />
           {tooltipContent && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="absolute top-2 right-2">
-                  <Info className="h-5 w-5 text-muted-foreground" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogContent>
+                <DialogTitle>Transformation Details</DialogTitle>
                 <p className="max-w-xs whitespace-pre-wrap">{tooltipContent}</p>
-              </TooltipContent>
-            </Tooltip>
+              </DialogContent>
+            </Dialog>
           )}
         </div>
       </div>
