@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -82,58 +82,67 @@ const nodeTypes = {
   target: LineageNodeComponent,
 };
 
-// Enhanced layout function with better node positioning
 function getLayoutedElements(nodes: Node[], edges: Edge[]) {
-  const levels: { [key: string]: number } = {};
+  // Create a map of node levels
+  const levels = new Map<string, number>();
   const processedNodes = new Set<string>();
+  const nodeMap = new Map(nodes.map(n => [n.id, n]));
 
-  // Calculate node levels based on dependencies
-  function calculateLevels(nodeId: string, level: number) {
+  // Helper function to calculate node depths
+  function calculateDepth(nodeId: string, currentDepth: number = 0) {
     if (processedNodes.has(nodeId)) return;
     processedNodes.add(nodeId);
-    levels[nodeId] = Math.max(level, levels[nodeId] || 0);
 
-    // Find all target nodes connected to this node
-    edges.forEach(edge => {
-      if (edge.source === nodeId) {
-        calculateLevels(edge.target, level + 1);
-      }
+    const currentLevel = levels.get(nodeId) ?? -1;
+    levels.set(nodeId, Math.max(currentLevel, currentDepth));
+
+    // Find all outgoing edges from this node
+    const outgoingEdges = edges.filter(e => e.source === nodeId);
+    outgoingEdges.forEach(edge => {
+      calculateDepth(edge.target, currentDepth + 1);
     });
   }
 
-  // Start with source nodes (nodes with no incoming edges)
-  const sourceNodes = nodes.filter(node => 
+  // Find root nodes (nodes with no incoming edges)
+  const rootNodes = nodes.filter(node => 
     !edges.some(edge => edge.target === node.id)
   );
 
-  sourceNodes.forEach(node => calculateLevels(node.id, 0));
+  // Calculate depths starting from root nodes
+  rootNodes.forEach(node => calculateDepth(node.id));
 
-  // Calculate max nodes per level
-  const nodesPerLevel: { [level: number]: number } = {};
-  Object.entries(levels).forEach(([nodeId, level]) => {
-    nodesPerLevel[level] = (nodesPerLevel[level] || 0) + 1;
+  // Group nodes by level
+  const nodesPerLevel = new Map<number, string[]>();
+  levels.forEach((level, nodeId) => {
+    const levelNodes = nodesPerLevel.get(level) || [];
+    levelNodes.push(nodeId);
+    nodesPerLevel.set(level, levelNodes);
   });
 
-  // Position nodes with proper spacing
+  // Calculate positions
   const HORIZONTAL_SPACING = 250;
-  const VERTICAL_SPACING = 100;
-  const updatedNodes = nodes.map(node => {
-    const level = levels[node.id] || 0;
-    const nodesInLevel = nodesPerLevel[level];
-    const indexInLevel = Object.entries(levels)
-      .filter(([, l]) => l === level)
-      .findIndex(([id]) => id === node.id);
+  const VERTICAL_SPACING = 120;
+  const CENTER_Y = 300;
+
+  const positionedNodes = nodes.map(node => {
+    const level = levels.get(node.id) || 0;
+    const levelNodes = nodesPerLevel.get(level) || [];
+    const index = levelNodes.indexOf(node.id);
+    const totalNodesInLevel = levelNodes.length;
+
+    // Calculate vertical position to center nodes in their level
+    const y = CENTER_Y + (index - (totalNodesInLevel - 1) / 2) * VERTICAL_SPACING;
 
     return {
       ...node,
       position: {
         x: level * HORIZONTAL_SPACING + 50,
-        y: (indexInLevel - (nodesInLevel - 1) / 2) * VERTICAL_SPACING + 300,
-      },
+        y
+      }
     };
   });
 
-  return { nodes: updatedNodes, edges };
+  return { nodes: positionedNodes, edges };
 }
 
 export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProps) {
@@ -145,47 +154,68 @@ export default function ReactFlowLineage({ dataProductId }: ReactFlowLineageProp
     enabled: dataProductId !== null,
   });
 
-  // Transform data for React Flow whenever lineageData changes
-  useEffect(() => {
-    if (!lineageData?.nodes?.length) return;
+  // Memoize flow elements to prevent unnecessary recalculations
+  const flowElements = useMemo(() => {
+    if (!lineageData?.nodes?.length) return { nodes: [], edges: [] };
 
-    // Create flow nodes with unique IDs
-    const flowNodes: Node[] = lineageData.nodes.map((node) => ({
-      id: node.id,
-      type: node.type,
-      data: {
-        label: node.label,
-        metadata: node.metadata,
-      },
-      position: { x: 0, y: 0 }, // Initial positions will be set by layout function
-    }));
+    // Create a Set of unique node IDs
+    const uniqueNodeIds = new Set(lineageData.nodes.map(n => n.id));
 
-    // Create edges with unique IDs
-    const flowEdges: Edge[] = lineageData.links.map((link, index) => ({
-      id: `edge-${link.source}-${link.target}`,
-      source: link.source,
-      target: link.target,
-      animated: true,
-      label: link.transformationLogic,
-      style: { stroke: '#666' },
-      labelStyle: { fill: '#666', fontSize: 12 },
-      type: 'smoothstep',
-    }));
+    // Create unique nodes
+    const flowNodes: Node[] = Array.from(uniqueNodeIds).map(id => {
+      const node = lineageData.nodes.find(n => n.id === id)!;
+      return {
+        id: node.id,
+        type: node.type,
+        data: {
+          label: node.label,
+          metadata: node.metadata,
+        },
+        position: { x: 0, y: 0 },
+      };
+    });
 
-    // Apply layout
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-      flowNodes,
-      flowEdges
+    // Create unique edges by using a Set with stringified edge objects
+    const uniqueEdges = new Set(
+      lineageData.links.map(link => JSON.stringify({
+        source: link.source,
+        target: link.target,
+        transformationLogic: link.transformationLogic
+      }))
     );
 
-    // Clear previous state and set new nodes/edges
-    setNodes([]);
-    setEdges([]);
-    setTimeout(() => {
-      setNodes(layoutedNodes);
-      setEdges(layoutedEdges);
-    }, 0);
-  }, [lineageData, setNodes, setEdges]);
+    // Convert back to Edge objects with unique IDs
+    const flowEdges: Edge[] = Array.from(uniqueEdges).map((edgeStr, index) => {
+      const edge = JSON.parse(edgeStr);
+      return {
+        id: `edge-${edge.source}-${edge.target}-${index}`, // Added index for uniqueness
+        source: edge.source,
+        target: edge.target,
+        animated: true,
+        label: edge.transformationLogic,
+        style: { stroke: '#666' },
+        labelStyle: { fill: '#666', fontSize: 12 },
+        type: 'smoothstep',
+      };
+    });
+
+    return getLayoutedElements(flowNodes, flowEdges);
+  }, [lineageData]);
+
+  // Update flow elements when they change
+  useEffect(() => {
+    if (flowElements.nodes.length > 0 || flowElements.edges.length > 0) {
+      // Reset state before updating
+      setNodes([]);
+      setEdges([]);
+
+      // Update with new elements after a short delay
+      setTimeout(() => {
+        setNodes(flowElements.nodes);
+        setEdges(flowElements.edges);
+      }, 0);
+    }
+  }, [flowElements, setNodes, setEdges]);
 
   if (!dataProductId) {
     return (
