@@ -73,29 +73,20 @@ function Celebration() {
 
 // Tour progress tracking hook
 export function useTourGuide() {
-  const [isOpen, setIsOpen] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
-  const { setIsOpen: setTourOpen, setCurrentStep, currentStep, steps } = useTour();
+  const { setIsOpen: setTourOpen, setCurrentStep } = useTour();
   const { toast } = useToast();
 
   // Check if it's the user's first visit
   useEffect(() => {
     const hasSeenTour = localStorage.getItem('hasSeenTour');
     if (!hasSeenTour) {
-      setIsOpen(true);
+      setTourOpen(true);
       localStorage.setItem('tourProgress', '0');
     }
-  }, []);
-
-  // Track progress
-  useEffect(() => {
-    if (currentStep !== undefined) {
-      localStorage.setItem('tourProgress', currentStep.toString());
-    }
-  }, [currentStep]);
+  }, [setTourOpen]);
 
   const startTour = () => {
-    setIsOpen(true);
     setTourOpen(true);
     const lastProgress = parseInt(localStorage.getItem('tourProgress') || '0');
     setCurrentStep(lastProgress);
@@ -105,9 +96,8 @@ export function useTourGuide() {
     setTourOpen(false);
     localStorage.setItem('hasSeenTour', 'true');
     localStorage.setItem('tourProgress', '0');
-    setShowCelebration(true);
-    setIsOpen(false);
 
+    setShowCelebration(true);
     setTimeout(() => {
       setShowCelebration(false);
     }, 5000);
@@ -119,12 +109,9 @@ export function useTourGuide() {
   };
 
   return {
-    isOpen,
     startTour,
     endTour,
     showCelebration,
-    currentStep,
-    totalSteps: steps?.length || tourSteps.length,
   };
 }
 
@@ -176,7 +163,6 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
         }),
       }}
       padding={16}
-      onClickMask={endTour}
       onClickClose={endTour}
       showNavigation={true}
       showBadge={true}
