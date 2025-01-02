@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import MetadataPanel from "../components/metadata/MetadataPanel";
@@ -103,7 +103,7 @@ export default function DataProductsPage() {
                       <div className="space-y-4">
                         <Card>
                           <CardHeader>
-                            <CardTitle>Metadata Management</CardTitle>
+                            <h3 className="text-lg font-semibold">Metadata Management</h3>
                           </CardHeader>
                           <CardContent>
                             <MetadataPanel dataProductId={selectedDataProduct} />
@@ -112,7 +112,7 @@ export default function DataProductsPage() {
 
                         <Card>
                           <CardHeader>
-                            <CardTitle>Comments & Annotations</CardTitle>
+                            <h3 className="text-lg font-semibold">Comments & Annotations</h3>
                           </CardHeader>
                           <CardContent className="comment-section">
                             <DataProductComments dataProductId={selectedDataProduct} />
@@ -129,10 +129,7 @@ export default function DataProductsPage() {
                       exit={{ opacity: 0, x: 20 }}
                     >
                       <Card>
-                        <CardHeader>
-                          <CardTitle>Data Lineage</CardTitle>
-                        </CardHeader>
-                        <CardContent>
+                        <CardContent className="pt-6">
                           <LineageGraph dataProductId={selectedDataProduct} />
                         </CardContent>
                       </Card>
@@ -147,7 +144,7 @@ export default function DataProductsPage() {
                     >
                       <Card>
                         <CardHeader>
-                          <CardTitle>Quality Metrics</CardTitle>
+                          <h3 className="text-lg font-semibold">Quality Metrics</h3>
                         </CardHeader>
                         <CardContent>
                           <QualityMetrics dataProductId={selectedDataProduct} />
