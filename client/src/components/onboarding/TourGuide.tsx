@@ -102,12 +102,15 @@ export function useTourGuide() {
   };
 
   const endTour = () => {
+    localStorage.setItem('hasSeenTour', 'true');
+    localStorage.setItem('tourProgress', '0');
+    setShowCelebration(true);
     setIsOpen(false);
     setTourOpen(false);
-    localStorage.setItem('tourProgress', '0');
-    localStorage.setItem('hasSeenTour', 'true');
-    setShowCelebration(true);
-    setTimeout(() => setShowCelebration(false), 5000);
+
+    setTimeout(() => {
+      setShowCelebration(false);
+    }, 5000);
 
     toast({
       title: "Tour Completed! 🎉",
@@ -175,7 +178,6 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
       padding={16}
       onClickMask={() => endTour()}
       onClickClose={() => endTour()}
-      afterClose={() => endTour()}
       showNavigation={true}
       showBadge={true}
       showButtons={true}
