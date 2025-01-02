@@ -804,19 +804,23 @@ export function registerRoutes(app: Express): Server {
         .from(lineageNodes)
         .where(eq(lineageNodes.dataProductId, dataProductId));
 
-      // Get all node IDs for this data product
-      const nodeIds = nodes.map(n => n.id);
+      if (nodes.length === 0) {
+        return res.json({
+          nodes: [],
+          links: [],
+          version: 1,
+          versions: []
+        });
+      }
+
+      // Create a properly formatted array of node IDs
+      const nodeIdArray = `{${nodes.map(n => n.id).join(',')}}`;
 
       // Fetch edges where both source and target are in the node IDs
       const edges = await db
         .select()
         .from(lineageEdges)
-        .where(
-          and(
-            sql`${lineageEdges.sourceId} = ANY(${nodeIds}::int[])`,
-            sql`${lineageEdges.targetId} = ANY(${nodeIds}::int[])`
-          )
-        );
+        .where(sql`(${lineageEdges.sourceId}, ${lineageEdges.targetId}) IN (SELECT unnest(${sql.raw(nodeIdArray)}::int[]), unnest(${sql.raw(nodeIdArray)}::int[]))`);
 
       // Get all versions
       const versions = await db
