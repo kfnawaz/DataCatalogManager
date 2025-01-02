@@ -1,36 +1,31 @@
 import { useState, useEffect, createContext, useContext } from 'react';
-import { TourProvider as BaseTourProvider, useTour, type StepType } from '@reactour/tour';
+import { TourProvider as BaseTourProvider } from '@reactour/tour';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { Medal, PartyPopper } from 'lucide-react';
 
 // Define tour steps
-const tourSteps: StepType[] = [
+const tourSteps = [
   {
     selector: '.search-bar',
     content: 'Start by searching for a data product using the search bar. You can find products by name, owner, or tags.',
-    position: 'bottom',
   },
   {
     selector: '.metadata-tab',
     content: 'View and manage detailed metadata information about your data products here.',
-    position: 'bottom',
   },
   {
     selector: '.lineage-tab',
     content: 'Explore data lineage to understand relationships and dependencies between data products.',
-    position: 'bottom',
   },
   {
     selector: '.quality-tab',
     content: 'Monitor data quality metrics and track trends over time.',
-    position: 'bottom',
   },
   {
     selector: '.comment-section',
     content: 'Collaborate with your team by adding comments and reactions to discuss data products.',
-    position: 'bottom',
   },
 ];
 
@@ -137,15 +132,40 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
     <TourContext.Provider value={tourContextValue}>
       <BaseTourProvider
         steps={tourSteps}
-        currentStep={currentStep}
-        setCurrentStep={setCurrentStep}
         isOpen={isOpen}
-        onClose={() => {
+        onRequestClose={() => {
           setIsOpen(false);
           if (currentStep === tourSteps.length - 1) {
             endTour();
           } else {
             localStorage.setItem('tourProgress', currentStep.toString());
+          }
+        }}
+        currentStep={currentStep}
+        onClickMask={() => {
+          setIsOpen(false);
+          localStorage.setItem('tourProgress', currentStep.toString());
+        }}
+        showNavigation={true}
+        showButtons={true}
+        showCloseButton={true}
+        disableInteraction={true}
+        onClickClose={() => {
+          setIsOpen(false);
+          localStorage.setItem('tourProgress', currentStep.toString());
+        }}
+        onClickPrev={() => {
+          const prevStep = currentStep - 1;
+          setCurrentStep(prevStep);
+          localStorage.setItem('tourProgress', prevStep.toString());
+        }}
+        onClickNext={() => {
+          if (currentStep === tourSteps.length - 1) {
+            endTour();
+          } else {
+            const nextStep = currentStep + 1;
+            setCurrentStep(nextStep);
+            localStorage.setItem('tourProgress', nextStep.toString());
           }
         }}
         styles={{
@@ -183,42 +203,6 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
             height: 8,
             margin: '0 4px',
           }),
-        }}
-        padding={16}
-        prevButton={({ currentStep }) => (
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => {
-              const prevStep = (currentStep ?? 0) - 1;
-              setCurrentStep(prevStep);
-              localStorage.setItem('tourProgress', prevStep.toString());
-            }}
-            disabled={currentStep === 0}
-          >
-            Previous
-          </Button>
-        )}
-        nextButton={({ currentStep, stepsLength }) => {
-          const isLastStep = (currentStep ?? 0) === stepsLength - 1;
-          return (
-            <Button
-              size="sm"
-              onClick={() => {
-                if (isLastStep) {
-                  endTour();
-                } else {
-                  setCurrentStep((s) => {
-                    const nextStep = (s ?? 0) + 1;
-                    localStorage.setItem('tourProgress', nextStep.toString());
-                    return nextStep;
-                  });
-                }
-              }}
-            >
-              {isLastStep ? 'Finish Tour' : 'Next'}
-            </Button>
-          );
         }}
       >
         {children}
