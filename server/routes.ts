@@ -258,9 +258,20 @@ export function registerRoutes(app: Express): Server {
         }
       }
 
+      // Join with metric_definitions to get the metric type
       const metrics = await db
-        .select()
+        .select({
+          id: qualityMetrics.id,
+          value: qualityMetrics.value,
+          timestamp: qualityMetrics.timestamp,
+          metadata: qualityMetrics.metadata,
+          type: metricDefinitions.type
+        })
         .from(qualityMetrics)
+        .innerJoin(
+          metricDefinitions,
+          eq(qualityMetrics.metricDefinitionId, metricDefinitions.id)
+        )
         .where(
           and(
             eq(qualityMetrics.dataProductId, productId),
@@ -295,6 +306,29 @@ export function registerRoutes(app: Express): Server {
         metadata: m.metadata,
       }));
 
+      // Group history data by timestamp
+      const groupedHistory = history.reduce((acc, curr) => {
+        const timestamp = curr.timestamp?.toISOString();
+        if (!timestamp) return acc;
+
+        if (!acc[timestamp]) {
+          acc[timestamp] = {
+            timestamp,
+            completeness: null,
+            accuracy: null,
+            timeliness: null,
+            metadata: curr.metadata
+          };
+        }
+
+        // Update the specific metric value
+        if (curr.completeness !== undefined) acc[timestamp].completeness = curr.completeness;
+        if (curr.accuracy !== undefined) acc[timestamp].accuracy = curr.accuracy;
+        if (curr.timeliness !== undefined) acc[timestamp].timeliness = curr.timeliness;
+
+        return acc;
+      }, {} as Record<string, any>);
+
       res.json({
         current: {
           completeness: currentMetrics.completeness || 0,
@@ -304,7 +338,7 @@ export function registerRoutes(app: Express): Server {
             .filter(([key]) => !['completeness', 'accuracy', 'timeliness'].includes(key))
             .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})
         },
-        history
+        history: Object.values(groupedHistory)
       });
     } catch (error) {
       console.error("Error fetching quality metrics:", error);
