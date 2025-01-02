@@ -94,8 +94,8 @@ export function useTourGuide() {
     setIsOpen(false);
     localStorage.setItem('hasSeenTour', 'true');
     localStorage.setItem('tourProgress', '0');
-
     setShowCelebration(true);
+
     setTimeout(() => {
       setShowCelebration(false);
     }, 5000);
@@ -118,19 +118,11 @@ interface TourGuideProviderProps {
 }
 
 export function TourGuideProvider({ children }: TourGuideProviderProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const { endTour, showCelebration } = useTourGuide();
-
-  const handleClose = () => {
-    setIsOpen(false);
-    endTour();
-  };
 
   return (
     <TourProvider
       steps={tourSteps}
-      isOpen={isOpen}
-      onClose={handleClose}
       styles={{
         popover: (base) => ({
           ...base,
@@ -168,6 +160,7 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
         }),
       }}
       padding={16}
+      onClose={endTour}
       prevButton={({ currentStep, setCurrentStep }) => (
         <Button 
           variant="outline" 
@@ -185,11 +178,11 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
             size="sm"
             onClick={() => {
               if (isLastStep) {
-                handleClose();
+                endTour();
               } else {
                 setCurrentStep((s) => (s ?? 0) + 1);
+                localStorage.setItem('tourProgress', ((currentStep ?? 0) + 1).toString());
               }
-              localStorage.setItem('tourProgress', ((currentStep ?? 0) + 1).toString());
             }}
           >
             {isLastStep ? 'Finish Tour' : 'Next'}
