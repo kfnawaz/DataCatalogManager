@@ -141,7 +141,14 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
         currentStep={currentStep}
         setCurrentStep={setCurrentStep}
         isOpen={isOpen}
-        onClose={endTour}
+        onClose={() => {
+          setIsOpen(false);
+          if (currentStep === tourSteps.length - 1) {
+            endTour();
+          } else {
+            localStorage.setItem('tourProgress', currentStep.toString());
+          }
+        }}
         styles={{
           popover: (base) => ({
             ...base,
@@ -183,7 +190,11 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => setCurrentStep((s) => (s ?? 0) - 1)}
+            onClick={() => {
+              const prevStep = (currentStep ?? 0) - 1;
+              setCurrentStep(prevStep);
+              localStorage.setItem('tourProgress', prevStep.toString());
+            }}
             disabled={currentStep === 0}
           >
             Previous
@@ -224,7 +235,7 @@ export function TourStartButton() {
     const { startTour, isOpen } = useTourGuide();
     const tourProgress = parseInt(localStorage.getItem('tourProgress') || '0');
     const totalSteps = tourSteps.length;
-    
+
     console.log('Tour state:', { isOpen, tourProgress, totalSteps });
 
     return (
