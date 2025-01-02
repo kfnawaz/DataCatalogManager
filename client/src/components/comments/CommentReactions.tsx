@@ -22,10 +22,11 @@ interface CommentReactionsProps {
 
 export default function CommentReactions({ 
   commentId, 
-  reactions = { like: 0, helpful: 0, insightful: 0 }, 
+  reactions: initialReactions = { like: 0, helpful: 0, insightful: 0 }, 
   badges = [] 
 }: CommentReactionsProps) {
   const [userReactions, setUserReactions] = useState<Record<string, boolean>>({});
+  const [localReactions, setLocalReactions] = useState(initialReactions);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -43,12 +44,25 @@ export default function CommentReactions({
 
       return response.json();
     },
+    onMutate: ({ type }) => {
+      // Optimistically update the local state
+      setLocalReactions(prev => ({
+        ...prev,
+        [type]: (prev[type as keyof typeof prev] || 0) + 1
+      }));
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ 
         queryKey: [`/api/data-products/${commentId}/comments`] 
       });
     },
-    onError: () => {
+    onError: (error, { type }) => {
+      // Revert the optimistic update
+      setLocalReactions(prev => ({
+        ...prev,
+        [type]: (prev[type as keyof typeof prev] || 1) - 1
+      }));
+
       toast({
         variant: "destructive",
         title: "Error",
@@ -59,7 +73,6 @@ export default function CommentReactions({
 
   const handleReaction = (type: string) => {
     if (userReactions[type]) return;
-
     reactionMutation.mutate({ type });
     setUserReactions(prev => ({ ...prev, [type]: true }));
   };
@@ -96,34 +109,34 @@ export default function CommentReactions({
         <Button
           variant="ghost"
           size="sm"
-          className={`gap-1 ${userReactions.like ? 'text-primary' : ''}`}
+          className={`gap-1 ${userReactions.like ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary-foreground dark:hover:text-primary-foreground dark:hover:bg-primary/20' : ''}`}
           onClick={() => handleReaction('like')}
           disabled={userReactions.like}
         >
           <ThumbsUp className="h-4 w-4" />
-          <span className="text-sm">{reactions?.like || 0}</span>
+          <span className="text-sm">{localReactions.like || 0}</span>
         </Button>
 
         <Button
           variant="ghost"
           size="sm"
-          className={`gap-1 ${userReactions.helpful ? 'text-primary' : ''}`}
+          className={`gap-1 ${userReactions.helpful ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary-foreground dark:hover:text-primary-foreground dark:hover:bg-primary/20' : ''}`}
           onClick={() => handleReaction('helpful')}
           disabled={userReactions.helpful}
         >
           <Award className="h-4 w-4" />
-          <span className="text-sm">{reactions?.helpful || 0}</span>
+          <span className="text-sm">{localReactions.helpful || 0}</span>
         </Button>
 
         <Button
           variant="ghost"
           size="sm"
-          className={`gap-1 ${userReactions.insightful ? 'text-primary' : ''}`}
+          className={`gap-1 ${userReactions.insightful ? 'text-primary hover:text-primary hover:bg-primary/10 dark:text-primary-foreground dark:hover:text-primary-foreground dark:hover:bg-primary/20' : ''}`}
           onClick={() => handleReaction('insightful')}
           disabled={userReactions.insightful}
         >
           <Brain className="h-4 w-4" />
-          <span className="text-sm">{reactions?.insightful || 0}</span>
+          <span className="text-sm">{localReactions.insightful || 0}</span>
         </Button>
       </div>
 
@@ -139,7 +152,7 @@ export default function CommentReactions({
               <TooltipTrigger asChild>
                 <Badge 
                   variant="secondary"
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-1 bg-primary/10 text-primary-foreground dark:bg-primary/20"
                 >
                   {getBadgeIcon(badge.type)}
                   <span className="text-xs">{badge.type}</span>
