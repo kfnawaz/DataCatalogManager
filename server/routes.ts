@@ -13,13 +13,9 @@ import {
   lineageEdges,
   lineageVersions
 } from "@db/schema";
-import { eq, desc, sql, and } from "drizzle-orm";
+import { eq, desc, sql, and, inArray } from "drizzle-orm";
 import OpenAI from "openai";
 import { trackApiUsage, getApiUsageStats } from "./utils/apiTracker";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export function registerRoutes(app: Express): Server {
   // Add usage stats endpoint
@@ -816,12 +812,15 @@ export function registerRoutes(app: Express): Server {
       // Get all node IDs
       const nodeIds = nodes.map(n => n.id);
 
-      // Fetch edges using SQL IN clause
+      // Fetch edges using inArray operator
       const edges = await db
         .select()
         .from(lineageEdges)
         .where(
-          sql`${lineageEdges.sourceId} IN (${sql.join(nodeIds)}) AND ${lineageEdges.targetId} IN (${sql.join(nodeIds)})`
+          and(
+            inArray(lineageEdges.sourceId, nodeIds),
+            inArray(lineageEdges.targetId, nodeIds)
+          )
         );
 
       // Get all versions
@@ -858,7 +857,6 @@ export function registerRoutes(app: Express): Server {
       res.json(response);
     } catch (error) {
       console.error("Error fetching lineage data:", error);
-      // Send detailed error information for debugging
       res.status(500).json({ 
         error: "Failed to fetch lineage data",
         details: error instanceof Error ? error.message : String(error),
