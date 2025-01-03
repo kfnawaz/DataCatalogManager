@@ -7,6 +7,7 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
   MarkerType,
+  MiniMap,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from "@/components/ui/card";
@@ -275,7 +276,29 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
           }}
         >
           <Background />
-          <Controls />
+          <Controls 
+            className="bg-card border border-border shadow-sm"
+            position="bottom-right"
+            showInteractive={false}
+          />
+          <MiniMap 
+            nodeStrokeColor="#666"
+            nodeColor={node => {
+              switch (node.data?.type) {
+                case 'source':
+                  return '#4CAF50';
+                case 'transformation':
+                  return '#2196F3';
+                case 'target':
+                  return '#F44336';
+                default:
+                  return '#9E9E9E';
+              }
+            }}
+            maskColor="rgba(0, 0, 0, 0.1)"
+            className="bg-card border border-border shadow-sm !bottom-24"
+            position="bottom-right"
+          />
         </ReactFlow>
       )}
     </Card>
