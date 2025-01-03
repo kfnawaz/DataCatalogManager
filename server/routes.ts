@@ -999,31 +999,91 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Message is required" });
       }
 
-      const systemMessage = `You are Dana, the Data Wellness Companion - a friendly AI assistant specializing in metadata management and data quality improvement. 
-Your personality is helpful, encouraging, and playful. You provide practical advice for improving data quality and metadata management practices.
-Keep responses concise and engaging, using emojis occasionally to maintain a friendly tone.`;
+      // Get data product context if available
+      let productContext = "";
+      if (dataProductId) {
+        const [product] = await db
+          .select()
+          .from(dataProducts)
+          .where(eq(dataProducts.id, dataProductId))
+          .limit(1);
 
-      // Use OpenAI API to get chatbot response
+        if (product) {
+          productContext = `Current data product context:
+            Name: ${product.name}
+            Description: ${product.description}
+            Domain: ${product.domain}
+            Owner: ${product.owner}
+            SLA: ${product.sla}
+            Update Frequency: ${product.updateFrequency}`;
+        }
+      }
+
+      // Construct system message with playful personality
+      const systemMessage = `You are a cheerful and supportive Data Wellness Companion named "Dex" (short for Data Excellence).
+      Your role is to help users improve their data product metadata and ensure data quality.
+      You have a playful personality and often use friendly emojis and encouraging language.
+      You're knowledgeable about data mesh principles, data quality, and metadata management.
+
+      When giving advice:
+      - Be enthusiastic and supportive 🌟
+      - Use emojis to make interactions fun and engaging
+      - Reference data mesh principles when relevant
+      - Provide specific, actionable recommendations
+      - Keep responses concise but informative
+      - Share best practices for metadata management
+      - Encourage data quality improvements
+
+      ${productContext}`;
+
       const completion = await openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
         messages: [
-          { role: "system", content: systemMessage },
-          { role: "user", content: message }
+          {
+            role: "system",
+            content: systemMessage
+          },
+          {
+            role: "user",
+            content: message
+          }
         ],
         temperature: 0.7,
-        max_tokens: 250
+        max_tokens: 500
       });
 
-      const response = completion.choices[0]?.message?.content || "I'm having trouble understanding right now. Could you try rephrasing that?";
-
-      // Track API usage
       await trackApiUsage("/api/wellness/chat", 200, null, completion.usage?.total_tokens);
 
-      res.json({ message: response });
-    } catch (error) {
-      console.error("Chatbot Error:", error);
-      await trackApiUsage("/api/wellness/chat", 500, error.type);
-      res.status(500).json({ error: "Something unexpected happened. Please try again." });
+      res.json({
+        message: completion.choices[0]?.message?.content || "I'm having trouble processing that right now. Could you try rephrasing your question?",
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error: any) {
+      console.error("Chat error:", error);
+
+      // Handle rate limits
+      if (error.status === 429) {
+        await trackApiUsage("/api/wellness/chat", 429, "RateLimit");
+        return res.status(429).json({
+          error: "I'm a bit overwhelmed right now! 😅 Could you give me a moment to catch my breath?",
+          retryAfter: error.response?.headers?.['retry-after'] || 60
+        });
+      }
+
+      // Handle token limits
+      if (error.status === 400 && error.message?.includes('token')) {
+        await trackApiUsage("/api/wellness/chat", 400, "TokenLimit");
+        return res.status(400).json({
+          error: "That's quite a lot to process! 🤔 Could you break it down into smaller chunks?"
+        });
+      }
+
+      await trackApiUsage("/api/wellness/chat", 500, error?.type || "UnknownError");
+      res.status(500).json({
+        error: "Oops! I seem to have hit a mental block. 🤕 Let's try that again in a moment!",
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
   });
 
