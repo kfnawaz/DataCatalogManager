@@ -12,26 +12,43 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { Card } from "@/components/ui/card";
 
+interface LineageMetadata {
+  description?: string;
+  format?: string;
+  frequency?: string;
+  algorithm?: string;
+  parameters?: Record<string, any>;
+  dataVolume?: string;
+  latency?: string;
+  schedule?: string;
+  distribution?: string;
+}
+
+interface LineageNode {
+  id: string;
+  type: 'source' | 'transformation' | 'target';
+  label: string;
+  metadata?: LineageMetadata;
+}
+
+interface LineageLink {
+  source: string;
+  target: string;
+  transformationLogic?: string;
+  metadata?: LineageMetadata;
+}
+
 interface ReactFlowLineageProps {
   dataProductId: number | null;
   lineageData: {
-    nodes: Array<{
-      id: string;
-      type: 'source' | 'transformation' | 'target';
-      label: string;
-      metadata?: Record<string, any>;
-    }>;
-    links: Array<{
-      source: string;
-      target: string;
-      transformationLogic?: string;
-    }>;
+    nodes: LineageNode[];
+    links: LineageLink[];
   } | null;
   isLoading: boolean;
 }
 
-// Custom node component
-function LineageNodeComponent({ data }: { data: { label: string; type: string; metadata?: Record<string, any> } }) {
+// Custom node component with proper typing
+function LineageNodeComponent({ data }: { data: { label: string; type: string; metadata?: LineageMetadata } }) {
   const style = {
     padding: '10px',
     border: '1px solid #ccc',
@@ -42,8 +59,8 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; m
     color: 'white',
   };
 
-  // Format metadata values
-  const formatMetadataValue = (value: any): string => {
+  // Format metadata values with type safety
+  const formatMetadataValue = (value: unknown): string => {
     if (typeof value === 'object' && value !== null) {
       return Object.entries(value)
         .map(([k, v]) => `${k}: ${v}`)
@@ -76,6 +93,11 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; m
 
 const nodeTypes = {
   custom: LineageNodeComponent,
+};
+
+// Generate a unique edge ID
+const generateEdgeId = (source: string, target: string): string => {
+  return `edge-${source}-${target}-${Date.now()}`;
 };
 
 export default function ReactFlowLineage({ dataProductId, lineageData, isLoading }: ReactFlowLineageProps) {
@@ -141,14 +163,15 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
     ];
 
     // Create edges with unique IDs
-    const flowEdges: Edge[] = lineageData.links.map((link, index) => ({
-      id: `edge-${link.source}-${link.target}-${index}`,
+    const flowEdges: Edge[] = lineageData.links.map((link) => ({
+      id: generateEdgeId(link.source, link.target),
       source: link.source,
       target: link.target,
       animated: true,
       label: link.transformationLogic,
       style: { stroke: '#666' },
       type: 'smoothstep',
+      data: link.metadata,
     }));
 
     setNodes(flowNodes);
