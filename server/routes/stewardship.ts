@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request } from "express";
 import { db } from "@db";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { 
@@ -9,6 +9,13 @@ import {
   dataProducts
 } from "@db/schema";
 
+// Extend Express Request to include user property
+interface AuthenticatedRequest extends Request {
+  user?: {
+    username: string;
+  };
+}
+
 const router = Router();
 
 // Calculate user's level based on reputation score
@@ -16,8 +23,13 @@ function calculateLevel(reputationScore: number): number {
   return Math.floor(reputationScore / 100) + 1;
 }
 
-router.get("/api/stewardship/metrics", async (req, res) => {
+router.get("/api/stewardship/metrics", async (req: AuthenticatedRequest, res) => {
   try {
+    const username = req.user?.username;
+    if (!username) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
     // Get user's comments and their impact
     const userComments = await db
       .select({
@@ -31,7 +43,7 @@ router.get("/api/stewardship/metrics", async (req, res) => {
         `.mapWith(Number)
       })
       .from(comments)
-      .where(eq(comments.authorName, req.user?.username || ""));
+      .where(eq(comments.authorName, username));
 
     // Get user's badges
     const badges = await db
@@ -41,7 +53,7 @@ router.get("/api/stewardship/metrics", async (req, res) => {
       })
       .from(commentBadges)
       .innerJoin(comments, eq(comments.id, commentBadges.commentId))
-      .where(eq(comments.authorName, req.user?.username || ""))
+      .where(eq(comments.authorName, username))
       .orderBy(desc(commentBadges.createdAt));
 
     // Get managed data products
@@ -50,7 +62,7 @@ router.get("/api/stewardship/metrics", async (req, res) => {
         count: sql<number>`count(*)`.mapWith(Number)
       })
       .from(dataProducts)
-      .where(eq(dataProducts.owner, req.user?.username || ""));
+      .where(eq(dataProducts.owner, username));
 
     // Calculate quality improvements
     const qualityImprovements = await db
@@ -86,11 +98,11 @@ router.get("/api/stewardship/metrics", async (req, res) => {
       type: badge.type,
       name: `${badge.type.charAt(0).toUpperCase()}${badge.type.slice(1)} Badge`,
       description: getBadgeDescription(badge.type),
-      earnedAt: badge.createdAt.toISOString()
+      earnedAt: badge.createdAt?.toISOString() || new Date().toISOString()
     }));
 
     // Get recent activities
-    const recentActivities = await getRecentActivities(req.user?.username || "");
+    const recentActivities = await getRecentActivities(username);
 
     res.json({
       totalComments: userComments[0]?.totalCount || 0,
@@ -136,7 +148,7 @@ async function getRecentActivities(username: string) {
   return recentComments.map(activity => ({
     type: activity.type,
     description: `Added a comment: "${activity.content.slice(0, 50)}${activity.content.length > 50 ? '...' : ''}"`,
-    timestamp: activity.timestamp.toISOString(),
+    timestamp: activity.timestamp?.toISOString() || new Date().toISOString(),
     impact: 10 // Base impact score for comments
   }));
 }

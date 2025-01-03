@@ -12,6 +12,23 @@ export const metricTypeEnum = pgEnum('metric_type', [
   'validity',
 ]);
 
+// Add stewardship level enum
+export const stewardshipLevelEnum = pgEnum('stewardship_level', [
+  'novice',
+  'intermediate',
+  'expert',
+  'master',
+  'champion'
+]);
+
+// Add achievement type enum
+export const achievementTypeEnum = pgEnum('achievement_type', [
+  'engagement',
+  'quality',
+  'collaboration',
+  'innovation'
+]);
+
 export const dataProducts = pgTable("data_products", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -157,6 +174,87 @@ export const lineageVersions = pgTable("lineage_versions", {
 });
 
 
+// Stewardship profiles for users
+export const stewardshipProfiles = pgTable("stewardship_profiles", {
+  id: serial("id").primaryKey(),
+  userIdentifier: text("user_identifier").notNull().unique(),
+  displayName: text("display_name").notNull(),
+  currentLevel: stewardshipLevelEnum("current_level").notNull().default('novice'),
+  totalPoints: integer("total_points").notNull().default(0),
+  monthlyPoints: integer("monthly_points").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Achievements that users can earn
+export const achievements = pgTable("achievements", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  type: achievementTypeEnum("type").notNull(),
+  pointValue: integer("point_value").notNull(),
+  criteria: jsonb("criteria").notNull(),
+  icon: text("icon").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Track earned achievements
+export const earnedAchievements = pgTable("earned_achievements", {
+  id: serial("id").primaryKey(),
+  profileId: integer("profile_id").references(() => stewardshipProfiles.id).notNull(),
+  achievementId: integer("achievement_id").references(() => achievements.id).notNull(),
+  earnedAt: timestamp("earned_at").defaultNow(),
+  metadata: jsonb("metadata"),
+});
+
+// Stewardship activity tracking
+export const stewardshipActivities = pgTable("stewardship_activities", {
+  id: serial("id").primaryKey(),
+  profileId: integer("profile_id").references(() => stewardshipProfiles.id).notNull(),
+  activityType: text("activity_type").notNull(), // 'comment', 'review', 'update', etc.
+  entityType: text("entity_type").notNull(), // 'data_product', 'metric', etc.
+  entityId: integer("entity_id").notNull(),
+  points: integer("points").notNull(),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Weekly challenges for engagement
+export const stewardshipChallenges = pgTable("stewardship_challenges", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  pointValue: integer("point_value").notNull(),
+  criteria: jsonb("criteria").notNull(),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Track challenge participation
+export const challengeParticipation = pgTable("challenge_participation", {
+  id: serial("id").primaryKey(),
+  profileId: integer("profile_id").references(() => stewardshipProfiles.id).notNull(),
+  challengeId: integer("challenge_id").references(() => stewardshipChallenges.id).notNull(),
+  progress: jsonb("progress").notNull(),
+  completed: boolean("completed").notNull().default(false),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Add API usage tracking table
+export const apiUsage = pgTable("api_usage", {
+  id: serial("id").primaryKey(),
+  endpoint: text("endpoint").notNull(),
+  statusCode: integer("status_code").notNull(),
+  errorType: text("error_type"),
+  timestamp: timestamp("timestamp").defaultNow(),
+  metadata: jsonb("metadata"),
+  quotaUsed: integer("quota_used"),
+  isSuccessful: boolean("is_successful").notNull(),
+});
+
 // Relations
 export const dataProductRelations = relations(dataProducts, ({ many }) => ({
   qualityMetrics: many(qualityMetrics),
@@ -222,6 +320,22 @@ export const lineageEdgeRelations = relations(lineageEdges, ({ one }) => ({
   }),
 }));
 
+// Add relations
+export const stewardshipProfileRelations = relations(stewardshipProfiles, ({ many }) => ({
+  earnedAchievements: many(earnedAchievements),
+  activities: many(stewardshipActivities),
+  challengeParticipations: many(challengeParticipation),
+}));
+
+export const achievementRelations = relations(achievements, ({ many }) => ({
+  earnedAchievements: many(earnedAchievements),
+}));
+
+export const challengeRelations = relations(stewardshipChallenges, ({ many }) => ({
+  participations: many(challengeParticipation),
+}));
+
+
 // Schemas for validation
 export const insertDataProductSchema = createInsertSchema(dataProducts);
 export const selectDataProductSchema = createSelectSchema(dataProducts);
@@ -244,18 +358,6 @@ export const selectCommentReactionSchema = createSelectSchema(commentReactions);
 export const insertCommentBadgeSchema = createInsertSchema(commentBadges);
 export const selectCommentBadgeSchema = createSelectSchema(commentBadges);
 
-// Add API usage tracking table
-export const apiUsage = pgTable("api_usage", {
-  id: serial("id").primaryKey(),
-  endpoint: text("endpoint").notNull(),
-  statusCode: integer("status_code").notNull(),
-  errorType: text("error_type"),
-  timestamp: timestamp("timestamp").defaultNow(),
-  metadata: jsonb("metadata"),
-  quotaUsed: integer("quota_used"),
-  isSuccessful: boolean("is_successful").notNull(),
-});
-
 // Add schema for API usage
 export const insertApiUsageSchema = createInsertSchema(apiUsage);
 export const selectApiUsageSchema = createSelectSchema(apiUsage);
@@ -267,6 +369,20 @@ export const insertLineageEdgeSchema = createInsertSchema(lineageEdges);
 export const selectLineageEdgeSchema = createSelectSchema(lineageEdges);
 export const insertLineageVersionSchema = createInsertSchema(lineageVersions);
 export const selectLineageVersionSchema = createSelectSchema(lineageVersions);
+
+// Add schemas for new tables
+export const insertStewardshipProfileSchema = createInsertSchema(stewardshipProfiles);
+export const selectStewardshipProfileSchema = createSelectSchema(stewardshipProfiles);
+export const insertAchievementSchema = createInsertSchema(achievements);
+export const selectAchievementSchema = createSelectSchema(achievements);
+export const insertEarnedAchievementSchema = createInsertSchema(earnedAchievements);
+export const selectEarnedAchievementSchema = createSelectSchema(earnedAchievements);
+export const insertStewardshipActivitySchema = createInsertSchema(stewardshipActivities);
+export const selectStewardshipActivitySchema = createSelectSchema(stewardshipActivities);
+export const insertStewardshipChallengeSchema = createInsertSchema(stewardshipChallenges);
+export const selectStewardshipChallengeSchema = createSelectSchema(stewardshipChallenges);
+export const insertChallengeParticipationSchema = createInsertSchema(challengeParticipation);
+export const selectChallengeParticipationSchema = createSelectSchema(challengeParticipation);
 
 // Types
 export type DataProduct = typeof dataProducts.$inferSelect;
@@ -301,3 +417,17 @@ export type NewLineageVersion = typeof lineageVersions.$inferInsert;
 // Add types for API usage
 export type ApiUsage = typeof apiUsage.$inferSelect;
 export type NewApiUsage = typeof apiUsage.$inferInsert;
+
+// Add new types
+export type StewardshipProfile = typeof stewardshipProfiles.$inferSelect;
+export type NewStewardshipProfile = typeof stewardshipProfiles.$inferInsert;
+export type Achievement = typeof achievements.$inferSelect;
+export type NewAchievement = typeof achievements.$inferInsert;
+export type EarnedAchievement = typeof earnedAchievements.$inferSelect;
+export type NewEarnedAchievement = typeof earnedAchievements.$inferInsert;
+export type StewardshipActivity = typeof stewardshipActivities.$inferSelect;
+export type NewStewardshipActivity = typeof stewardshipActivities.$inferInsert;
+export type StewardshipChallenge = typeof stewardshipChallenges.$inferSelect;
+export type NewStewardshipChallenge = typeof stewardshipChallenges.$inferInsert;
+export type ChallengeParticipation = typeof challengeParticipation.$inferSelect;
+export type NewChallengeParticipation = typeof challengeParticipation.$inferInsert;
