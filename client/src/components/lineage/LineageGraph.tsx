@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ReactFlowLineage from "./ReactFlowLineage";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface LineageGraphProps {
   dataProductId: number | null;
@@ -40,58 +42,41 @@ export default function LineageGraph({ dataProductId }: LineageGraphProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-8">
-        <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-semibold">Data Lineage</h2>
-
-          {/* Legend */}
-          <div className="flex items-center gap-4 border-l pl-4">
-            <div className="flex items-center gap-2" role="presentation">
-              <div className="w-3 h-3 rounded-full bg-[#4CAF50]" aria-hidden="true" />
-              <span className="text-sm">Source</span>
-            </div>
-            <div className="flex items-center gap-2" role="presentation">
-              <div className="w-3 h-3 rounded-full bg-[#2196F3]" aria-hidden="true" />
-              <span className="text-sm">Transformation</span>
-            </div>
-            <div className="flex items-center gap-2" role="presentation">
-              <div className="w-3 h-3 rounded-full bg-[#F44336]" aria-hidden="true" />
-              <span className="text-sm">Target</span>
-            </div>
-          </div>
+      {/* Version Selection */}
+      {lineageData?.versions && lineageData.versions.length > 0 && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">Version:</span>
+          <Select
+            value={selectedVersion?.toString()}
+            onValueChange={(value) => setSelectedVersion(Number(value))}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select version" />
+            </SelectTrigger>
+            <SelectContent>
+              {lineageData.versions.map((v) => (
+                <SelectItem
+                  key={`version-${v.version}-${v.timestamp}`}
+                  value={v.version.toString()}
+                >
+                  Version {v.version} ({new Date(v.timestamp).toLocaleDateString()})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+      )}
 
-        {/* Version Selection */}
-        {lineageData?.versions && lineageData.versions.length > 0 && (
-          <div className="flex items-center gap-2 ml-auto">
-            <span className="text-sm font-medium">Version:</span>
-            <Select
-              value={selectedVersion?.toString()}
-              onValueChange={(value) => setSelectedVersion(Number(value))}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select version" />
-              </SelectTrigger>
-              <SelectContent>
-                {lineageData.versions.map((v) => (
-                  <SelectItem
-                    key={`version-${v.version}-${v.timestamp}`}
-                    value={v.version.toString()}
-                  >
-                    Version {v.version} ({new Date(v.timestamp).toLocaleDateString()})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-      </div>
-
-      <ReactFlowLineage 
-        dataProductId={dataProductId} 
-        lineageData={lineageData || null}
-        isLoading={isLoading}
-      />
+      <Card>
+        <CardHeader>
+          <CardTitle>Data Lineage Graph</CardTitle>
+        </CardHeader>
+        <ReactFlowLineage 
+          dataProductId={dataProductId} 
+          lineageData={lineageData || null}
+          isLoading={isLoading}
+        />
+      </Card>
     </div>
   );
 }
