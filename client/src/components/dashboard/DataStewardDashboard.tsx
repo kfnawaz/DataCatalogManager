@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import {
   LineChart,
   Line,
@@ -12,7 +13,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Award, Target, TrendingUp, Users, ChevronUp, ChevronDown } from "lucide-react";
+import { Award, Target, TrendingUp, Users, ChevronUp, ChevronDown, HelpCircle } from "lucide-react";
 import { StewardshipTutorial } from "@/components/onboarding/StewardshipTutorial";
 import { ContextualHelp } from "@/components/ui/contextual-help";
 
@@ -113,6 +114,18 @@ export default function DataStewardDashboard() {
   return (
     <>
       <div className="space-y-6 relative">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold">Data Stewardship Dashboard</h1>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+            onClick={() => setShowTutorial(true)}
+          >
+            <HelpCircle className="h-4 w-4" />
+            Tutorial Guide
+          </Button>
+        </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card data-tutorial="quality-impact">
             <CardHeader className="pb-2">
