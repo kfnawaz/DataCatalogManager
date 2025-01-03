@@ -1,8 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { 
-  dataProducts, 
+import {
+  dataProducts,
   metricDefinitions,
   metricDefinitionVersions,
   qualityMetrics,
@@ -151,9 +151,9 @@ export function registerRoutes(app: Express): Server {
     try {
       const productId = parseInt(req.params.id);
       if (isNaN(productId)) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "Invalid input",
-          details: "Product ID must be a valid number" 
+          details: "Product ID must be a valid number"
         });
       }
 
@@ -165,9 +165,9 @@ export function registerRoutes(app: Express): Server {
         .limit(1);
 
       if (!product) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           error: "Not found",
-          details: "Data product not found" 
+          details: "Data product not found"
         });
       }
 
@@ -188,9 +188,9 @@ export function registerRoutes(app: Express): Server {
       }
 
       if (Object.keys(errors).length > 0) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "Validation failed",
-          details: errors 
+          details: errors
         });
       }
 
@@ -219,7 +219,7 @@ export function registerRoutes(app: Express): Server {
       });
     } catch (error) {
       console.error("Error creating comment:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Internal server error",
         details: "Failed to create comment. Please try again later."
       });
@@ -607,9 +607,9 @@ export function registerRoutes(app: Express): Server {
       const productId = parseInt(req.params.id);
       if (isNaN(productId)) {
         await trackApiUsage("/api/data-products/:id/comments/summarize", 400, "InvalidInput");
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "Invalid input",
-          details: "Product ID must be a valid number" 
+          details: "Product ID must be a valid number"
         });
       }
 
@@ -622,9 +622,9 @@ export function registerRoutes(app: Express): Server {
 
       if (productComments.length === 0) {
         await trackApiUsage("/api/data-products/:id/comments/summarize", 200, null, 0);
-        return res.json({ 
+        return res.json({
           summary: "No comments available to summarize.",
-          commentCount: 0 
+          commentCount: 0
         });
       }
 
@@ -689,7 +689,7 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error summarizing comments:", error);
       await trackApiUsage("/api/data-products/:id/comments/summarize", 500, "InternalServerError");
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Internal server error",
         details: "Failed to generate comment summary. Please try again later."
       });
@@ -728,9 +728,9 @@ export function registerRoutes(app: Express): Server {
         .limit(1);
 
       if (existingReaction.length > 0) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "Already reacted",
-          message: "You have already reacted to this comment" 
+          message: "You have already reacted to this comment"
         });
       }
 
@@ -763,7 +763,7 @@ export function registerRoutes(app: Express): Server {
         }
       });
 
-      res.json({ 
+      res.json({
         success: true,
         reactions: reactionCounts
       });
@@ -876,7 +876,7 @@ export function registerRoutes(app: Express): Server {
       res.json(response);
     } catch (error) {
       console.error("Error fetching lineage data:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to fetch lineage data",
         details: error instanceof Error ? error.message : String(error),
         timestamp: new Date().toISOString(),
@@ -989,7 +989,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Metric template routes
+  // Metric template routes (duplicate, should be removed or investigated)
   app.get("/api/metric-templates", async (req, res) => {
     try {
       const templates = await db.select().from(metricTemplates);
@@ -1028,7 +1028,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Metric definition routes
+  // Metric definition routes (duplicate, should be removed or investigated)
   app.get("/api/metric-definitions", async (req, res) => {
     try {
       const definitions = await db.select().from(metricDefinitions);
@@ -1067,7 +1067,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Get metric definition history
+  // Get metric definition history (duplicate, should be removed or investigated)
   app.get("/api/metric-definitions/:id/history", async (req, res) => {
     try {
       const definitionId = parseInt(req.params.id);
@@ -1088,7 +1088,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Update metric definition
+  // Update metric definition (duplicate, should be removed or investigated)
   app.put("/api/metric-definitions/:id", async (req, res) => {
     try {
       const definitionId = parseInt(req.params.id);
@@ -1156,7 +1156,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Rollback to specific version
+  // Rollback to specific version (duplicate, should be removed or investigated)
   app.post("/api/metric-definitions/:id/rollback/:versionId", async (req, res) => {
     try {
       const definitionId = parseInt(req.params.id);
@@ -1226,15 +1226,15 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Add new route for comment summarization
+  // Add new route for comment summarization (duplicate, should be removed or investigated)
   app.post("/api/data-products/:id/comments/summarize", async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       if (isNaN(productId)) {
         await trackApiUsage("/api/data-products/:id/comments/summarize", 400, "InvalidInput");
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "Invalid input",
-          details: "Product ID must be a valid number" 
+          details: "Product ID must be a valid number"
         });
       }
 
@@ -1247,9 +1247,9 @@ export function registerRoutes(app: Express): Server {
 
       if (productComments.length === 0) {
         await trackApiUsage("/api/data-products/:id/comments/summarize", 200, null, 0);
-        return res.json({ 
+        return res.json({
           summary: "No comments available to summarize.",
-          commentCount: 0 
+          commentCount: 0
         });
       }
 
@@ -1314,14 +1314,14 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error summarizing comments:", error);
       await trackApiUsage("/api/data-products/:id/comments/summarize", 500, "InternalServerError");
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Internal server error",
         details: "Failed to generate comment summary. Please try again later."
       });
     }
   });
 
-  // Update POST reaction endpoint to store reactions
+  // Update POST reaction endpoint to store reactions (duplicate, should be removed or investigated)
   app.post("/api/comments/:id/reactions", async (req, res) => {
     try {
       const commentId = parseInt(req.params.id);
@@ -1353,9 +1353,9 @@ export function registerRoutes(app: Express): Server {
         .limit(1);
 
       if (existingReaction.length > 0) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "Already reacted",
-          message: "You have already reacted to this comment" 
+          message: "You have already reacted to this comment"
         });
       }
 
@@ -1388,7 +1388,7 @@ export function registerRoutes(app: Express): Server {
         }
       });
 
-      res.json({ 
+      res.json({
         success: true,
         reactions: reactionCounts
       });
@@ -1398,7 +1398,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Update lineage API endpoint to fix the array query
+  // Update lineage API endpoint to fix the array query (duplicate, should be removed or investigated)
   app.get("/api/lineage", async (req, res) => {
     try {
       const dataProductId = parseInt(req.query.dataProductId as string);
@@ -1501,7 +1501,7 @@ export function registerRoutes(app: Express): Server {
       res.json(response);
     } catch (error) {
       console.error("Error fetching lineage data:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to fetch lineage data",
         details: error instanceof Error ? error.message : String(error),
         timestamp: new Date().toISOString(),
@@ -1511,7 +1511,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Add new version endpoint
+  // Add new version endpoint (duplicate, should be removed or investigated)
   app.post("/api/lineage/versions", async (req, res) => {
     try {
       const { dataProductId, snapshot, changeMessage, createdBy } = req.body;
@@ -1549,7 +1549,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Update nodes and edges
+  // Update nodes and edges (duplicate, should be removed or investigated)
   app.put("/api/lineage/nodes", async (req, res) => {
     try {
       const { dataProductId, nodes } = req.body;
@@ -1611,6 +1611,131 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error updating lineage edges:", error);
       res.status(500).json({ error: "Failed to update lineage edges" });
+    }
+  });
+
+  // Add chatbot endpoint for metadata recommendations
+  app.post("/api/wellness/chat", async (req, res) => {
+    try {
+      const { message, dataProductId } = req.body;
+
+      if (!message) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+
+      // Get data product metadata if ID is provided
+      let productMetadata = null;
+      let qualityMetrics = null;
+
+      if (dataProductId) {
+        const [product] = await db
+          .select()
+          .from(dataProducts)
+          .where(eq(dataProducts.id, dataProductId))
+          .limit(1);
+
+        if (product) {
+          productMetadata = {
+            name: product.name,
+            description: product.description,
+            owner: product.owner,
+            domain: product.domain,
+            schema: product.schema,
+            tags: product.tags,
+            sla: product.sla,
+            updateFrequency: product.updateFrequency,
+          };
+
+          // Get latest quality metrics
+          const metrics = await db
+            .select({
+              value: qualityMetrics.value,
+              type: metricDefinitions.type
+            })
+            .from(qualityMetrics)
+            .innerJoin(
+              metricDefinitions,
+              eq(qualityMetrics.metricDefinitionId, metricDefinitions.id)
+            )
+            .where(eq(qualityMetrics.dataProductId, dataProductId))
+            .orderBy(desc(qualityMetrics.timestamp))
+            .limit(3);
+
+          if (metrics.length > 0) {
+            qualityMetrics = metrics.reduce((acc, m) => ({
+              ...acc,
+              [m.type]: m.value
+            }), {});
+          }
+        }
+      }
+
+      // Prepare context for the AI
+      const context = {
+        role: "system",
+        content: `You are a friendly and playful Data Wellness Companion named Dana. Your goal is to help users improve their metadata quality in a fun and engaging way.
+
+      Current context:
+      ${productMetadata ? `
+      Data Product: ${productMetadata.name}
+      Description: ${productMetadata.description}
+      Domain: ${productMetadata.domain}
+      Owner: ${productMetadata.owner}
+      Update Frequency: ${productMetadata.updateFrequency}
+      Quality Metrics: ${JSON.stringify(qualityMetrics)}
+      ` : 'No specific data product context provided'}
+
+      Respond in a friendly, encouraging tone. Provide specific, actionable recommendations for improving metadata quality. Use emojis and casual language, but maintain professionalism.
+      If quality metrics are low, be tactful in suggesting improvements.`
+      };
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [
+          context,
+          { role: "user", content: message }
+        ],
+        temperature: 0.7,
+        max_tokens: 300
+      });
+
+      const response = completion.choices[0]?.message?.content || "I'm having trouble thinking right now. Could you try asking me something else?";
+
+      // Track API usage
+      await trackApiUsage("/api/wellness/chat", 200, null, completion.usage?.total_tokens);
+
+      res.json({
+        message: response,
+        context: {
+          productMetadata,
+          qualityMetrics
+        }
+      });
+    } catch (error: any) {
+      console.error("Chatbot Error:", error);
+
+      // Handle specific OpenAI errors
+      if (error.status === 429) {
+        await trackApiUsage("/api/wellness/chat", 429, "RateLimit");
+        return res.status(429).json({
+          error: "I'm a bit overwhelmed right now. Could you try again in a moment? 😅",
+          details: "Rate limit exceeded"
+        });
+      }
+
+      if (error.status === 401) {
+        await trackApiUsage("/api/wellness/chat", 401, "Authentication");
+        return res.status(401).json({
+          error: "I seem to have lost my voice! Please contact support. 🎯",
+          details: "Authentication error"
+        });
+      }
+
+      await trackApiUsage("/api/wellness/chat", 500, error.type || "Unknown");
+      res.status(500).json({
+        error: "Oops! I hit a small bump. Could you try asking me something else? 🤔",
+        details: "Internal server error"
+      });
     }
   });
 

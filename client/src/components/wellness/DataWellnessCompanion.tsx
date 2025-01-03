@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Bot, MessagesSquare, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 interface Message {
   type: 'bot' | 'user';
@@ -21,7 +22,7 @@ interface Message {
 
 const INITIAL_MESSAGE = {
   type: 'bot' as const,
-  content: "Hi there! 👋 I'm your Data Wellness Companion. I'm here to help you maintain healthy and high-quality metadata. Would you like me to give you some tips on improving your data quality?",
+  content: "Hi there! 👋 I'm Dana, your Data Wellness Companion. I'm here to help you maintain healthy and high-quality metadata. Would you like me to give you some tips on improving your data quality?",
   timestamp: new Date(),
 };
 
@@ -36,27 +37,71 @@ export function DataWellnessCompanion() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [isTyping, setIsTyping] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  const scrollToBottom = () => {
+    if (scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isTyping]);
 
   const handleSendMessage = async (content: string) => {
-    // Add user message
-    setMessages(prev => [...prev, {
-      type: 'user',
-      content,
-      timestamp: new Date(),
-    }]);
-
-    setIsTyping(true);
-
-    // Simulate bot response (this will be replaced with actual API call)
-    setTimeout(() => {
+    try {
+      // Add user message
       setMessages(prev => [...prev, {
-        type: 'bot',
-        content: "That's a great question! Let me analyze your metadata quality and provide some personalized recommendations...",
+        type: 'user',
+        content,
         timestamp: new Date(),
       }]);
+
+      setIsTyping(true);
+
+      // Send message to API
+      const response = await fetch('/api/wellness/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: content,
+          // You can optionally add dataProductId here if you're viewing a specific product
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to get response');
+      }
+
+      const data = await response.json();
+
+      // Add bot response
+      setMessages(prev => [...prev, {
+        type: 'bot',
+        content: data.message,
+        timestamp: new Date(),
+      }]);
+    } catch (error) {
+      console.error('Chat error:', error);
+      toast({
+        title: "Conversation Error",
+        description: error instanceof Error ? error.message : "Failed to get response",
+        variant: "destructive",
+      });
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
   };
+
+  const dialogDescriptionId = "chat-description";
 
   return (
     <>
@@ -77,21 +122,24 @@ export function DataWellnessCompanion() {
           </DialogTrigger>
           <DialogContent 
             className="sm:max-w-[400px] h-[600px] flex flex-col p-0"
-            aria-describedby="chat-description"
+            aria-describedby={dialogDescriptionId}
           >
             <DialogHeader className="p-6 pb-4">
               <DialogTitle className="flex items-center gap-2">
                 <Bot className="h-5 w-5" />
                 Data Wellness Companion
               </DialogTitle>
-              <DialogDescription id="chat-description">
+              <DialogDescription id={dialogDescriptionId}>
                 Your friendly guide to metadata improvements
               </DialogDescription>
             </DialogHeader>
 
-            <ScrollArea className="flex-1 p-6 pt-0">
+            <ScrollArea 
+              ref={scrollAreaRef}
+              className="flex-1 p-6 pt-0"
+            >
               <div className="space-y-4">
-                <AnimatePresence mode="popLayout">
+                <AnimatePresence mode="sync">
                   {messages.map((message, index) => (
                     <motion.div
                       key={`${message.timestamp.getTime()}-${index}`}
@@ -143,6 +191,7 @@ export function DataWellnessCompanion() {
                     size="sm"
                     onClick={() => handleSendMessage(response)}
                     className="flex-shrink-0"
+                    disabled={isTyping}
                   >
                     {response}
                   </Button>
