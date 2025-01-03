@@ -1,11 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from "@/components/ui/toggle-group";
-import { useQuery } from "@tanstack/react-query";
 import ReactFlowLineage from "./ReactFlowLineage";
-import D3LineageGraph from "./D3LineageGraph";
 
 interface LineageGraphProps {
   dataProductId: number | null;
@@ -28,24 +22,10 @@ interface LineageData {
 }
 
 export default function LineageGraph({ dataProductId }: LineageGraphProps) {
-  const [visualizationType, setVisualizationType] = useState<string>("reactflow"); 
-  const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
-
   const { data: lineageData, isLoading } = useQuery<LineageData>({
-    queryKey: [`/api/lineage?dataProductId=${dataProductId}${selectedVersion ? `&version=${selectedVersion}` : ''}`],
+    queryKey: [`/api/lineage?dataProductId=${dataProductId}`],
     enabled: dataProductId !== null,
   });
-
-  // Set initial version when data is loaded
-  useEffect(() => {
-    if (lineageData?.version && !selectedVersion) {
-      setSelectedVersion(lineageData.version);
-    }
-  }, [lineageData?.version, selectedVersion]);
-
-  const handleVersionChange = (version: number) => {
-    setSelectedVersion(version);
-  };
 
   return (
     <div className="space-y-4">
@@ -69,54 +49,13 @@ export default function LineageGraph({ dataProductId }: LineageGraphProps) {
             </div>
           </div>
         </div>
-
-        {/* Visualization Toggle - Reordered buttons */}
-        <div className="flex items-center gap-2 ml-auto">
-          <span className="text-sm font-medium">View:</span>
-          <ToggleGroup
-            type="single"
-            value={visualizationType}
-            onValueChange={(value) => {
-              if (value) setVisualizationType(value);
-            }}
-            aria-label="Visualization type"
-          >
-            <ToggleGroupItem value="reactflow" aria-label="Advanced visualization">
-              Advanced
-            </ToggleGroupItem>
-            <ToggleGroupItem value="d3" aria-label="Simple visualization">
-              Simple
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </div>
       </div>
 
-      {visualizationType === "reactflow" ? (
-        <ReactFlowLineage 
-          dataProductId={dataProductId} 
-          lineageData={lineageData || null}
-          isLoading={isLoading}
-        />
-      ) : (
-        <D3LineageGraph 
-          dataProductId={dataProductId}
-          selectedVersion={selectedVersion}
-          onVersionChange={handleVersionChange}
-        />
-      )}
+      <ReactFlowLineage 
+        dataProductId={dataProductId} 
+        lineageData={lineageData || null}
+        isLoading={isLoading}
+      />
     </div>
   );
-}
-
-function getNodeColor(type: string): string {
-  switch (type) {
-    case "source":
-      return "#4CAF50";
-    case "transformation":
-      return "#2196F3";
-    case "target":
-      return "#F44336";
-    default:
-      return "#9E9E9E";
-  }
 }
