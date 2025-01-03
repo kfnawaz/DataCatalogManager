@@ -158,8 +158,8 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
     if (!lineageData) return;
 
     // Calculate layout positions
-    const HORIZONTAL_SPACING = 250; // Increased spacing
-    const VERTICAL_SPACING = 120; // Increased spacing
+    const HORIZONTAL_SPACING = 250;
+    const VERTICAL_SPACING = 120;
     const INITIAL_X = 50;
     const INITIAL_Y = 50;
 
@@ -168,7 +168,7 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
     const transformNodes = lineageData.nodes.filter(n => n.type === 'transformation');
     const targetNodes = lineageData.nodes.filter(n => n.type === 'target');
 
-    // Create nodes with positions and guaranteed unique IDs
+    // Create nodes with positions
     const flowNodes: Node[] = [
       ...sourceNodes.map((node, i) => ({
         id: `${node.id}-${node.type}`,
@@ -211,8 +211,8 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
       })),
     ];
 
-    // Create edges with unique IDs and improved styling
-    const flowEdges: Edge[] = lineageData.links.map((link) => {
+    // Create edges
+    const flowEdges = lineageData.links.map((link) => {
       const sourceId = `${link.source}-${lineageData.nodes.find(n => n.id === link.source)?.type}`;
       const targetId = `${link.target}-${lineageData.nodes.find(n => n.id === link.target)?.type}`;
 
@@ -220,21 +220,14 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
         id: generateEdgeId(sourceId, targetId),
         source: sourceId,
         target: targetId,
+        type: 'smoothstep',
         animated: true,
         label: link.transformationLogic,
         labelStyle: { fill: '#666', fontWeight: 500 },
-        style: { 
+        style: {
           stroke: '#666',
           strokeWidth: 2,
         },
-        type: 'smoothstep', // Use smoothstep for curved edges
-        markerEnd: {
-          type: 'arrowclosed',
-          color: '#666',
-          width: 20,
-          height: 20,
-        },
-        data: link.metadata,
       };
     });
 
@@ -265,11 +258,6 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
           fitView
           proOptions={{ hideAttribution: true }}
           className="bg-background"
-          defaultEdgeOptions={{
-            type: 'smoothstep',
-            animated: true,
-            style: { stroke: '#666', strokeWidth: 2 },
-          }}
         >
           <Background />
           <Controls />
