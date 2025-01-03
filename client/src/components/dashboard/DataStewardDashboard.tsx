@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { Award, Target, TrendingUp, Users, ChevronUp, ChevronDown } from "lucide-react";
 import { StewardshipTutorial } from "@/components/onboarding/StewardshipTutorial";
+import { ContextualHelp } from "@/components/ui/contextual-help";
 
 interface StewardshipMetrics {
   totalComments: number;
@@ -107,10 +108,22 @@ export default function DataStewardDashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card data-tutorial="quality-impact">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <Award className="h-4 w-4" />
-              Quality Impact Score
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <Award className="h-4 w-4" />
+                Quality Impact Score
+              </CardTitle>
+              <ContextualHelp
+                title="Quality Impact Score"
+                content="Track and improve the quality of data products through systematic improvements and validations."
+                practices={[
+                  "Regularly audit metadata completeness and accuracy",
+                  "Implement automated data quality checks",
+                  "Document data quality standards and thresholds",
+                  "Monitor and address data quality issues promptly"
+                ]}
+              />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
@@ -130,10 +143,22 @@ export default function DataStewardDashboard() {
 
         <Card data-tutorial="engagement">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <TrendingUp className="h-4 w-4" />
-              Engagement Score
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <TrendingUp className="h-4 w-4" />
+                Engagement Score
+              </CardTitle>
+              <ContextualHelp
+                title="Community Engagement"
+                content="Build a collaborative data culture through active participation and knowledge sharing."
+                practices={[
+                  "Actively respond to data usage queries",
+                  "Share data governance insights",
+                  "Organize data stewardship workshops",
+                  "Create comprehensive documentation"
+                ]}
+              />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
@@ -153,10 +178,22 @@ export default function DataStewardDashboard() {
 
         <Card data-tutorial="level">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <Target className="h-4 w-4" />
-              Stewardship Level
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <Target className="h-4 w-4" />
+                Stewardship Level
+              </CardTitle>
+              <ContextualHelp
+                title="Stewardship Progress"
+                content="Track your growth as a data steward and unlock new capabilities."
+                practices={[
+                  "Set regular data quality goals",
+                  "Participate in data governance initiatives",
+                  "Mentor other data stewards",
+                  "Contribute to best practices documentation"
+                ]}
+              />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold mb-2">Level {metrics.level}</div>
@@ -173,10 +210,22 @@ export default function DataStewardDashboard() {
 
         <Card data-tutorial="active-products">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <Users className="h-4 w-4" />
-              Active Products
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <Users className="h-4 w-4" />
+                Active Products
+              </CardTitle>
+              <ContextualHelp
+                title="Product Management"
+                content="Effectively manage and improve multiple data products."
+                practices={[
+                  "Prioritize critical data products",
+                  "Track product usage and impact",
+                  "Maintain clear ownership documentation",
+                  "Regular product quality assessments"
+                ]}
+              />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{metrics.dataProductsManaged}</div>
