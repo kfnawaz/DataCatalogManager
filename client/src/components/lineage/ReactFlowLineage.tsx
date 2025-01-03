@@ -2,12 +2,11 @@ import { useEffect } from 'react';
 import ReactFlow, {
   Background,
   Controls,
-  Edge,
   Handle,
-  Node,
   Position,
   useNodesState,
   useEdgesState,
+  MarkerType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from "@/components/ui/card";
@@ -84,17 +83,10 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; m
           boxShadow: '0 0 0 1px rgba(244, 67, 54, 0.2)',
         };
       default:
-        return {
-          ...baseStyle,
-          background: '#9E9E9E',
-          color: 'white',
-          borderColor: '#757575',
-          boxShadow: '0 0 0 1px rgba(158, 158, 158, 0.2)',
-        };
+        return baseStyle;
     }
   };
 
-  // Format metadata values with type safety
   const formatMetadataValue = (value: unknown): string => {
     if (typeof value === 'object' && value !== null) {
       return Object.entries(value)
@@ -142,18 +134,15 @@ const nodeTypes = {
   custom: LineageNodeComponent,
 };
 
-// Generate a unique edge ID using UUID-like timestamp
+// Generate a unique edge ID
 const generateEdgeId = (source: string, target: string): string => {
-  const timestamp = new Date().getTime();
-  const random = Math.floor(Math.random() * 1000);
-  return `edge-${source}-${target}-${timestamp}-${random}`;
+  return `edge-${source}-${target}`;
 };
 
 export default function ReactFlowLineage({ dataProductId, lineageData, isLoading }: ReactFlowLineageProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  // Transform data when it's loaded
   useEffect(() => {
     if (!lineageData) return;
 
@@ -163,20 +152,22 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
     const INITIAL_X = 50;
     const INITIAL_Y = 50;
 
-    // Deduplicate nodes by ID
-    const uniqueNodes = Array.from(
-      new Map(lineageData.nodes.map(node => [node.id, node])).values()
-    );
+    // Create a Map to deduplicate nodes
+    const uniqueNodesMap = new Map();
+    lineageData.nodes.forEach(node => {
+      uniqueNodesMap.set(node.id, node);
+    });
+    const uniqueNodes = Array.from(uniqueNodesMap.values());
 
-    // Group nodes by type to create layers
+    // Group nodes by type
     const sourceNodes = uniqueNodes.filter(n => n.type === 'source');
     const transformNodes = uniqueNodes.filter(n => n.type === 'transformation');
     const targetNodes = uniqueNodes.filter(n => n.type === 'target');
 
     // Create nodes with positions
-    const flowNodes: Node[] = [
+    const flowNodes = [
       ...sourceNodes.map((node, i) => ({
-        id: `${node.id}-${node.type}`,
+        id: node.id,
         type: 'custom',
         position: { 
           x: INITIAL_X, 
@@ -189,7 +180,7 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
         },
       })),
       ...transformNodes.map((node, i) => ({
-        id: `${node.id}-${node.type}`,
+        id: node.id,
         type: 'custom',
         position: { 
           x: INITIAL_X + HORIZONTAL_SPACING, 
@@ -202,7 +193,7 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
         },
       })),
       ...targetNodes.map((node, i) => ({
-        id: `${node.id}-${node.type}`,
+        id: node.id,
         type: 'custom',
         position: { 
           x: INITIAL_X + (HORIZONTAL_SPACING * 2), 
@@ -216,36 +207,33 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
       })),
     ];
 
-    // Deduplicate links based on source and target combination
-    const uniqueLinks = Array.from(
-      new Map(lineageData.links.map(link => [`${link.source}-${link.target}`, link])).values()
-    );
-
-    // Create edges with unique IDs
-    const flowEdges = uniqueLinks.map((link) => {
-      const sourceId = `${link.source}-${uniqueNodes.find(n => n.id === link.source)?.type}`;
-      const targetId = `${link.target}-${uniqueNodes.find(n => n.id === link.target)?.type}`;
-
-      return {
-        id: generateEdgeId(sourceId, targetId),
-        source: sourceId,
-        target: targetId,
-        type: 'smoothstep',
-        animated: true,
-        label: link.transformationLogic,
-        labelStyle: { fill: '#666', fontWeight: 500 },
-        style: {
-          stroke: '#666',
-          strokeWidth: 2,
-        },
-        markerEnd: {
-          type: 'arrowclosed',
-          color: '#666',
-          width: 20,
-          height: 20,
-        },
-      };
+    // Create a Map to deduplicate edges
+    const uniqueEdgesMap = new Map();
+    lineageData.links.forEach(link => {
+      const edgeKey = `${link.source}-${link.target}`;
+      uniqueEdgesMap.set(edgeKey, link);
     });
+
+    // Create edges from unique links
+    const flowEdges = Array.from(uniqueEdgesMap.values()).map(link => ({
+      id: generateEdgeId(link.source, link.target),
+      source: link.source,
+      target: link.target,
+      type: 'smoothstep',
+      animated: true,
+      label: link.transformationLogic,
+      labelStyle: { fill: '#666', fontWeight: 500 },
+      style: {
+        stroke: '#666',
+        strokeWidth: 2,
+      },
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        width: 20,
+        height: 20,
+        color: '#666',
+      },
+    }));
 
     setNodes(flowNodes);
     setEdges(flowEdges);
@@ -278,6 +266,12 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
             type: 'smoothstep',
             animated: true,
             style: { stroke: '#666', strokeWidth: 2 },
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              width: 20,
+              height: 20,
+              color: '#666',
+            },
           }}
         >
           <Background />

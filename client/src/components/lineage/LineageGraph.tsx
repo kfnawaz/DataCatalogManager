@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ReactFlowLineage from "./ReactFlowLineage";
 
 interface LineageGraphProps {
@@ -23,10 +24,19 @@ interface LineageData {
 }
 
 export default function LineageGraph({ dataProductId }: LineageGraphProps) {
+  const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
+
   const { data: lineageData, isLoading } = useQuery<LineageData>({
-    queryKey: [`/api/lineage?dataProductId=${dataProductId}`],
+    queryKey: [`/api/lineage?dataProductId=${dataProductId}${selectedVersion ? `&version=${selectedVersion}` : ''}`],
     enabled: dataProductId !== null,
   });
+
+  // Set initial version when data is loaded
+  useEffect(() => {
+    if (lineageData?.version && !selectedVersion) {
+      setSelectedVersion(lineageData.version);
+    }
+  }, [lineageData?.version, selectedVersion]);
 
   return (
     <div className="space-y-4">
@@ -50,6 +60,31 @@ export default function LineageGraph({ dataProductId }: LineageGraphProps) {
             </div>
           </div>
         </div>
+
+        {/* Version Selection */}
+        {lineageData?.versions && lineageData.versions.length > 0 && (
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="text-sm font-medium">Version:</span>
+            <Select
+              value={selectedVersion?.toString()}
+              onValueChange={(value) => setSelectedVersion(Number(value))}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select version" />
+              </SelectTrigger>
+              <SelectContent>
+                {lineageData.versions.map((v) => (
+                  <SelectItem
+                    key={`version-${v.version}-${v.timestamp}`}
+                    value={v.version.toString()}
+                  >
+                    Version {v.version} ({new Date(v.timestamp).toLocaleDateString()})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       <ReactFlowLineage 
