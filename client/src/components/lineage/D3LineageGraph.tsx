@@ -14,6 +14,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -43,12 +44,11 @@ interface LineageData {
   versions: { version: number; timestamp: string }[];
 }
 
-// Generate a unique key for select items
 const generateVersionKey = (version: number, timestamp: string): string => {
   return `version-${version}-${timestamp}`;
 };
 
-export default function D3LineageGraph({ 
+export default function D3LineageGraph({
   dataProductId,
   selectedVersion,
   onVersionChange
@@ -65,21 +65,18 @@ export default function D3LineageGraph({
   useEffect(() => {
     if (!lineageData || !svgRef.current) return;
 
-    // Set default version if not selected
     if (!selectedVersion && lineageData.version) {
       onVersionChange(lineageData.version);
     }
 
-    // Get container dimensions
     const container = svgRef.current.parentElement;
     if (!container) return;
 
     const width = container.clientWidth;
     const height = container.clientHeight;
     const nodeRadius = 25;
-    const padding = 50; // Add padding to prevent nodes from touching edges
+    const padding = 50;
 
-    // Clear previous graph
     d3.select(svgRef.current).selectAll("*").remove();
 
     const svg = d3
@@ -89,7 +86,6 @@ export default function D3LineageGraph({
       .attr("viewBox", [-padding, -padding, width + (2 * padding), height + (2 * padding)])
       .attr("preserveAspectRatio", "xMidYMid meet");
 
-    // Add zoom behavior with limits
     const zoom = d3.zoom()
       .scaleExtent([0.1, 2])
       .extent([[0, 0], [width, height]])
@@ -101,7 +97,6 @@ export default function D3LineageGraph({
 
     const g = svg.append("g");
 
-    // Define arrow marker
     svg.append("defs")
       .selectAll("marker")
       .data(["end-arrow"])
@@ -133,7 +128,6 @@ export default function D3LineageGraph({
       .force("x", d3.forceX(width / 2).strength(0.1))
       .force("y", d3.forceY(height / 2).strength(0.1));
 
-    // Draw curved edges
     const links = g
       .append("g")
       .selectAll("path")
@@ -145,7 +139,7 @@ export default function D3LineageGraph({
       .attr("stroke-width", 2)
       .attr("fill", "none")
       .attr("marker-end", "url(#end-arrow)")
-      .on("mouseover", function(event, d: any) {
+      .on("mouseover", function (event, d: any) {
         if (d.transformationLogic) {
           setTooltipContent(d.transformationLogic);
           setDialogOpen(true);
@@ -170,7 +164,6 @@ export default function D3LineageGraph({
           .on("end", dragended) as any
       );
 
-    // Add circles for nodes
     nodes
       .append("circle")
       .attr("r", nodeRadius)
@@ -178,7 +171,6 @@ export default function D3LineageGraph({
       .attr("stroke", "#fff")
       .attr("stroke-width", 2);
 
-    // Add text labels
     nodes
       .append("text")
       .text((d: Node) => d.label)
@@ -193,7 +185,6 @@ export default function D3LineageGraph({
         const dy = d.target.y - d.source.y;
         const dr = Math.sqrt(dx * dx + dy * dy);
 
-        // Calculate the point where the edge should stop before reaching the target node
         const offsetX = dx * (nodeRadius / dr);
         const offsetY = dy * (nodeRadius / dr);
 
@@ -253,8 +244,8 @@ export default function D3LineageGraph({
             </SelectTrigger>
             <SelectContent>
               {lineageData?.versions.map((v) => (
-                <SelectItem 
-                  key={generateVersionKey(v.version, v.timestamp)} 
+                <SelectItem
+                  key={generateVersionKey(v.version, v.timestamp)}
                   value={v.version.toString()}
                 >
                   Version {v.version} ({new Date(v.timestamp).toLocaleDateString()})
@@ -273,9 +264,11 @@ export default function D3LineageGraph({
           />
           {tooltipContent && (
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogContent>
+              <DialogContent className="sm:max-w-md">
                 <DialogTitle>Transformation Details</DialogTitle>
-                <p className="max-w-xs whitespace-pre-wrap">{tooltipContent}</p>
+                <DialogDescription className="mt-2 max-w-xs whitespace-pre-wrap">
+                  {tooltipContent}
+                </DialogDescription>
               </DialogContent>
             </Dialog>
           )}
