@@ -282,21 +282,25 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
             showInteractive={false}
           />
           <MiniMap 
-            nodeStrokeColor="#666"
+            nodeStrokeColor="hsl(var(--foreground))"
             nodeColor={node => {
               switch (node.data?.type) {
                 case 'source':
-                  return '#4CAF50';
+                  return 'hsl(142.1 76.2% 36.3%)'; // Darker green
                 case 'transformation':
-                  return '#2196F3';
+                  return 'hsl(217.2 91.2% 59.8%)'; // Darker blue
                 case 'target':
-                  return '#F44336';
+                  return 'hsl(0 84.2% 60.2%)'; // Darker red
                 default:
-                  return '#9E9E9E';
+                  return 'hsl(var(--muted))';
               }
             }}
-            maskColor="rgba(0, 0, 0, 0.1)"
-            className="bg-card border border-border shadow-sm !bottom-24"
+            maskColor="hsl(var(--background) / 0.8)"
+            style={{
+              backgroundColor: 'hsl(var(--card))',
+              border: '1px solid hsl(var(--border))',
+            }}
+            className="shadow-md !bottom-24"
             position="bottom-right"
           />
         </ReactFlow>
