@@ -55,7 +55,6 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; m
       border: '2px solid',
       borderRadius: '8px',
       minWidth: '180px',
-      background: 'var(--background)',
       transition: 'all 0.2s ease',
     };
 
@@ -63,26 +62,34 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; m
       case 'source':
         return {
           ...baseStyle,
-          borderColor: 'hsl(var(--success))',
-          boxShadow: '0 0 0 1px hsl(var(--success) / 0.2)',
+          background: '#4CAF50',
+          color: 'white',
+          borderColor: '#43A047',
+          boxShadow: '0 0 0 1px rgba(76, 175, 80, 0.2)',
         };
       case 'transformation':
         return {
           ...baseStyle,
-          borderColor: 'hsl(var(--primary))',
-          boxShadow: '0 0 0 1px hsl(var(--primary) / 0.2)',
+          background: '#2196F3',
+          color: 'white',
+          borderColor: '#1E88E5',
+          boxShadow: '0 0 0 1px rgba(33, 150, 243, 0.2)',
         };
       case 'target':
         return {
           ...baseStyle,
-          borderColor: 'hsl(var(--destructive))',
-          boxShadow: '0 0 0 1px hsl(var(--destructive) / 0.2)',
+          background: '#F44336',
+          color: 'white',
+          borderColor: '#E53935',
+          boxShadow: '0 0 0 1px rgba(244, 67, 54, 0.2)',
         };
       default:
         return {
           ...baseStyle,
-          borderColor: 'hsl(var(--muted))',
-          boxShadow: '0 0 0 1px hsl(var(--muted) / 0.2)',
+          background: '#9E9E9E',
+          color: 'white',
+          borderColor: '#757575',
+          boxShadow: '0 0 0 1px rgba(158, 158, 158, 0.2)',
         };
     }
   };
@@ -102,11 +109,11 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; m
       <Handle 
         type="target" 
         position={Position.Left} 
-        className="!bg-background !border-border" 
+        className="!bg-white !border-2 !border-current" 
       />
       <div className="text-center">
         <div className="font-medium mb-1">{data.label}</div>
-        <div className="text-xs text-muted-foreground">
+        <div className="text-xs text-white/80">
           {data.type.charAt(0).toUpperCase() + data.type.slice(1)}
         </div>
         {data.metadata && (
@@ -125,7 +132,7 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; m
       <Handle 
         type="source" 
         position={Position.Right} 
-        className="!bg-background !border-border" 
+        className="!bg-white !border-2 !border-current" 
       />
     </div>
   );
@@ -151,8 +158,8 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
     if (!lineageData) return;
 
     // Calculate layout positions
-    const HORIZONTAL_SPACING = 200;
-    const VERTICAL_SPACING = 100;
+    const HORIZONTAL_SPACING = 250; // Increased spacing
+    const VERTICAL_SPACING = 120; // Increased spacing
     const INITIAL_X = 50;
     const INITIAL_Y = 50;
 
@@ -204,7 +211,7 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
       })),
     ];
 
-    // Create edges with unique IDs
+    // Create edges with unique IDs and improved styling
     const flowEdges: Edge[] = lineageData.links.map((link) => {
       const sourceId = `${link.source}-${lineageData.nodes.find(n => n.id === link.source)?.type}`;
       const targetId = `${link.target}-${lineageData.nodes.find(n => n.id === link.target)?.type}`;
@@ -215,8 +222,18 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
         target: targetId,
         animated: true,
         label: link.transformationLogic,
-        style: { stroke: '#666' },
-        type: 'smoothstep',
+        labelStyle: { fill: '#666', fontWeight: 500 },
+        style: { 
+          stroke: '#666',
+          strokeWidth: 2,
+        },
+        type: 'smoothstep', // Use smoothstep for curved edges
+        markerEnd: {
+          type: 'arrowclosed',
+          color: '#666',
+          width: 20,
+          height: 20,
+        },
         data: link.metadata,
       };
     });
@@ -248,6 +265,11 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
           fitView
           proOptions={{ hideAttribution: true }}
           className="bg-background"
+          defaultEdgeOptions={{
+            type: 'smoothstep',
+            animated: true,
+            style: { stroke: '#666', strokeWidth: 2 },
+          }}
         >
           <Background />
           <Controls />
