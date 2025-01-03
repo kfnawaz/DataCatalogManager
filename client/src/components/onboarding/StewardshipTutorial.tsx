@@ -84,10 +84,10 @@ export function StewardshipTutorial({ onComplete }: StewardshipTutorialProps) {
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 20 }}
-        className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4"
+        exit={{ opacity: 0, y: -20 }}
+        className="w-full max-w-md"
       >
         <Card className="relative shadow-lg border-primary/20">
           <CardContent className="p-6">

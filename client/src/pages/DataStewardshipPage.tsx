@@ -80,7 +80,7 @@ export default function DataStewardshipPage() {
 
   if (isLoading || !metrics) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Data Stewardship Dashboard</h1>
           <Button
@@ -112,13 +112,11 @@ export default function DataStewardshipPage() {
   }
 
   const levelProgress = (metrics.reputationScore % 100);
-
   const qualityTrend = {
     value: ((metrics.qualityImprovements / Math.max(1, metrics.dataProductsManaged)) * 100),
     change: 14.5,
     isPositive: true
   };
-
   const engagementTrend = {
     value: ((metrics.helpfulComments / Math.max(1, metrics.totalComments)) * 100),
     change: 8.3,
@@ -126,7 +124,7 @@ export default function DataStewardshipPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Data Stewardship Dashboard</h1>
         <Button
@@ -363,7 +361,7 @@ export default function DataStewardshipPage() {
         </Card>
 
         {showTutorial && (
-          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50">
+          <div className="fixed top-4 right-4 z-50">
             <StewardshipTutorial
               onComplete={() => {
                 setShowTutorial(false);
