@@ -11,6 +11,7 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
+import { DialogTitle } from "@/components/ui/dialog";
 
 interface SearchBarProps {
   onSelect: (id: number) => void;
@@ -126,7 +127,12 @@ export default function SearchBar({ onSelect, initialValue, className }: SearchB
       <CommandDialog 
         open={open} 
         onOpenChange={setOpen}
+        aria-describedby="search-description"
       >
+        <DialogTitle className="sr-only">Search Data Products</DialogTitle>
+        <div id="search-description" className="sr-only">
+          Search through available data products by name, description, domain, owner, or tags
+        </div>
         <CommandInput 
           placeholder="Type to search data products..." 
           value={search}
