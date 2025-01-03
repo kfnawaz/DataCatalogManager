@@ -72,7 +72,6 @@ export function DataWellnessCompanion() {
         },
         body: JSON.stringify({
           message: content,
-          // You can optionally add dataProductId here if you're viewing a specific product
         }),
       });
 
@@ -101,106 +100,97 @@ export function DataWellnessCompanion() {
     }
   };
 
-  const dialogDescriptionId = "chat-description";
-
   return (
-    <>
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        className="fixed bottom-4 right-4 z-50"
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button
+          size="lg"
+          className="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-shadow duration-200 flex items-center justify-center gap-2"
+          aria-label="Open Data Wellness Companion"
+        >
+          <Bot className="h-6 w-6" />
+          <span className="sr-only">Chat with Dana</span>
+        </Button>
+      </DialogTrigger>
+      <DialogContent 
+        className="sm:max-w-[400px] h-[600px] flex flex-col p-0"
+        aria-describedby="chat-description"
       >
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
-            <Button
-              size="icon"
-              className="h-12 w-12 rounded-full shadow-lg"
-              aria-label="Open Data Wellness Companion"
-            >
-              <Bot className="h-6 w-6" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent 
-            className="sm:max-w-[400px] h-[600px] flex flex-col p-0"
-            aria-describedby={dialogDescriptionId}
-          >
-            <DialogHeader className="p-6 pb-4">
-              <DialogTitle className="flex items-center gap-2">
-                <Bot className="h-5 w-5" />
-                Data Wellness Companion
-              </DialogTitle>
-              <DialogDescription id={dialogDescriptionId}>
-                Your friendly guide to metadata improvements
-              </DialogDescription>
-            </DialogHeader>
+        <DialogHeader className="p-6 pb-4">
+          <DialogTitle className="flex items-center gap-2">
+            <Bot className="h-5 w-5" />
+            Data Wellness Companion
+          </DialogTitle>
+          <DialogDescription id="chat-description">
+            Your friendly guide to metadata improvements
+          </DialogDescription>
+        </DialogHeader>
 
-            <ScrollArea 
-              ref={scrollAreaRef}
-              className="flex-1 p-6 pt-0"
-            >
-              <div className="space-y-4">
-                <AnimatePresence mode="sync">
-                  {messages.map((message, index) => (
-                    <motion.div
-                      key={`${message.timestamp.getTime()}-${index}`}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      className={cn(
-                        "flex gap-2",
-                        message.type === 'user' ? 'justify-end' : 'justify-start'
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "rounded-lg p-3 max-w-[80%]",
-                          message.type === 'user'
-                            ? 'bg-primary text-primary-foreground ml-auto'
-                            : 'bg-muted'
-                        )}
-                      >
-                        {message.content}
-                      </div>
-                    </motion.div>
-                  ))}
-                  {isTyping && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex gap-2"
-                    >
-                      <div className="bg-muted rounded-lg p-3">
-                        <div className="flex gap-1">
-                          <span className="w-2 h-2 bg-foreground/50 rounded-full animate-bounce" />
-                          <span className="w-2 h-2 bg-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                          <span className="w-2 h-2 bg-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
-                        </div>
-                      </div>
-                    </motion.div>
+        <ScrollArea 
+          ref={scrollAreaRef}
+          className="flex-1 p-6 pt-0"
+        >
+          <div className="space-y-4">
+            <AnimatePresence mode="popLayout">
+              {messages.map((message, index) => (
+                <motion.div
+                  key={`${message.timestamp.getTime()}-${index}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className={cn(
+                    "flex gap-2",
+                    message.type === 'user' ? 'justify-end' : 'justify-start'
                   )}
-                </AnimatePresence>
-              </div>
-            </ScrollArea>
-
-            <div className="p-4 border-t">
-              <div className="flex flex-wrap gap-2">
-                {SUGGESTED_RESPONSES.map((response) => (
-                  <Button
-                    key={response}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSendMessage(response)}
-                    className="flex-shrink-0"
-                    disabled={isTyping}
+                >
+                  <div
+                    className={cn(
+                      "rounded-lg p-3 max-w-[80%]",
+                      message.type === 'user'
+                        ? 'bg-primary text-primary-foreground ml-auto'
+                        : 'bg-muted'
+                    )}
                   >
-                    {response}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </motion.div>
-    </>
+                    {message.content}
+                  </div>
+                </motion.div>
+              ))}
+              {isTyping && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex gap-2"
+                >
+                  <div className="bg-muted rounded-lg p-3">
+                    <div className="flex gap-1">
+                      <span className="w-2 h-2 bg-foreground/50 rounded-full animate-bounce" />
+                      <span className="w-2 h-2 bg-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                      <span className="w-2 h-2 bg-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </ScrollArea>
+
+        <div className="p-4 border-t">
+          <div className="flex flex-wrap gap-2">
+            {SUGGESTED_RESPONSES.map((response) => (
+              <Button
+                key={response}
+                variant="outline"
+                size="sm"
+                onClick={() => handleSendMessage(response)}
+                className="flex-shrink-0"
+                disabled={isTyping}
+              >
+                {response}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

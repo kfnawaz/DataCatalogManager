@@ -14,7 +14,10 @@ function App() {
         <Route path="/data-products" component={DataProductsPage} />
         <Route path="/metric-definitions" component={MetricDefinitionsPage} />
       </Switch>
-      <DataWellnessCompanion />
+      {/* Chat companion with increased visibility */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <DataWellnessCompanion />
+      </div>
     </div>
   );
 }
