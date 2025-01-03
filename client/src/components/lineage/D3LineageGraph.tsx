@@ -19,6 +19,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 interface D3LineageGraphProps {
   dataProductId: number | null;
+  selectedVersion: number | null;
+  onVersionChange: (version: number) => void;
 }
 
 interface Node {
@@ -41,9 +43,17 @@ interface LineageData {
   versions: { version: number; timestamp: string }[];
 }
 
-export default function D3LineageGraph({ dataProductId }: D3LineageGraphProps) {
+// Generate a unique key for select items
+const generateVersionKey = (version: number, timestamp: string): string => {
+  return `version-${version}-${timestamp}`;
+};
+
+export default function D3LineageGraph({ 
+  dataProductId,
+  selectedVersion,
+  onVersionChange
+}: D3LineageGraphProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
   const [tooltipContent, setTooltipContent] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -57,7 +67,7 @@ export default function D3LineageGraph({ dataProductId }: D3LineageGraphProps) {
 
     // Set default version if not selected
     if (!selectedVersion && lineageData.version) {
-      setSelectedVersion(lineageData.version);
+      onVersionChange(lineageData.version);
     }
 
     // Get container dimensions
@@ -236,14 +246,17 @@ export default function D3LineageGraph({ dataProductId }: D3LineageGraphProps) {
           <span className="text-sm font-medium">Version:</span>
           <Select
             value={selectedVersion?.toString()}
-            onValueChange={(value) => setSelectedVersion(Number(value))}
+            onValueChange={(value) => onVersionChange(Number(value))}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select version" />
             </SelectTrigger>
             <SelectContent>
               {lineageData?.versions.map((v) => (
-                <SelectItem key={v.version} value={v.version.toString()}>
+                <SelectItem 
+                  key={generateVersionKey(v.version, v.timestamp)} 
+                  value={v.version.toString()}
+                >
                   Version {v.version} ({new Date(v.timestamp).toLocaleDateString()})
                 </SelectItem>
               ))}

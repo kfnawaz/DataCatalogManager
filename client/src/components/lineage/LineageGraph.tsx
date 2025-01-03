@@ -43,6 +43,10 @@ export default function LineageGraph({ dataProductId }: LineageGraphProps) {
     }
   }, [lineageData?.version, selectedVersion]);
 
+  const handleVersionChange = (version: number) => {
+    setSelectedVersion(version);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-8">
@@ -90,14 +94,14 @@ export default function LineageGraph({ dataProductId }: LineageGraphProps) {
       {visualizationType === "reactflow" ? (
         <ReactFlowLineage 
           dataProductId={dataProductId} 
-          lineageData={lineageData} 
+          lineageData={lineageData || null}
           isLoading={isLoading}
         />
       ) : (
         <D3LineageGraph 
-          dataProductId={dataProductId} 
+          dataProductId={dataProductId}
           selectedVersion={selectedVersion}
-          onVersionChange={setSelectedVersion}
+          onVersionChange={handleVersionChange}
         />
       )}
     </div>
