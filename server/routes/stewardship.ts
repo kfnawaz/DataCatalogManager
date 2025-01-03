@@ -13,6 +13,7 @@ import {
 interface AuthenticatedRequest extends Request {
   user?: {
     username: string;
+    displayName: string;
   };
 }
 
@@ -64,17 +65,18 @@ router.get("/api/stewardship/metrics", async (req: AuthenticatedRequest, res) =>
       .from(dataProducts)
       .where(eq(dataProducts.owner, username));
 
-    // Calculate quality improvements
+    // Calculate quality improvements using a subquery instead of window function in WHERE
     const qualityImprovements = await db
       .select({
-        count: sql<number>`count(distinct ${qualityMetrics.dataProductId})`.mapWith(Number)
+        count: sql<number>`count(distinct q1.data_product_id)`.mapWith(Number)
       })
-      .from(qualityMetrics)
-      .where(
-        and(
-          sql`${qualityMetrics.value} > lag(${qualityMetrics.value}) over (partition by ${qualityMetrics.dataProductId} order by ${qualityMetrics.timestamp})`
-        )
-      );
+      .from(sql`
+        (
+          SELECT q1.*,
+                 lag(value) over (partition by data_product_id order by timestamp) as prev_value
+          FROM quality_metrics q1
+        ) as q1`)
+      .where(sql`q1.value > q1.prev_value`);
 
     // Calculate quality trend
     const qualityTrend = await db
