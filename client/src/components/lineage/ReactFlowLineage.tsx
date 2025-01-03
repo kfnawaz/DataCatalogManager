@@ -266,16 +266,19 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
           defaultEdgeOptions={{
             type: 'smoothstep',
             animated: true,
-            style: { stroke: '#666', strokeWidth: 2 },
+            style: { stroke: 'hsl(var(--muted-foreground))', strokeWidth: 2 },
             markerEnd: {
               type: MarkerType.ArrowClosed,
               width: 20,
               height: 20,
-              color: '#666',
+              color: 'hsl(var(--muted-foreground))',
             },
           }}
         >
-          <Background />
+          <Background 
+            color="hsl(var(--muted-foreground))"
+            className="opacity-5"
+          />
           <Controls 
             className="bg-card border border-border shadow-sm"
             position="bottom-right"
@@ -286,11 +289,11 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
             nodeColor={node => {
               switch (node.data?.type) {
                 case 'source':
-                  return 'hsl(142.1 76.2% 36.3%)'; // Darker green
+                  return 'hsl(142.1 76.2% 36.3%)';
                 case 'transformation':
-                  return 'hsl(217.2 91.2% 59.8%)'; // Darker blue
+                  return 'hsl(217.2 91.2% 59.8%)';
                 case 'target':
-                  return 'hsl(0 84.2% 60.2%)'; // Darker red
+                  return 'hsl(0 84.2% 60.2%)';
                 default:
                   return 'hsl(var(--muted))';
               }
@@ -299,6 +302,7 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
             style={{
               backgroundColor: 'hsl(var(--card))',
               border: '1px solid hsl(var(--border))',
+              borderRadius: 'var(--radius)',
             }}
             className="shadow-md !bottom-24"
             position="bottom-right"
