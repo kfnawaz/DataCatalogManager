@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bot, MessagesSquare, X } from 'lucide-react';
+import { Bot, MessagesSquare, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -37,7 +38,9 @@ export function DataWellnessCompanion() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [isTyping, setIsTyping] = useState(false);
+  const [inputValue, setInputValue] = useState('');
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const scrollToBottom = () => {
@@ -53,7 +56,16 @@ export function DataWellnessCompanion() {
     scrollToBottom();
   }, [messages, isTyping]);
 
+  useEffect(() => {
+    // Focus input when dialog opens
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isOpen]);
+
   const handleSendMessage = async (content: string) => {
+    if (!content.trim()) return;
+
     try {
       // Add user message
       setMessages(prev => [...prev, {
@@ -63,6 +75,7 @@ export function DataWellnessCompanion() {
       }]);
 
       setIsTyping(true);
+      setInputValue(''); // Clear input after sending
 
       // Send message to API
       const response = await fetch('/api/wellness/chat', {
@@ -97,6 +110,13 @@ export function DataWellnessCompanion() {
       });
     } finally {
       setIsTyping(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage(inputValue);
     }
   };
 
@@ -174,7 +194,8 @@ export function DataWellnessCompanion() {
           </div>
         </ScrollArea>
 
-        <div className="p-4 border-t">
+        <div className="p-4 border-t space-y-4">
+          {/* Quick responses */}
           <div className="flex flex-wrap gap-2">
             {SUGGESTED_RESPONSES.map((response) => (
               <Button
@@ -188,6 +209,27 @@ export function DataWellnessCompanion() {
                 {response}
               </Button>
             ))}
+          </div>
+
+          {/* Custom message input */}
+          <div className="flex gap-2">
+            <Input
+              ref={inputRef}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Type your message..."
+              className="flex-1"
+              disabled={isTyping}
+            />
+            <Button
+              onClick={() => handleSendMessage(inputValue)}
+              disabled={isTyping || !inputValue.trim()}
+              size="icon"
+              aria-label="Send message"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </DialogContent>
