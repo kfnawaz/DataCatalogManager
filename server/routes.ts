@@ -999,139 +999,31 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Message is required" });
       }
 
-      // Get data product metadata if ID is provided
-      let productMetadata = null;
-      let qualityMetrics = null;
+      const systemMessage = `You are Dana, the Data Wellness Companion - a friendly AI assistant specializing in metadata management and data quality improvement. 
+Your personality is helpful, encouraging, and playful. You provide practical advice for improving data quality and metadata management practices.
+Keep responses concise and engaging, using emojis occasionally to maintain a friendly tone.`;
 
-      if (dataProductId) {
-        const [product] = await db
-          .select()
-          .from(dataProducts)
-          .where(eq(dataProducts.id, dataProductId))
-          .limit(1);
-
-        if (product) {
-          productMetadata = {
-            name: product.name,
-            description: product.description,
-            owner: product.owner,
-            domain: product.domain,
-            schema: product.schema,
-            tags: product.tags,
-            sla: product.sla,
-            updateFrequency: product.updateFrequency,
-          };
-
-          // Get latest quality metrics
-          const metrics = await db
-            .select({
-              value: qualityMetrics.value,
-              type: metricDefinitions.type
-            })
-            .from(qualityMetrics)
-            .innerJoin(
-              metricDefinitions,
-              eq(qualityMetrics.metricDefinitionId, metricDefinitions.id)
-            )
-            .where(eq(qualityMetrics.dataProductId, dataProductId))
-            .orderBy(desc(qualityMetrics.timestamp))
-            .limit(3);
-
-          if (metrics.length > 0) {
-            qualityMetrics = metrics.reduce((acc, m) => ({
-              ...acc,
-              [m.type]: m.value
-            }), {});
-          }
-        }
-      }
-
-      // Prepare context for the AI
-      const systemPrompt = `You are a friendly and playful Data Wellness Companion named Dana. Your goal is to help users improve their metadata quality in a fun and engaging way.
-
-      Current context:
-      ${productMetadata ? `
-      Data Product: ${productMetadata.name}
-      Description: ${productMetadata.description}
-      Domain: ${productMetadata.domain}
-      Owner: ${productMetadata.owner}
-      Update Frequency: ${productMetadata.updateFrequency}
-      Quality Metrics: ${JSON.stringify(qualityMetrics)}
-      ` : 'No specific data product context provided'}
-
-      Respond in a friendly, encouraging tone. Provide specific, actionable recommendations for improving metadata quality. Use emojis and casual language, but maintain professionalism.
-      If quality metrics are low, be tactful in suggesting improvements.`;
-
-      // Call Perplexity API
-      const response = await fetch('https://api.perplexity.ai/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: "llama-3.1-sonar-small-128k-online",
-          messages: [
-            {
-              role: "system",
-              content: systemPrompt
-            },
-            {
-              role: "user",
-              content: message
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 300,
-          frequency_penalty: 1,
-          presence_penalty: 0
-        })
+      // Use OpenAI API to get chatbot response
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          { role: "system", content: systemMessage },
+          { role: "user", content: message }
+        ],
+        temperature: 0.7,
+        max_tokens: 250
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || 'Failed to get response from AI service');
-      }
-
-      const data = await response.json();
-      const aiResponse = data.choices[0]?.message?.content || 
-        "I'm having trouble thinking right now. Could you try asking me something else? 🤔";
+      const response = completion.choices[0]?.message?.content || "I'm having trouble understanding right now. Could you try rephrasing that?";
 
       // Track API usage
-      await trackApiUsage("/api/wellness/chat", 200, null, data.usage?.total_tokens);
+      await trackApiUsage("/api/wellness/chat", 200, null, completion.usage?.total_tokens);
 
-      res.json({
-        message: aiResponse,
-        context: {
-          productMetadata,
-          qualityMetrics
-        }
-      });
-    } catch (error: any) {
+      res.json({ message: response });
+    } catch (error) {
       console.error("Chatbot Error:", error);
-
-      // Handle specific API errors
-      if (error.status === 429 || (error.message && error.message.includes('rate'))) {
-        await trackApiUsage("/api/wellness/chat", 429, "RateLimit");
-        return res.status(429).json({
-          error: "I need a quick breather! Let's chat again in a moment. 😌",
-          details: "Rate limit reached"
-        });
-      }
-
-      if (error.status === 401 || error.message?.includes('auth')) {
-        await trackApiUsage("/api/wellness/chat", 401, "Authentication");
-        return res.status(401).json({
-          error: "I'm having trouble accessing my knowledge. Please let the team know! 🎯",
-          details: "Authentication error"
-        });
-      }
-
-      await trackApiUsage("/api/wellness/chat", 500, error.type || "Unknown");
-      res.status(500).json({
-        error: "Something unexpected happened. Let's try a different question! 🤔",
-        details: "Internal server error"
-      });
+      await trackApiUsage("/api/wellness/chat", 500, error.type);
+      res.status(500).json({ error: "Something unexpected happened. Please try again." });
     }
   });
 
