@@ -17,6 +17,7 @@ import { eq, desc, sql, and, inArray } from "drizzle-orm";
 import OpenAI from "openai";
 import { trackApiUsage, getApiUsageStats } from "./utils/apiTracker";
 import fetch from 'node-fetch';
+import stewardshipRouter from "./routes/stewardship";
 
 // Initialize OpenAI with API key
 const openai = new OpenAI({
@@ -24,6 +25,9 @@ const openai = new OpenAI({
 });
 
 export function registerRoutes(app: Express): Server {
+  // Register stewardship routes
+  app.use(stewardshipRouter);
+
   // Add usage stats endpoint
   app.get("/api/usage-stats", async (req, res) => {
     try {
