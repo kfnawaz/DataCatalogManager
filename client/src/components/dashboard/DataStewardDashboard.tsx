@@ -114,8 +114,7 @@ export default function DataStewardDashboard() {
   return (
     <>
       <div className="space-y-6 relative">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">Data Stewardship Dashboard</h1>
+        <div className="flex justify-end mb-4">
           <Button
             variant="outline"
             size="sm"
