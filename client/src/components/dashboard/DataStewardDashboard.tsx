@@ -66,7 +66,7 @@ export default function DataStewardDashboard() {
   }
 
   const levelProgress = (metrics.reputationScore % 100);
-  
+
   return (
     <div className="space-y-6">
       {/* Overview Cards */}
@@ -130,84 +130,86 @@ export default function DataStewardDashboard() {
       {/* Detailed Content */}
       <Card>
         <CardHeader>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <CardTitle>Detailed Metrics</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="achievements">Achievements</TabsTrigger>
               <TabsTrigger value="activity">Recent Activity</TabsTrigger>
             </TabsList>
-          </Tabs>
-        </CardHeader>
-        <CardContent>
-          <TabsContent value="overview">
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={metrics.qualityTrend}>
-                  <XAxis 
-                    dataKey="date"
-                    tickFormatter={(value) => new Date(value).toLocaleDateString()}
-                  />
-                  <YAxis />
-                  <Tooltip
-                    labelFormatter={(value) => new Date(value).toLocaleDateString()}
-                    formatter={(value: number) => [`${value}%`, 'Quality Score']}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="score"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </TabsContent>
 
-          <TabsContent value="achievements">
-            <div className="grid gap-4 md:grid-cols-2">
-              {metrics.badges.map((badge, index) => (
-                <Card key={index}>
-                  <CardHeader>
-                    <CardTitle className="text-sm font-medium flex items-center gap-2">
-                      <Award className="h-4 w-4 text-primary" />
-                      {badge.name}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {badge.description}
-                    </p>
-                    <Badge variant="secondary" className="text-xs">
-                      Earned on {new Date(badge.earnedAt).toLocaleDateString()}
-                    </Badge>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
+            <TabsContent value="overview" className="mt-4">
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={metrics.qualityTrend}>
+                    <XAxis 
+                      dataKey="date"
+                      tickFormatter={(value) => new Date(value).toLocaleDateString()}
+                    />
+                    <YAxis />
+                    <Tooltip
+                      labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                      formatter={(value: number) => [`${value}%`, 'Quality Score']}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="score"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </TabsContent>
 
-          <TabsContent value="activity">
-            <div className="space-y-4">
-              {metrics.recentActivities.map((activity, index) => (
-                <Card key={index}>
-                  <CardContent className="flex items-center justify-between py-4">
-                    <div>
-                      <p className="text-sm font-medium">{activity.description}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(activity.timestamp).toLocaleString()}
+            <TabsContent value="achievements" className="mt-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                {metrics.badges.map((badge, index) => (
+                  <Card key={index}>
+                    <CardHeader>
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <Award className="h-4 w-4 text-primary" />
+                        {badge.name}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {badge.description}
                       </p>
-                    </div>
-                    <Badge 
-                      variant={activity.impact > 50 ? "default" : "secondary"}
-                      className="ml-2"
-                    >
-                      +{activity.impact} points
-                    </Badge>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
+                      <Badge variant="secondary" className="text-xs">
+                        Earned on {new Date(badge.earnedAt).toLocaleDateString()}
+                      </Badge>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="activity" className="mt-4">
+              <div className="space-y-4">
+                {metrics.recentActivities.map((activity, index) => (
+                  <Card key={index}>
+                    <CardContent className="flex items-center justify-between py-4">
+                      <div>
+                        <p className="text-sm font-medium">{activity.description}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(activity.timestamp).toLocaleString()}
+                        </p>
+                      </div>
+                      <Badge 
+                        variant={activity.impact > 50 ? "default" : "secondary"}
+                        className="ml-2"
+                      >
+                        +{activity.impact} points
+                      </Badge>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
