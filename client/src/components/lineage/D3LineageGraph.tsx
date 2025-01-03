@@ -15,6 +15,7 @@ import {
   DialogContent,
   DialogTitle,
   DialogDescription,
+  DialogHeader,
 } from "@/components/ui/dialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -265,10 +266,15 @@ export default function D3LineageGraph({
           {tooltipContent && (
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogContent className="sm:max-w-md">
-                <DialogTitle>Transformation Details</DialogTitle>
-                <DialogDescription className="mt-2 max-w-xs whitespace-pre-wrap">
+                <DialogHeader>
+                  <DialogTitle>Transformation Logic Details</DialogTitle>
+                  <DialogDescription>
+                    This shows the transformation logic between connected nodes in the lineage graph.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="mt-4 text-sm text-muted-foreground whitespace-pre-wrap">
                   {tooltipContent}
-                </DialogDescription>
+                </div>
               </DialogContent>
             </Dialog>
           )}
