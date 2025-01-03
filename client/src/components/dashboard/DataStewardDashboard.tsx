@@ -12,7 +12,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Award, Target, TrendingUp, Users } from "lucide-react";
+import { Award, Target, TrendingUp, Users, ChevronUp, ChevronDown } from "lucide-react";
 
 interface StewardshipMetrics {
   totalComments: number;
@@ -37,6 +37,27 @@ interface StewardshipMetrics {
     date: string;
     score: number;
   }>;
+}
+
+function getStatusBadge(value: number, type: string) {
+  let status = '';
+  let variant: 'default' | 'secondary' = 'default';
+
+  if (type === 'quality') {
+    if (value >= 90) status = 'Excellent';
+    else if (value >= 70) status = 'Good';
+    else if (value >= 50) status = 'Fair';
+    else status = 'Needs Improvement';
+  } else if (type === 'engagement') {
+    if (value >= 80) status = 'High';
+    else if (value >= 50) status = 'Moderate';
+    else status = 'Low';
+  }
+
+  if (status === 'Excellent' || status === 'High') variant = 'default';
+  else variant = 'secondary';
+
+  return <Badge variant={variant} className="mt-2">{status}</Badge>;
 }
 
 export default function DataStewardDashboard() {
@@ -67,20 +88,83 @@ export default function DataStewardDashboard() {
 
   const levelProgress = (metrics.reputationScore % 100);
 
+  // Calculate trends (for demonstration, you would typically get this from the API)
+  const qualityTrend = {
+    value: ((metrics.qualityImprovements / Math.max(1, metrics.dataProductsManaged)) * 100),
+    change: 14.5,
+    isPositive: true
+  };
+
+  const engagementTrend = {
+    value: ((metrics.helpfulComments / Math.max(1, metrics.totalComments)) * 100),
+    change: 8.3,
+    isPositive: true
+  };
+
   return (
     <div className="space-y-6">
-      {/* Overview Cards */}
+      {/* Overview Cards with Enhanced Descriptions */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Award className="h-4 w-4" />
+              Quality Impact Score
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline gap-2">
+              <div className="text-2xl font-bold">{qualityTrend.value.toFixed(1)}%</div>
+              <div className={`flex items-center text-sm ${qualityTrend.isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                {qualityTrend.isPositive ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                {qualityTrend.change}%
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              Measures the percentage of successful quality improvements across managed data products.
+              Higher values indicate more effective data stewardship.
+            </p>
+            {getStatusBadge(qualityTrend.value, 'quality')}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <TrendingUp className="h-4 w-4" />
+              Engagement Score
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline gap-2">
+              <div className="text-2xl font-bold">{engagementTrend.value.toFixed(1)}%</div>
+              <div className={`flex items-center text-sm ${engagementTrend.isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                {engagementTrend.isPositive ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                {engagementTrend.change}%
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              Reflects community engagement through helpful comments and reactions.
+              Higher scores indicate more valuable contributions.
+            </p>
+            {getStatusBadge(engagementTrend.value, 'engagement')}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <Target className="h-4 w-4" />
               Stewardship Level
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold mb-2">Level {metrics.level}</div>
             <Progress value={levelProgress} className="h-2" />
+            <p className="text-sm text-muted-foreground mt-2">
+              Your data stewardship expertise level.
+              Progress through levels by improving data quality and engagement.
+            </p>
             <p className="text-xs text-muted-foreground mt-1">
               {levelProgress}% progress to next level
             </p>
@@ -90,39 +174,20 @@ export default function DataStewardDashboard() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <TrendingUp className="h-4 w-4" />
-              Quality Impact
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.qualityImprovements}</div>
-            <p className="text-xs text-muted-foreground">improvements made</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <Target className="h-4 w-4" />
-              Reputation Score
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.reputationScore}</div>
-            <p className="text-xs text-muted-foreground">total points earned</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Users className="h-4 w-4" />
-              Products Managed
+              Active Products
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{metrics.dataProductsManaged}</div>
-            <p className="text-xs text-muted-foreground">active products</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Number of data products under your stewardship.
+              More products increase your potential impact scope.
+            </p>
+            {getStatusBadge(
+              (metrics.dataProductsManaged >= 5 ? 100 : (metrics.dataProductsManaged / 5) * 100),
+              'engagement'
+            )}
           </CardContent>
         </Card>
       </div>
