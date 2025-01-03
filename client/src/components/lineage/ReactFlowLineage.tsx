@@ -11,6 +11,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ReactFlowLineageProps {
   dataProductId: number | null;
@@ -42,14 +43,36 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; m
     color: 'white',
   };
 
-  // Format metadata values
+  // Format metadata values with improved readability
   const formatMetadataValue = (value: any): string => {
+    if (Array.isArray(value)) {
+      return value.join(', ');
+    }
     if (typeof value === 'object' && value !== null) {
       return Object.entries(value)
         .map(([k, v]) => `${k}: ${v}`)
-        .join(', ');
+        .join('\n');
+    }
+    if (typeof value === 'boolean') {
+      return value ? 'Yes' : 'No';
+    }
+    if (value === null || value === undefined) {
+      return 'N/A';
     }
     return String(value);
+  };
+
+  // Format dates if present in metadata
+  const formatDate = (dateString: string): string => {
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    } catch {
+      return dateString;
+    }
   };
 
   return (
@@ -58,13 +81,19 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; m
       <div>
         {data.label}
         {data.metadata && (
-          <div className="absolute invisible group-hover:visible bg-black/80 text-white p-2 rounded-md -top-12 left-1/2 transform -translate-x-1/2 w-48 z-10">
-            <div className="text-xs">
+          <div className="absolute invisible group-hover:visible bg-black/90 text-white p-3 rounded-lg -top-4 left-1/2 transform -translate-x-1/2 -translate-y-full w-64 z-10 shadow-lg">
+            <div className="text-xs space-y-2">
               {Object.entries(data.metadata).map(([key, value]) => (
-                <div key={key} className="mb-1">
-                  <span className="font-semibold">{key}:</span> {formatMetadataValue(value)}
+                <div key={key} className="border-b border-gray-700 pb-1 last:border-0">
+                  <span className="font-semibold text-gray-300">{key}:</span>
+                  <div className="mt-0.5 text-gray-100 whitespace-pre-line">
+                    {key.toLowerCase().includes('date') ? formatDate(String(value)) : formatMetadataValue(value)}
+                  </div>
                 </div>
               ))}
+            </div>
+            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2">
+              <div className="border-8 border-transparent border-t-black/90" />
             </div>
           </div>
         )}
@@ -140,7 +169,7 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
       })),
     ];
 
-    // Create edges
+    // Create edges with unique IDs
     const flowEdges: Edge[] = lineageData.links.map((link, index) => ({
       id: `edge-${link.source}-${link.target}-${index}`,
       source: link.source,
@@ -158,13 +187,37 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
   return (
     <Card className="w-full h-[600px]">
       {isLoading ? (
-        <div className="w-full h-full flex items-center justify-center">
-          <div className="space-y-4 w-full p-8">
-            <div className="h-8 bg-gray-200 rounded-md animate-pulse" />
-            <div className="h-[500px] bg-gray-100 rounded-lg animate-pulse">
-              <div className="h-full w-full flex items-center justify-center text-gray-400">
-                Loading lineage data...
-              </div>
+        <div className="w-full h-full flex items-center justify-center p-8">
+          <div className="space-y-6 w-full max-w-3xl">
+            {/* Header skeleton */}
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-8 w-24" />
+            </div>
+
+            {/* Nodes skeleton */}
+            <div className="grid grid-cols-3 gap-8">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="space-y-4">
+                  {[...Array(2)].map((_, j) => (
+                    <div key={j} className="relative">
+                      <Skeleton className="h-16 w-full rounded-lg" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_2s_infinite]" />
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+
+            {/* Edge skeleton lines */}
+            <div className="relative h-32">
+              {[...Array(4)].map((_, i) => (
+                <Skeleton
+                  key={i}
+                  className="absolute h-0.5 w-1/3 transform rotate-45 origin-left"
+                  style={{ top: `${i * 25}%`, left: '33%' }}
+                />
+              ))}
             </div>
           </div>
         </div>
