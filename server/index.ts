@@ -2,10 +2,14 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { errorTracer } from "./utils/errorTracer";
+import { authMiddleware } from "./middleware/auth";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Add auth middleware for all routes
+app.use(authMiddleware);
 
 // Simple request logging middleware
 app.use((req, res, next) => {
