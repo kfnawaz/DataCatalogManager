@@ -17,6 +17,7 @@ export const dataProducts = pgTable("data_products", {
   name: text("name").notNull(),
   description: text("description"),
   owner: text("owner").notNull(),
+  domain: text("domain").notNull(), // Added domain field
   schema: jsonb("schema").notNull(),
   tags: text("tags").array(),
   sla: text("sla"),

@@ -7,6 +7,7 @@ const productsToSeed = [
     name: "VaR Report Data Product",
     description: "Consumer-aligned data product for Value at Risk reporting",
     owner: "Risk Management Team",
+    domain: "Risk Analytics",
     schema: {
       columns: [
         {
@@ -39,6 +40,7 @@ const productsToSeed = [
     name: "Portfolio Risk Metrics",
     description: "Aggregated data product containing portfolio-level risk metrics",
     owner: "Risk Analytics Team",
+    domain: "Risk Analytics",
     schema: {
       columns: [
         {
@@ -71,6 +73,7 @@ const productsToSeed = [
     name: "Stress Test Scenarios",
     description: "Stress testing and scenario data for risk analysis",
     owner: "Scenario Analysis Team",
+    domain: "Risk Scenarios",
     schema: {
       columns: [
         {
@@ -98,6 +101,7 @@ const productsToSeed = [
     name: "Market Risk Factors",
     description: "Market data and risk factor information",
     owner: "Market Data Team",
+    domain: "Market Data",
     schema: {
       columns: [
         {
@@ -125,6 +129,7 @@ const productsToSeed = [
     name: "Counterparty Risk Metrics",
     description: "Counterparty risk assessment and metrics",
     owner: "Credit Risk Team",
+    domain: "Credit Risk",
     schema: {
       columns: [
         {
@@ -152,6 +157,7 @@ const productsToSeed = [
     name: "Regulatory Metrics",
     description: "Metrics required for regulatory reporting",
     owner: "Regulatory Reporting Team",
+    domain: "Regulatory",
     schema: {
       columns: [
         {
