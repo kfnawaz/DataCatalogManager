@@ -285,26 +285,27 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
             showInteractive={false}
           />
           <MiniMap 
-            nodeStrokeColor="hsl(var(--foreground))"
+            nodeStrokeColor="hsl(var(--muted-foreground))"
             nodeColor={node => {
               switch (node.data?.type) {
-                case 'source':
-                  return 'hsl(142.1 76.2% 36.3%)';
-                case 'transformation':
-                  return 'hsl(217.2 91.2% 59.8%)';
-                case 'target':
-                  return 'hsl(0 84.2% 60.2%)';
+                case "source":
+                  return "hsl(142.1 70.6% 45.3%)"; // Darker green for better contrast
+                case "transformation":
+                  return "hsl(217.2 91.2% 59.8%)"; // Adjusted blue
+                case "target":
+                  return "hsl(0 84.2% 60.2%)"; // Adjusted red
                 default:
-                  return 'hsl(var(--muted))';
+                  return "hsl(var(--muted))";
               }
             }}
-            maskColor="hsl(var(--background) / 0.8)"
+            maskColor="hsl(var(--background) / 0.7)" // Adjusted opacity for better contrast
             style={{
-              backgroundColor: 'hsl(var(--card))',
-              border: '1px solid hsl(var(--border))',
-              borderRadius: 'var(--radius)',
+              backgroundColor: "hsl(var(--card) / 0.8)", // Slightly transparent background
+              border: "1px solid hsl(var(--border))",
+              borderRadius: "var(--radius)",
+              boxShadow: "0 2px 4px hsl(var(--background) / 0.1)", // Subtle shadow
             }}
-            className="shadow-md !bottom-24"
+            className="!bottom-24 transition-colors duration-200" // Added transition for theme changes
             position="bottom-right"
           />
         </ReactFlow>
