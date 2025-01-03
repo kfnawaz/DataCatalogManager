@@ -17,6 +17,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+import Papa from 'papaparse';
 
 interface LineageMetadata {
   description?: string;
@@ -160,6 +165,96 @@ const generateEdgeId = (source: string, target: string): string => {
   return `edge-${source}-${target}`;
 };
 
+const exportToPDF = (nodes: any[], edges: any[], dataProductId: number | null) => {
+  const doc = new jsPDF();
+  const title = `Data Lineage - Product ID: ${dataProductId}`;
+
+  // Add title
+  doc.setFontSize(16);
+  doc.text(title, 14, 15);
+  doc.setFontSize(11);
+  doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 25);
+
+  // Add nodes table
+  const nodeRows = nodes.map(node => [
+    node.id,
+    node.data.label,
+    node.data.type,
+    node.data.metadata ? JSON.stringify(node.data.metadata) : ''
+  ]);
+
+  autoTable(doc, {
+    startY: 35,
+    head: [['ID', 'Label', 'Type', 'Metadata']],
+    body: nodeRows,
+    headStyles: { fillColor: [41, 128, 185] },
+    theme: 'striped',
+  });
+
+  // Add edges table
+  const edgeRows = edges.map(edge => [
+    edge.source,
+    edge.target,
+    edge.label || '',
+    edge.data?.metadata ? JSON.stringify(edge.data.metadata) : ''
+  ]);
+
+  autoTable(doc, {
+    startY: doc.lastAutoTable.finalY + 10,
+    head: [['Source', 'Target', 'Transformation', 'Metadata']],
+    body: edgeRows,
+    headStyles: { fillColor: [41, 128, 185] },
+    theme: 'striped',
+  });
+
+  doc.save(`lineage-${dataProductId}-${new Date().toISOString().slice(0,10)}.pdf`);
+};
+
+const exportToCSV = (nodes: any[], edges: any[], dataProductId: number | null) => {
+  // Prepare nodes data
+  const nodesCSV = nodes.map(node => ({
+    id: node.id,
+    label: node.data.label,
+    type: node.data.type,
+    metadata: JSON.stringify(node.data.metadata || {})
+  }));
+
+  // Prepare edges data
+  const edgesCSV = edges.map(edge => ({
+    source: edge.source,
+    target: edge.target,
+    transformation: edge.label || '',
+    metadata: JSON.stringify(edge.data?.metadata || {})
+  }));
+
+  // Create Blob for nodes
+  const nodesBlob = new Blob([
+    '\uFEFF' + // BOM for Excel
+    Papa.unparse(nodesCSV)
+  ], { type: 'text/csv;charset=utf-8;' });
+
+  // Create Blob for edges
+  const edgesBlob = new Blob([
+    '\uFEFF' + // BOM for Excel
+    Papa.unparse(edgesCSV)
+  ], { type: 'text/csv;charset=utf-8;' });
+
+  // Download files
+  const downloadURL = (blob: Blob, filename: string) => {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode?.removeChild(link);
+  };
+
+  const timestamp = new Date().toISOString().slice(0,10);
+  downloadURL(nodesBlob, `lineage-nodes-${dataProductId}-${timestamp}.csv`);
+  downloadURL(edgesBlob, `lineage-edges-${dataProductId}-${timestamp}.csv`);
+};
+
 export default function ReactFlowLineage({ dataProductId, lineageData, isLoading }: ReactFlowLineageProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -281,64 +376,90 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
           </div>
         </div>
       ) : (
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          nodeTypes={nodeTypes}
-          fitView
-          proOptions={{ hideAttribution: true }}
-          className="bg-background"
-          aria-label="Data lineage visualization"
-          defaultEdgeOptions={{
-            type: 'smoothstep',
-            animated: true,
-            style: { stroke: 'hsl(var(--muted-foreground))', strokeWidth: 2 },
-            markerEnd: {
-              type: MarkerType.ArrowClosed,
-              width: 20,
-              height: 20,
-              color: 'hsl(var(--muted-foreground))',
-            },
-          }}
-        >
-          <Background 
-            color="hsl(var(--muted-foreground))"
-            className="opacity-5"
-          />
-          <Controls 
-            className="bg-card border border-border shadow-sm"
-            position="bottom-right"
-            showInteractive={false}
-            aria-label="Graph controls"
-          />
-          <MiniMap 
-            nodeStrokeColor="hsl(var(--muted-foreground))"
-            nodeColor={node => {
-              switch (node.data?.type) {
-                case "source":
-                  return "hsl(142.1 70.6% 45.3%)"; // Darker green for better contrast
-                case "transformation":
-                  return "hsl(217.2 91.2% 59.8%)"; // Adjusted blue
-                case "target":
-                  return "hsl(0 84.2% 60.2%)"; // Adjusted red
-                default:
-                  return "hsl(var(--muted))";
-              }
-            }}
-            maskColor="hsl(var(--background) / 0.7)" // Adjusted opacity for better contrast
-            style={{
-              backgroundColor: "hsl(var(--card) / 0.8)", // Slightly transparent background
-              border: "1px solid hsl(var(--border))",
-              borderRadius: "var(--radius)",
-              boxShadow: "0 2px 4px hsl(var(--background) / 0.1)", // Subtle shadow
-            }}
-            className="!bottom-24 transition-colors duration-200" // Added transition for theme changes
-            position="bottom-right"
-            aria-label="Minimap overview"
-          />
-        </ReactFlow>
+        <div className="h-full flex flex-col">
+          <div className="p-4 border-b flex justify-between items-center">
+            <div className="flex gap-2">
+              <Button
+                onClick={() => nodes && edges && exportToPDF(nodes, edges, dataProductId)}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Export PDF
+              </Button>
+              <Button
+                onClick={() => nodes && edges && exportToCSV(nodes, edges, dataProductId)}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Export CSV
+              </Button>
+            </div>
+          </div>
+          <div className="flex-1">
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              nodeTypes={nodeTypes}
+              fitView
+              proOptions={{ hideAttribution: true }}
+              className="bg-background"
+              aria-label="Data lineage visualization"
+              defaultEdgeOptions={{
+                type: 'smoothstep',
+                animated: true,
+                style: { stroke: 'hsl(var(--muted-foreground))', strokeWidth: 2 },
+                markerEnd: {
+                  type: MarkerType.ArrowClosed,
+                  width: 20,
+                  height: 20,
+                  color: 'hsl(var(--muted-foreground))',
+                },
+              }}
+            >
+              <Background 
+                color="hsl(var(--muted-foreground))"
+                className="opacity-5"
+              />
+              <Controls 
+                className="bg-card border border-border shadow-sm"
+                position="bottom-right"
+                showInteractive={false}
+                aria-label="Graph controls"
+              />
+              <MiniMap 
+                nodeStrokeColor="hsl(var(--muted-foreground))"
+                nodeColor={node => {
+                  switch (node.data?.type) {
+                    case "source":
+                      return "hsl(142.1 70.6% 45.3%)";
+                    case "transformation":
+                      return "hsl(217.2 91.2% 59.8%)";
+                    case "target":
+                      return "hsl(0 84.2% 60.2%)";
+                    default:
+                      return "hsl(var(--muted))";
+                  }
+                }}
+                maskColor="hsl(var(--background) / 0.7)"
+                style={{
+                  backgroundColor: "hsl(var(--card) / 0.8)",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "var(--radius)",
+                  boxShadow: "0 2px 4px hsl(var(--background) / 0.1)",
+                }}
+                className="!bottom-24 transition-colors duration-200"
+                position="bottom-right"
+                aria-label="Minimap overview"
+              />
+            </ReactFlow>
+          </div>
+        </div>
       )}
     </Card>
   );
