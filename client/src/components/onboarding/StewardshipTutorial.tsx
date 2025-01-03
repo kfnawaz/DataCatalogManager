@@ -62,34 +62,24 @@ const tutorialSteps: TutorialStep[] = [
   }
 ];
 
-export function StewardshipTutorial() {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [isVisible, setIsVisible] = useState(true);
+interface StewardshipTutorialProps {
+  onComplete: () => void;
+}
 
-  // Check if tutorial has been completed before
-  useEffect(() => {
-    const tutorialCompleted = localStorage.getItem("stewardshipTutorialCompleted");
-    if (tutorialCompleted) {
-      setIsVisible(false);
-    }
-  }, []);
+export function StewardshipTutorial({ onComplete }: StewardshipTutorialProps) {
+  const [currentStep, setCurrentStep] = useState(0);
 
   const handleNext = () => {
     if (currentStep < tutorialSteps.length - 1) {
       setCurrentStep(prev => prev + 1);
     } else {
-      // Mark tutorial as completed
-      localStorage.setItem("stewardshipTutorialCompleted", "true");
-      setIsVisible(false);
+      onComplete();
     }
   };
 
   const handleSkip = () => {
-    localStorage.setItem("stewardshipTutorialCompleted", "true");
-    setIsVisible(false);
+    onComplete();
   };
-
-  if (!isVisible) return null;
 
   return (
     <AnimatePresence>
