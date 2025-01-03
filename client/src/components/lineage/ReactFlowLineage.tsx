@@ -11,6 +11,12 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface LineageMetadata {
   description?: string;
@@ -47,7 +53,23 @@ interface ReactFlowLineageProps {
   isLoading: boolean;
 }
 
-// Custom node component with proper typing
+// Format metadata for display
+const formatMetadataForDisplay = (metadata: LineageMetadata): JSX.Element => {
+  return (
+    <div className="space-y-2 p-2">
+      {Object.entries(metadata).map(([key, value]) => (
+        <div key={key} className="text-sm">
+          <span className="font-medium capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}: </span>
+          <span className="text-muted-foreground">
+            {typeof value === 'object' ? JSON.stringify(value, null, 2) : value}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// Custom node component with enhanced accessibility and tooltips
 function LineageNodeComponent({ data }: { data: { label: string; type: string; metadata?: LineageMetadata } }) {
   const getNodeStyle = (type: string) => {
     const baseStyle = {
@@ -88,46 +110,44 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; m
     }
   };
 
-  const formatMetadataValue = (value: unknown): string => {
-    if (typeof value === 'object' && value !== null) {
-      return Object.entries(value)
-        .map(([k, v]) => `${k}: ${v}`)
-        .join(', ');
-    }
-    return String(value);
-  };
-
   return (
-    <div style={getNodeStyle(data.type)} className="group relative">
-      <Handle 
-        type="target" 
-        position={Position.Left} 
-        className="!bg-white !border-2 !border-current" 
-      />
-      <div className="text-center">
-        <div className="font-medium mb-1">{data.label}</div>
-        <div className="text-xs text-white/80">
-          {data.type.charAt(0).toUpperCase() + data.type.slice(1)}
-        </div>
-        {data.metadata && (
-          <div className="absolute invisible group-hover:visible bg-popover text-popover-foreground p-3 rounded-md -top-16 left-1/2 transform -translate-x-1/2 w-56 z-10 shadow-md">
-            <div className="text-xs space-y-1">
-              {Object.entries(data.metadata).map(([key, value]) => (
-                <div key={key}>
-                  <span className="font-medium">{key}:</span>{' '}
-                  <span className="text-muted-foreground">{formatMetadataValue(value)}</span>
-                </div>
-              ))}
+    <TooltipProvider>
+      <Tooltip delayDuration={300}>
+        <TooltipTrigger asChild>
+          <div 
+            style={getNodeStyle(data.type)} 
+            className="group relative focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            role="button"
+            tabIndex={0}
+            aria-label={`${data.type} node: ${data.label}`}
+          >
+            <Handle 
+              type="target" 
+              position={Position.Left} 
+              className="!bg-white !border-2 !border-current"
+              aria-label="Input connection point" 
+            />
+            <div className="text-center">
+              <div className="font-medium mb-1">{data.label}</div>
+              <div className="text-xs text-white/80">
+                {data.type.charAt(0).toUpperCase() + data.type.slice(1)}
+              </div>
             </div>
+            <Handle 
+              type="source" 
+              position={Position.Right} 
+              className="!bg-white !border-2 !border-current"
+              aria-label="Output connection point"
+            />
           </div>
+        </TooltipTrigger>
+        {data.metadata && (
+          <TooltipContent side="top" align="center" className="max-w-sm">
+            {formatMetadataForDisplay(data.metadata)}
+          </TooltipContent>
         )}
-      </div>
-      <Handle 
-        type="source" 
-        position={Position.Right} 
-        className="!bg-white !border-2 !border-current" 
-      />
-    </div>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -179,6 +199,7 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
           type: node.type,
           metadata: node.metadata,
         },
+        ariaLabel: `Source node: ${node.label}`,
       })),
       ...transformNodes.map((node, i) => ({
         id: node.id,
@@ -192,6 +213,7 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
           type: node.type,
           metadata: node.metadata,
         },
+        ariaLabel: `Transformation node: ${node.label}`,
       })),
       ...targetNodes.map((node, i) => ({
         id: node.id,
@@ -205,6 +227,7 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
           type: node.type,
           metadata: node.metadata,
         },
+        ariaLabel: `Target node: ${node.label}`,
       })),
     ];
 
@@ -215,7 +238,7 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
       uniqueEdgesMap.set(edgeKey, link);
     });
 
-    // Create edges from unique links
+    // Create edges from unique links with tooltips
     const flowEdges = Array.from(uniqueEdgesMap.values()).map(link => ({
       id: generateEdgeId(link.source, link.target),
       source: link.source,
@@ -223,16 +246,20 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
       type: 'smoothstep',
       animated: true,
       label: link.transformationLogic,
-      labelStyle: { fill: '#666', fontWeight: 500 },
+      labelStyle: { fill: 'hsl(var(--foreground))', fontWeight: 500 },
       style: {
-        stroke: '#666',
+        stroke: 'hsl(var(--foreground))',
         strokeWidth: 2,
+      },
+      ariaLabel: `Connection from ${link.source} to ${link.target}${link.transformationLogic ? `: ${link.transformationLogic}` : ''}`,
+      data: {
+        metadata: link.metadata,
       },
       markerEnd: {
         type: MarkerType.ArrowClosed,
         width: 20,
         height: 20,
-        color: '#666',
+        color: 'hsl(var(--foreground))',
       },
     }));
 
@@ -244,7 +271,7 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
     <Card className="w-full h-[600px]">
       {isLoading ? (
         <div className="w-full h-full flex items-center justify-center">
-          <div className="space-y-4 w-full p-8">
+          <div className="space-y-4 w-full p-8" role="alert" aria-live="polite">
             <div className="h-8 bg-gray-200 rounded-md animate-pulse" />
             <div className="h-[500px] bg-gray-100 rounded-lg animate-pulse">
               <div className="h-full w-full flex items-center justify-center text-gray-400">
@@ -263,6 +290,7 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
           fitView
           proOptions={{ hideAttribution: true }}
           className="bg-background"
+          aria-label="Data lineage visualization"
           defaultEdgeOptions={{
             type: 'smoothstep',
             animated: true,
@@ -283,6 +311,7 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
             className="bg-card border border-border shadow-sm"
             position="bottom-right"
             showInteractive={false}
+            aria-label="Graph controls"
           />
           <MiniMap 
             nodeStrokeColor="hsl(var(--muted-foreground))"
@@ -307,6 +336,7 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
             }}
             className="!bottom-24 transition-colors duration-200" // Added transition for theme changes
             position="bottom-right"
+            aria-label="Minimap overview"
           />
         </ReactFlow>
       )}
