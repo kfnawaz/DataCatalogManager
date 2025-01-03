@@ -49,14 +49,42 @@ interface ReactFlowLineageProps {
 
 // Custom node component with proper typing
 function LineageNodeComponent({ data }: { data: { label: string; type: string; metadata?: LineageMetadata } }) {
-  const style = {
-    padding: '10px',
-    border: '1px solid #ccc',
-    borderRadius: '5px',
-    background: data.type === 'source' ? '#4CAF50' :
-                data.type === 'transformation' ? '#2196F3' :
-                data.type === 'target' ? '#F44336' : '#9E9E9E',
-    color: 'white',
+  const getNodeStyle = (type: string) => {
+    const baseStyle = {
+      padding: '16px',
+      border: '2px solid',
+      borderRadius: '8px',
+      minWidth: '180px',
+      background: 'var(--background)',
+      transition: 'all 0.2s ease',
+    };
+
+    switch (type) {
+      case 'source':
+        return {
+          ...baseStyle,
+          borderColor: 'hsl(var(--success))',
+          boxShadow: '0 0 0 1px hsl(var(--success) / 0.2)',
+        };
+      case 'transformation':
+        return {
+          ...baseStyle,
+          borderColor: 'hsl(var(--primary))',
+          boxShadow: '0 0 0 1px hsl(var(--primary) / 0.2)',
+        };
+      case 'target':
+        return {
+          ...baseStyle,
+          borderColor: 'hsl(var(--destructive))',
+          boxShadow: '0 0 0 1px hsl(var(--destructive) / 0.2)',
+        };
+      default:
+        return {
+          ...baseStyle,
+          borderColor: 'hsl(var(--muted))',
+          boxShadow: '0 0 0 1px hsl(var(--muted) / 0.2)',
+        };
+    }
   };
 
   // Format metadata values with type safety
@@ -70,23 +98,35 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; m
   };
 
   return (
-    <div style={style} className="relative group">
-      <Handle type="target" position={Position.Left} />
-      <div>
-        {data.label}
+    <div style={getNodeStyle(data.type)} className="group relative">
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        className="!bg-background !border-border" 
+      />
+      <div className="text-center">
+        <div className="font-medium mb-1">{data.label}</div>
+        <div className="text-xs text-muted-foreground">
+          {data.type.charAt(0).toUpperCase() + data.type.slice(1)}
+        </div>
         {data.metadata && (
-          <div className="absolute invisible group-hover:visible bg-black/80 text-white p-2 rounded-md -top-12 left-1/2 transform -translate-x-1/2 w-48 z-10">
-            <div className="text-xs">
+          <div className="absolute invisible group-hover:visible bg-popover text-popover-foreground p-3 rounded-md -top-16 left-1/2 transform -translate-x-1/2 w-56 z-10 shadow-md">
+            <div className="text-xs space-y-1">
               {Object.entries(data.metadata).map(([key, value]) => (
-                <div key={`${key}-${String(value)}`} className="mb-1">
-                  <span className="font-semibold">{key}:</span> {formatMetadataValue(value)}
+                <div key={`${key}-${String(value)}`}>
+                  <span className="font-medium">{key}:</span>{' '}
+                  <span className="text-muted-foreground">{formatMetadataValue(value)}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
       </div>
-      <Handle type="source" position={Position.Right} />
+      <Handle 
+        type="source" 
+        position={Position.Right} 
+        className="!bg-background !border-border" 
+      />
     </div>
   );
 }
