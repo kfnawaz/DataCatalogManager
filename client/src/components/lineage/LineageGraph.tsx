@@ -28,7 +28,7 @@ interface LineageData {
 }
 
 export default function LineageGraph({ dataProductId }: LineageGraphProps) {
-  const [visualizationType, setVisualizationType] = useState<string>("reactflow");
+  const [visualizationType, setVisualizationType] = useState<string>("d3"); // Changed default to d3
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
 
   const { data: lineageData, isLoading } = useQuery<LineageData>({
@@ -77,11 +77,11 @@ export default function LineageGraph({ dataProductId }: LineageGraphProps) {
             }}
             aria-label="Visualization type"
           >
-            <ToggleGroupItem value="reactflow" aria-label="Advanced visualization">
-              Advanced
-            </ToggleGroupItem>
             <ToggleGroupItem value="d3" aria-label="Simple visualization">
               Simple
+            </ToggleGroupItem>
+            <ToggleGroupItem value="reactflow" aria-label="Advanced visualization">
+              Advanced
             </ToggleGroupItem>
           </ToggleGroup>
         </div>

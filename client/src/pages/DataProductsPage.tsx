@@ -91,8 +91,8 @@ export default function DataProductsPage() {
               >
                 <TabsList>
                   <TabsTrigger value="metadata" className="metadata-tab">Metadata</TabsTrigger>
-                  <TabsTrigger value="lineage" className="lineage-tab">Lineage</TabsTrigger>
                   <TabsTrigger value="quality" className="quality-tab">Quality Metrics</TabsTrigger>
+                  <TabsTrigger value="lineage" className="lineage-tab">Lineage</TabsTrigger>
                 </TabsList>
 
                 <AnimatePresence initial={false}>
@@ -124,20 +124,6 @@ export default function DataProductsPage() {
                     </motion.div>
                   </TabsContent>
 
-                  <TabsContent value="lineage" asChild key="lineage">
-                    <motion.div
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      <Card>
-                        <CardContent className="pt-6">
-                          <LineageGraph dataProductId={selectedDataProduct} />
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  </TabsContent>
-
                   <TabsContent value="quality" asChild key="quality">
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
@@ -150,6 +136,20 @@ export default function DataProductsPage() {
                         </CardHeader>
                         <CardContent>
                           <QualityMetrics dataProductId={selectedDataProduct} />
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  </TabsContent>
+
+                  <TabsContent value="lineage" asChild key="lineage">
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <Card>
+                        <CardContent className="pt-6">
+                          <LineageGraph dataProductId={selectedDataProduct} />
                         </CardContent>
                       </Card>
                     </motion.div>
