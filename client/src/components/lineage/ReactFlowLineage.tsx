@@ -42,6 +42,16 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; m
     color: 'white',
   };
 
+  // Format metadata values
+  const formatMetadataValue = (value: any): string => {
+    if (typeof value === 'object' && value !== null) {
+      return Object.entries(value)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(', ');
+    }
+    return String(value);
+  };
+
   return (
     <div style={style} className="relative group">
       <Handle type="target" position={Position.Left} />
@@ -52,7 +62,7 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; m
             <div className="text-xs">
               {Object.entries(data.metadata).map(([key, value]) => (
                 <div key={key} className="mb-1">
-                  <span className="font-semibold">{key}:</span> {value}
+                  <span className="font-semibold">{key}:</span> {formatMetadataValue(value)}
                 </div>
               ))}
             </div>
@@ -143,7 +153,7 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
 
     setNodes(flowNodes);
     setEdges(flowEdges);
-  }, [lineageData]);
+  }, [lineageData, setNodes, setEdges]);
 
   return (
     <Card className="w-full h-[600px]">

@@ -62,14 +62,16 @@ export default function DataProductsPage() {
           <SearchBar onSelect={setSelectedDataProduct} initialValue={selectedDataProduct} className="search-bar" />
         </div>
 
-        <AnimatePresence mode="wait">
-          {isLoading ? (
+        <AnimatePresence>
+          {isLoading && (
             <motion.div {...fadeIn} key="loading">
               <Skeleton className="h-8 w-1/3 mb-2" />
               <Skeleton className="h-4 w-2/3 mb-6" />
               <Skeleton className="h-[400px]" />
             </motion.div>
-          ) : selectedProduct ? (
+          )}
+
+          {!isLoading && selectedProduct && (
             <motion.div {...fadeIn} key={selectedProduct.id}>
               <div className="mb-6">
                 <h2 className="text-xl font-semibold text-foreground">
@@ -93,12 +95,12 @@ export default function DataProductsPage() {
                   <TabsTrigger value="quality" className="quality-tab">Quality Metrics</TabsTrigger>
                 </TabsList>
 
-                <AnimatePresence mode="wait">
-                  <TabsContent value="metadata" asChild>
+                <AnimatePresence initial={false}>
+                  <TabsContent value="metadata" asChild key="metadata">
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
+                      exit={{ opacity: 0 }}
                     >
                       <div className="space-y-4">
                         <Card>
@@ -122,11 +124,11 @@ export default function DataProductsPage() {
                     </motion.div>
                   </TabsContent>
 
-                  <TabsContent value="lineage" asChild>
+                  <TabsContent value="lineage" asChild key="lineage">
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
+                      exit={{ opacity: 0 }}
                     >
                       <Card>
                         <CardContent className="pt-6">
@@ -136,11 +138,11 @@ export default function DataProductsPage() {
                     </motion.div>
                   </TabsContent>
 
-                  <TabsContent value="quality" asChild>
+                  <TabsContent value="quality" asChild key="quality">
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
+                      exit={{ opacity: 0 }}
                     >
                       <Card>
                         <CardHeader>
@@ -155,7 +157,9 @@ export default function DataProductsPage() {
                 </AnimatePresence>
               </Tabs>
             </motion.div>
-          ) : (
+          )}
+
+          {!isLoading && !selectedProduct && (
             <motion.div {...fadeIn} key="empty" className="text-center py-12 text-muted-foreground">
               Use the search bar above to find and select a data product
             </motion.div>
