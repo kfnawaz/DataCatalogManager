@@ -16,6 +16,7 @@ import {
 import { eq, desc, sql, and, inArray } from "drizzle-orm";
 import OpenAI from "openai";
 import { trackApiUsage, getApiUsageStats } from "./utils/apiTracker";
+import fetch from 'node-fetch';
 
 // Initialize OpenAI with API key
 const openai = new OpenAI({
@@ -989,631 +990,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Metric template routes (duplicate, should be removed or investigated)
-  app.get("/api/metric-templates", async (req, res) => {
-    try {
-      const templates = await db.select().from(metricTemplates);
-      res.json(templates);
-    } catch (error) {
-      console.error("Error fetching metric templates:", error);
-      res.status(500).json({ error: "Failed to fetch metric templates" });
-    }
-  });
-
-  app.post("/api/metric-templates", async (req, res) => {
-    try {
-      const { name, description, type, defaultFormula, parameters, example, tags } = req.body;
-
-      if (!name || !description || !type || !defaultFormula || !parameters) {
-        return res.status(400).json({ error: "Missing required fields" });
-      }
-
-      const [template] = await db
-        .insert(metricTemplates)
-        .values({
-          name,
-          description,
-          type,
-          defaultFormula,
-          parameters,
-          example,
-          tags,
-        })
-        .returning();
-
-      res.json(template);
-    } catch (error) {
-      console.error("Error creating metric template:", error);
-      res.status(500).json({ error: "Failed to create metric template" });
-    }
-  });
-
-  // Metric definition routes (duplicate, should be removed or investigated)
-  app.get("/api/metric-definitions", async (req, res) => {
-    try {
-      const definitions = await db.select().from(metricDefinitions);
-      res.json(definitions);
-    } catch (error) {
-      console.error("Error fetching metric definitions:", error);
-      res.status(500).json({ error: "Failed to fetch metric definitions" });
-    }
-  });
-
-  app.post("/api/metric-definitions", async (req, res) => {
-    try {
-      const { name, description, type, templateId, formula, parameters } = req.body;
-
-      if (!name || !description || !type) {
-        return res.status(400).json({ error: "Missing required fields" });
-      }
-
-      const [definition] = await db
-        .insert(metricDefinitions)
-        .values({
-          name,
-          description,
-          type,
-          templateId: templateId || null,
-          formula: formula || null,
-          parameters: parameters || null,
-          enabled: true,
-        })
-        .returning();
-
-      res.json(definition);
-    } catch (error) {
-      console.error("Error creating metric definition:", error);
-      res.status(500).json({ error: "Failed to create metric definition" });
-    }
-  });
-
-  // Get metric definition history (duplicate, should be removed or investigated)
-  app.get("/api/metric-definitions/:id/history", async (req, res) => {
-    try {
-      const definitionId = parseInt(req.params.id);
-      if (isNaN(definitionId)) {
-        return res.status(400).json({ error: "Invalid definition ID" });
-      }
-
-      const versions = await db
-        .select()
-        .from(metricDefinitionVersions)
-        .where(eq(metricDefinitionVersions.metricDefinitionId, definitionId))
-        .orderBy(desc(metricDefinitionVersions.version));
-
-      res.json(versions);
-    } catch (error) {
-      console.error("Error fetching metric definition history:", error);
-      res.status(500).json({ error: "Failed to fetch metric definition history" });
-    }
-  });
-
-  // Update metric definition (duplicate, should be removed or investigated)
-  app.put("/api/metric-definitions/:id", async (req, res) => {
-    try {
-      const definitionId = parseInt(req.params.id);
-      if (isNaN(definitionId)) {
-        return res.status(400).json({ error: "Invalid definition ID" });
-      }
-
-      const { name, description, type, templateId, formula, parameters, changeMessage } = req.body;
-
-      if (!name || !description || !type) {
-        return res.status(400).json({ error: "Missing required fields" });
-      }
-
-      // Start a transaction to update both tables
-      await db.transaction(async (tx) => {
-        // Get current version number
-        const [currentVersion] = await tx
-          .select()
-          .from(metricDefinitionVersions)
-          .where(eq(metricDefinitionVersions.metricDefinitionId, definitionId))
-          .orderBy(desc(metricDefinitionVersions.version))
-          .limit(1);
-
-        const nextVersion = currentVersion ? currentVersion.version + 1 : 1;
-
-        // Create new version record
-        await tx.insert(metricDefinitionVersions).values({
-          metricDefinitionId: definitionId,
-          name,
-          description,
-          type,
-          templateId: templateId || null,
-          formula: formula || null,
-          parameters: parameters || null,
-          enabled: true,
-          version: nextVersion,
-          changeMessage: changeMessage || "Updated metric definition",
-        });
-
-        // Update current definition
-        await tx
-          .update(metricDefinitions)
-          .set({
-            name,
-            description,
-            type,
-            templateId: templateId || null,
-            formula: formula || null,
-            parameters: parameters || null,
-          })
-          .where(eq(metricDefinitions.id, definitionId));
-      });
-
-      // Get updated definition
-      const [updated] = await db
-        .select()
-        .from(metricDefinitions)
-        .where(eq(metricDefinitions.id, definitionId))
-        .limit(1);
-
-      res.json(updated);
-    } catch (error) {
-      console.error("Error updating metric definition:", error);
-      res.status(500).json({ error: "Failed to update metric definition" });
-    }
-  });
-
-  // Rollback to specific version (duplicate, should be removed or investigated)
-  app.post("/api/metric-definitions/:id/rollback/:versionId", async (req, res) => {
-    try {
-      const definitionId = parseInt(req.params.id);
-      const versionId = parseInt(req.params.versionId);
-
-      if (isNaN(definitionId) || isNaN(versionId)) {
-        return res.status(400).json({ error: "Invalid ID parameters" });
-      }
-
-      // Get the version to rollback to
-      const [version] = await db
-        .select()
-        .from(metricDefinitionVersions)
-        .where(eq(metricDefinitionVersions.id, versionId))
-        .limit(1);
-
-      if (!version) {
-        return res.status(404).json({ error: "Version not found" });
-      }
-
-      // Start a transaction for rollback
-      await db.transaction(async (tx) => {
-        // Get current version number
-        const [currentVersion] = await tx
-          .select()
-          .from(metricDefinitionVersions)
-          .where(eq(metricDefinitionVersions.metricDefinitionId, definitionId))
-          .orderBy(desc(metricDefinitionVersions.version))
-          .limit(1);
-
-        const nextVersion = currentVersion ? currentVersion.version + 1 : 1;
-
-        // Create new version record for the rollback
-        await tx.insert(metricDefinitionVersions).values({
-          ...version,
-          id: undefined,
-          version: nextVersion,
-          createdAt: undefined,
-          changeMessage: `Rolled back to version ${version.version}`,
-        });
-
-        // Update current definition
-        await tx
-          .update(metricDefinitions)
-          .set({
-            name: version.name,
-            description: version.description,
-            type: version.type,
-            templateId: version.templateId,
-            formula: version.formula,
-            parameters: version.parameters,
-          })
-          .where(eq(metricDefinitions.id, definitionId));
-      });
-
-      // Get updated definition
-      const [updated] = await db
-        .select()
-        .from(metricDefinitions)
-        .where(eq(metricDefinitions.id, definitionId))
-        .limit(1);
-
-      res.json(updated);
-    } catch (error) {
-      console.error("Error rolling back metric definition:", error);
-      res.status(500).json({ error: "Failed to rollback metric definition" });
-    }
-  });
-
-  // Add new route for comment summarization (duplicate, should be removed or investigated)
-  app.post("/api/data-products/:id/comments/summarize", async (req, res) => {
-    try {
-      const productId = parseInt(req.params.id);
-      if (isNaN(productId)) {
-        await trackApiUsage("/api/data-products/:id/comments/summarize", 400, "InvalidInput");
-        return res.status(400).json({
-          error: "Invalid input",
-          details: "Product ID must be a valid number"
-        });
-      }
-
-      // Get all comments for the product
-      const productComments = await db
-        .select()
-        .from(comments)
-        .where(eq(comments.dataProductId, productId))
-        .orderBy(desc(comments.createdAt));
-
-      if (productComments.length === 0) {
-        await trackApiUsage("/api/data-products/:id/comments/summarize", 200, null, 0);
-        return res.json({
-          summary: "No comments available to summarize.",
-          commentCount: 0
-        });
-      }
-
-      // Prepare comments for summarization
-      const commentsText = productComments
-        .map(c => `${c.authorName}: ${c.content}`)
-        .join("\n");
-
-      try {
-        // Generate summary using OpenAI
-        const completion = await openai.chat.completions.create({
-          model: "gpt-3.5-turbo",
-          messages: [
-            {
-              role: "system",
-              content: "You are a helpful assistant that summarizes user comments. Provide a concise summary that captures the main points and sentiment of the comments."
-            },
-            {
-              role: "user",
-              content: `Please summarize these comments:\n${commentsText}`
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 150
-        });
-
-        const summary = completion.choices[0]?.message?.content || "Unable to generate summary.";
-
-        await trackApiUsage("/api/data-products/:id/comments/summarize", 200, null, completion.usage?.total_tokens);
-
-        res.json({
-          summary,
-          commentCount: productComments.length,
-          lastUpdated: new Date().toISOString()
-        });
-      } catch (openaiError: any) {
-        console.error("OpenAI API Error:", openaiError);
-
-        // Handle specific OpenAI errors
-        if (openaiError.status === 429) {
-          await trackApiUsage("/api/data-products/:id/comments/summarize", 429, "RateLimit");
-          return res.status(429).json({
-            error: "API Rate Limit",
-            details: "The AI service is currently unavailable due to rate limiting. Please try again later."
-          });
-        }
-
-        if (openaiError.status === 401) {
-          await trackApiUsage("/api/data-products/:id/comments/summarize", 401, "Authentication");
-          return res.status(401).json({
-            error: "API Authentication",
-            details: "Unable to authenticate with the AI service. Please contact support."
-          });
-        }
-
-        await trackApiUsage("/api/data-products/:id/comments/summarize", 500, openaiError.type);
-        return res.status(500).json({
-          error: "AI Service Error",
-          details: "Failed to generate summary due to an AI service error. Please try again later."
-        });
-      }
-    } catch (error) {
-      console.error("Error summarizing comments:", error);
-      await trackApiUsage("/api/data-products/:id/comments/summarize", 500, "InternalServerError");
-      res.status(500).json({
-        error: "Internal server error",
-        details: "Failed to generate comment summary. Please try again later."
-      });
-    }
-  });
-
-  // Update POST reaction endpoint to store reactions (duplicate, should be removed or investigated)
-  app.post("/api/comments/:id/reactions", async (req, res) => {
-    try {
-      const commentId = parseInt(req.params.id);
-      const { type, userIdentifier } = req.body;
-
-      if (isNaN(commentId)) {
-        return res.status(400).json({ error: "Invalid comment ID" });
-      }
-
-      if (!['like', 'helpful', 'insightful'].includes(type)) {
-        return res.status(400).json({ error: "Invalid reaction type" });
-      }
-
-      if (!userIdentifier) {
-        return res.status(400).json({ error: "User identifier is required" });
-      }
-
-      // Check if user has already reacted
-      const existingReaction = await db
-        .select()
-        .from(commentReactions)
-        .where(
-          and(
-            eq(commentReactions.commentId, commentId),
-            eq(commentReactions.type, type),
-            eq(commentReactions.userIdentifier, userIdentifier)
-          )
-        )
-        .limit(1);
-
-      if (existingReaction.length > 0) {
-        return res.status(400).json({
-          error: "Already reacted",
-          message: "You have already reacted to this comment"
-        });
-      }
-
-      // Add new reaction
-      await db.insert(commentReactions).values({
-        commentId,
-        type,
-        userIdentifier,
-      });
-
-      // Get updated reaction count
-      const updatedReactions = await db
-        .select({
-          type: commentReactions.type,
-          count: sql<number>`count(*)::int`,
-        })
-        .from(commentReactions)
-        .where(eq(commentReactions.commentId, commentId))
-        .groupBy(commentReactions.type);
-
-      const reactionCounts = {
-        like: 0,
-        helpful: 0,
-        insightful: 0,
-      };
-
-      updatedReactions.forEach((r) => {
-        if (r.type in reactionCounts) {
-          reactionCounts[r.type as keyof typeof reactionCounts] = r.count;
-        }
-      });
-
-      res.json({
-        success: true,
-        reactions: reactionCounts
-      });
-    } catch (error) {
-      console.error("Error adding reaction:", error);
-      res.status(500).json({ error: "Failed to add reaction" });
-    }
-  });
-
-  // Update lineage API endpoint to fix the array query (duplicate, should be removed or investigated)
-  app.get("/api/lineage", async (req, res) => {
-    try {
-      const dataProductId = parseInt(req.query.dataProductId as string);
-      const version = req.query.version ? parseInt(req.query.version as string) : null;
-
-      if (isNaN(dataProductId)) {
-        return res.status(400).json({ error: "Invalid data product ID" });
-      }
-
-      // If version is specified, fetch that specific version
-      if (version !== null) {
-        const [lineageVersion] = await db
-          .select()
-          .from(lineageVersions)
-          .where(
-            and(
-              eq(lineageVersions.dataProductId, dataProductId),
-              eq(lineageVersions.version, version)
-            )
-          )
-          .limit(1);
-
-        if (lineageVersion) {
-          return res.json({
-            nodes: lineageVersion.snapshot.nodes,
-            links: lineageVersion.snapshot.links,
-            version: lineageVersion.version,
-            versions: await db
-              .select({
-                version: lineageVersions.version,
-                timestamp: lineageVersions.createdAt,
-              })
-              .from(lineageVersions)
-              .where(eq(lineageVersions.dataProductId, dataProductId))
-              .orderBy(desc(lineageVersions.version))
-          });
-        }
-      }
-
-      // Fetch current lineage data
-      const nodes = await db
-        .select()
-        .from(lineageNodes)
-        .where(eq(lineageNodes.dataProductId, dataProductId));
-
-      if (nodes.length === 0) {
-        return res.json({
-          nodes: [],
-          links: [],
-          version: 1,
-          versions: []
-        });
-      }
-
-      // Get all node IDs
-      const nodeIds = nodes.map(n => n.id);
-
-      // Fetch edges using inArray operator
-      const edges = await db
-        .select()
-        .from(lineageEdges)
-        .where(
-          and(
-            inArray(lineageEdges.sourceId, nodeIds),
-            inArray(lineageEdges.targetId, nodeIds)
-          )
-        );
-
-      // Get all versions
-      const versions = await db
-        .select({
-          version: lineageVersions.version,
-          timestamp: lineageVersions.createdAt,
-        })
-        .from(lineageVersions)
-        .where(eq(lineageVersions.dataProductId, dataProductId))
-        .orderBy(desc(lineageVersions.version));
-
-      // Get latest version number
-      const latestVersion = versions.length > 0 ? versions[0].version : 1;
-
-      // Format response
-      const response = {
-        nodes: nodes.map(node => ({
-          id: node.id.toString(),
-          type: node.type,
-          label: node.name,
-          metadata: node.metadata
-        })),
-        links: edges.map(edge => ({
-          source: edge.sourceId.toString(),
-          target: edge.targetId.toString(),
-          transformationLogic: edge.transformationLogic,
-          metadata: edge.metadata
-        })),
-        version: latestVersion,
-        versions
-      };
-
-      res.json(response);
-    } catch (error) {
-      console.error("Error fetching lineage data:", error);
-      res.status(500).json({
-        error: "Failed to fetch lineage data",
-        details: error instanceof Error ? error.message : String(error),
-        timestamp: new Date().toISOString(),
-        path: "/api/lineage",
-        query: { dataProductId: req.query.dataProductId, version: req.query.version }
-      });
-    }
-  });
-
-  // Add new version endpoint (duplicate, should be removed or investigated)
-  app.post("/api/lineage/versions", async (req, res) => {
-    try {
-      const { dataProductId, snapshot, changeMessage, createdBy } = req.body;
-
-      if (!dataProductId || !snapshot) {
-        return res.status(400).json({ error: "Missing required fields" });
-      }
-
-      // Get current version number
-      const [currentVersion] = await db
-        .select()
-        .from(lineageVersions)
-        .where(eq(lineageVersions.dataProductId, dataProductId))
-        .orderBy(desc(lineageVersions.version))
-        .limit(1);
-
-      const nextVersion = currentVersion ? currentVersion.version + 1 : 1;
-
-      // Create new version
-      const [newVersion] = await db
-        .insert(lineageVersions)
-        .values({
-          dataProductId,
-          version: nextVersion,
-          snapshot,
-          changeMessage: changeMessage || null,
-          createdBy: createdBy || null
-        })
-        .returning();
-
-      res.json(newVersion);
-    } catch (error) {
-      console.error("Error creating lineage version:", error);
-      res.status(500).json({ error: "Failed to create lineage version" });
-    }
-  });
-
-  // Update nodes and edges (duplicate, should be removed or investigated)
-  app.put("/api/lineage/nodes", async (req, res) => {
-    try {
-      const { dataProductId, nodes } = req.body;
-
-      if (!dataProductId || !nodes) {
-        return res.status(400).json({ error: "Missing required fields" });
-      }
-
-      // Start a transaction
-      await db.transaction(async (tx) => {
-        // Delete existing nodes
-        await tx
-          .delete(lineageNodes)
-          .where(eq(lineageNodes.dataProductId, dataProductId));
-
-        // Insert new nodes
-        await tx
-          .insert(lineageNodes)
-          .values(nodes.map((node: any) => ({
-            name: node.label,
-            type: node.type,
-            dataProductId,
-            metadata: node.metadata || null
-          })));
-      });
-
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error updating lineage nodes:", error);
-      res.status(500).json({ error: "Failed to update lineage nodes" });
-    }
-  });
-
-  app.put("/api/lineage/edges", async (req, res) => {
-    try {
-      const { edges } = req.body;
-
-      if (!edges) {
-        return res.status(400).json({ error: "Missing required fields" });
-      }
-
-      // Start a transaction
-      await db.transaction(async (tx) => {
-        // Delete existing edges
-        await tx.delete(lineageEdges);
-
-        // Insert new edges
-        await tx
-          .insert(lineageEdges)
-          .values(edges.map((edge: any) => ({
-            sourceId: parseInt(edge.source),
-            targetId: parseInt(edge.target),
-            transformationLogic: edge.transformationLogic || null,
-            metadata: edge.metadata || null
-          })));
-      });
-
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error updating lineage edges:", error);
-      res.status(500).json({ error: "Failed to update lineage edges" });
-    }
-  });
-
   // Add chatbot endpoint for metadata recommendations
   app.post("/api/wellness/chat", async (req, res) => {
     try {
@@ -1671,9 +1047,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Prepare context for the AI
-      const context = {
-        role: "system",
-        content: `You are a friendly and playful Data Wellness Companion named Dana. Your goal is to help users improve their metadata quality in a fun and engaging way.
+      const systemPrompt = `You are a friendly and playful Data Wellness Companion named Dana. Your goal is to help users improve their metadata quality in a fun and engaging way.
 
       Current context:
       ${productMetadata ? `
@@ -1686,26 +1060,48 @@ export function registerRoutes(app: Express): Server {
       ` : 'No specific data product context provided'}
 
       Respond in a friendly, encouraging tone. Provide specific, actionable recommendations for improving metadata quality. Use emojis and casual language, but maintain professionalism.
-      If quality metrics are low, be tactful in suggesting improvements.`
-      };
+      If quality metrics are low, be tactful in suggesting improvements.`;
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [
-          context,
-          { role: "user", content: message }
-        ],
-        temperature: 0.7,
-        max_tokens: 300
+      // Call Perplexity API
+      const response = await fetch('https://api.perplexity.ai/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: "llama-3.1-sonar-small-128k-online",
+          messages: [
+            {
+              role: "system",
+              content: systemPrompt
+            },
+            {
+              role: "user",
+              content: message
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 300,
+          frequency_penalty: 1,
+          presence_penalty: 0
+        })
       });
 
-      const response = completion.choices[0]?.message?.content || "I'm having trouble thinking right now. Could you try asking me something else?";
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || 'Failed to get response from AI service');
+      }
+
+      const data = await response.json();
+      const aiResponse = data.choices[0]?.message?.content || 
+        "I'm having trouble thinking right now. Could you try asking me something else? 🤔";
 
       // Track API usage
-      await trackApiUsage("/api/wellness/chat", 200, null, completion.usage?.total_tokens);
+      await trackApiUsage("/api/wellness/chat", 200, null, data.usage?.total_tokens);
 
       res.json({
-        message: response,
+        message: aiResponse,
         context: {
           productMetadata,
           qualityMetrics
@@ -1714,26 +1110,26 @@ export function registerRoutes(app: Express): Server {
     } catch (error: any) {
       console.error("Chatbot Error:", error);
 
-      // Handle specific OpenAI errors
-      if (error.status === 429) {
+      // Handle specific API errors
+      if (error.status === 429 || (error.message && error.message.includes('rate'))) {
         await trackApiUsage("/api/wellness/chat", 429, "RateLimit");
         return res.status(429).json({
-          error: "I'm a bit overwhelmed right now. Could you try again in a moment? 😅",
-          details: "Rate limit exceeded"
+          error: "I need a quick breather! Let's chat again in a moment. 😌",
+          details: "Rate limit reached"
         });
       }
 
-      if (error.status === 401) {
+      if (error.status === 401 || error.message?.includes('auth')) {
         await trackApiUsage("/api/wellness/chat", 401, "Authentication");
         return res.status(401).json({
-          error: "I seem to have lost my voice! Please contact support. 🎯",
+          error: "I'm having trouble accessing my knowledge. Please let the team know! 🎯",
           details: "Authentication error"
         });
       }
 
       await trackApiUsage("/api/wellness/chat", 500, error.type || "Unknown");
       res.status(500).json({
-        error: "Oops! I hit a small bump. Could you try asking me something else? 🤔",
+        error: "Something unexpected happened. Let's try a different question! 🤔",
         details: "Internal server error"
       });
     }
