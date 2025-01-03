@@ -22,6 +22,8 @@ interface DataProduct {
   id: number;
   name: string;
   description?: string;
+  domain: string;
+  owner: string;
   tags?: string[];
 }
 
@@ -80,6 +82,8 @@ export default function SearchBar({ onSelect, initialValue, className }: SearchB
     return (
       item.name.toLowerCase().includes(searchLower) ||
       item.description?.toLowerCase().includes(searchLower) ||
+      item.domain.toLowerCase().includes(searchLower) ||
+      item.owner.toLowerCase().includes(searchLower) ||
       item.tags?.some(tag => tag.toLowerCase().includes(searchLower))
     );
   });
@@ -149,15 +153,15 @@ export default function SearchBar({ onSelect, initialValue, className }: SearchB
                         <Clock className="h-4 w-4 mt-1 flex-shrink-0" />
                         <div className="flex flex-col gap-1">
                           <span>{item.name}</span>
-                          {item.tags && item.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {item.tags.map((tag) => (
-                                <Badge key={tag} variant="secondary" className="text-xs">
-                                  {tag}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
+                          <div className="flex flex-wrap gap-1">
+                            <Badge variant="outline">{item.domain}</Badge>
+                            <Badge variant="outline">{item.owner}</Badge>
+                            {item.tags?.map((tag) => (
+                              <Badge key={tag} variant="secondary" className="text-xs">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
                       </CommandItem>
                     ))}
@@ -181,15 +185,15 @@ export default function SearchBar({ onSelect, initialValue, className }: SearchB
                           {item.description}
                         </span>
                       )}
-                      {item.tags && item.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {item.tags.map((tag) => (
-                            <Badge key={tag} variant="secondary" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
+                      <div className="flex flex-wrap gap-1">
+                        <Badge variant="outline">{item.domain}</Badge>
+                        <Badge variant="outline">{item.owner}</Badge>
+                        {item.tags?.map((tag) => (
+                          <Badge key={tag} variant="secondary" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   </CommandItem>
                 ))}
