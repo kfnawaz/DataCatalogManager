@@ -265,10 +265,13 @@ export default function D3LineageGraph({
           />
           {tooltipContent && (
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogContent className="sm:max-w-md">
+              <DialogContent
+                className="sm:max-w-md"
+                aria-describedby="transformation-dialog-description"
+              >
                 <DialogHeader>
                   <DialogTitle>Transformation Logic Details</DialogTitle>
-                  <DialogDescription>
+                  <DialogDescription id="transformation-dialog-description">
                     This shows the transformation logic between connected nodes in the lineage graph.
                   </DialogDescription>
                 </DialogHeader>
