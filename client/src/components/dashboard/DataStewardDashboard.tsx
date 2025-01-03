@@ -13,6 +13,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Award, Target, TrendingUp, Users, ChevronUp, ChevronDown } from "lucide-react";
+import { StewardshipTutorial } from "@/components/onboarding/StewardshipTutorial";
 
 interface StewardshipMetrics {
   totalComments: number;
@@ -103,9 +104,8 @@ export default function DataStewardDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Overview Cards with Enhanced Descriptions */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card data-tutorial="quality-impact">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Award className="h-4 w-4" />
@@ -128,7 +128,7 @@ export default function DataStewardDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card data-tutorial="engagement">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <TrendingUp className="h-4 w-4" />
@@ -151,7 +151,7 @@ export default function DataStewardDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card data-tutorial="level">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Target className="h-4 w-4" />
@@ -171,7 +171,7 @@ export default function DataStewardDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card data-tutorial="active-products">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Users className="h-4 w-4" />
@@ -192,7 +192,6 @@ export default function DataStewardDashboard() {
         </Card>
       </div>
 
-      {/* Detailed Content */}
       <Card>
         <CardHeader>
           <CardTitle>Detailed Metrics</CardTitle>
@@ -209,7 +208,7 @@ export default function DataStewardDashboard() {
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={metrics.qualityTrend}>
-                    <XAxis 
+                    <XAxis
                       dataKey="date"
                       tickFormatter={(value) => new Date(value).toLocaleDateString()}
                     />
@@ -263,7 +262,7 @@ export default function DataStewardDashboard() {
                           {new Date(activity.timestamp).toLocaleString()}
                         </p>
                       </div>
-                      <Badge 
+                      <Badge
                         variant={activity.impact > 50 ? "default" : "secondary"}
                         className="ml-2"
                       >
@@ -277,6 +276,7 @@ export default function DataStewardDashboard() {
           </Tabs>
         </CardContent>
       </Card>
+      <StewardshipTutorial />
     </div>
   );
 }
