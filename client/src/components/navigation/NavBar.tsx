@@ -68,6 +68,12 @@ export default function NavBar() {
             >
               Metric Definitions
             </Link>
+            <Link 
+              href="/stewardship" 
+              className="text-sm font-medium text-foreground hover:text-muted-foreground dark:hover:text-muted-foreground transition-all duration-200 hover:scale-105"
+            >
+              Data Stewardship
+            </Link>
           </nav>
         </div>
         <ThemeToggle />
