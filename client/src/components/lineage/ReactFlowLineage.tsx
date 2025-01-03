@@ -78,7 +78,7 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; m
           <div className="absolute invisible group-hover:visible bg-black/80 text-white p-2 rounded-md -top-12 left-1/2 transform -translate-x-1/2 w-48 z-10">
             <div className="text-xs">
               {Object.entries(data.metadata).map(([key, value]) => (
-                <div key={key} className="mb-1">
+                <div key={`${key}-${String(value)}`} className="mb-1">
                   <span className="font-semibold">{key}:</span> {formatMetadataValue(value)}
                 </div>
               ))}
@@ -95,9 +95,11 @@ const nodeTypes = {
   custom: LineageNodeComponent,
 };
 
-// Generate a unique edge ID
+// Generate a unique edge ID using UUID-like timestamp
 const generateEdgeId = (source: string, target: string): string => {
-  return `edge-${source}-${target}-${Date.now()}`;
+  const timestamp = new Date().getTime();
+  const random = Math.floor(Math.random() * 1000);
+  return `edge-${source}-${target}-${timestamp}-${random}`;
 };
 
 export default function ReactFlowLineage({ dataProductId, lineageData, isLoading }: ReactFlowLineageProps) {
@@ -119,10 +121,10 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
     const transformNodes = lineageData.nodes.filter(n => n.type === 'transformation');
     const targetNodes = lineageData.nodes.filter(n => n.type === 'target');
 
-    // Create nodes with positions
+    // Create nodes with positions and guaranteed unique IDs
     const flowNodes: Node[] = [
       ...sourceNodes.map((node, i) => ({
-        id: node.id,
+        id: `${node.id}-${node.type}`,
         type: 'custom',
         position: { 
           x: INITIAL_X, 
@@ -135,7 +137,7 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
         },
       })),
       ...transformNodes.map((node, i) => ({
-        id: node.id,
+        id: `${node.id}-${node.type}`,
         type: 'custom',
         position: { 
           x: INITIAL_X + HORIZONTAL_SPACING, 
@@ -148,7 +150,7 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
         },
       })),
       ...targetNodes.map((node, i) => ({
-        id: node.id,
+        id: `${node.id}-${node.type}`,
         type: 'custom',
         position: { 
           x: INITIAL_X + (HORIZONTAL_SPACING * 2), 
@@ -163,16 +165,21 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
     ];
 
     // Create edges with unique IDs
-    const flowEdges: Edge[] = lineageData.links.map((link) => ({
-      id: generateEdgeId(link.source, link.target),
-      source: link.source,
-      target: link.target,
-      animated: true,
-      label: link.transformationLogic,
-      style: { stroke: '#666' },
-      type: 'smoothstep',
-      data: link.metadata,
-    }));
+    const flowEdges: Edge[] = lineageData.links.map((link) => {
+      const sourceId = `${link.source}-${lineageData.nodes.find(n => n.id === link.source)?.type}`;
+      const targetId = `${link.target}-${lineageData.nodes.find(n => n.id === link.target)?.type}`;
+
+      return {
+        id: generateEdgeId(sourceId, targetId),
+        source: sourceId,
+        target: targetId,
+        animated: true,
+        label: link.transformationLogic,
+        style: { stroke: '#666' },
+        type: 'smoothstep',
+        data: link.metadata,
+      };
+    });
 
     setNodes(flowNodes);
     setEdges(flowEdges);
