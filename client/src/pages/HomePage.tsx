@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import SearchBar from "@/components/search/SearchBar";
 
 export default function HomePage() {
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
 
   const handleSelect = (productId: number) => {
-    setLocation(`/data-products?product=${productId}`);
+    navigate(`/data-products?product=${productId}`);
   };
 
   return (

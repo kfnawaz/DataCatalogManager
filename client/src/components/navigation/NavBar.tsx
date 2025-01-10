@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { Link } from "react-router-dom";
 import { ThemeToggle } from "../theme/theme-toggle";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -49,7 +49,7 @@ export default function NavBar() {
         <div className="flex items-center gap-8">
           <div className="text-2xl font-bold">
             <Link 
-              href="/" 
+              to="/" 
               className="text-foreground hover:text-muted-foreground dark:hover:text-muted-foreground transition-colors duration-200"
             >
               Data Catalog
@@ -57,19 +57,19 @@ export default function NavBar() {
           </div>
           <nav className="hidden md:flex items-center gap-6">
             <Link 
-              href="/data-products" 
+              to="/data-products" 
               className="text-sm font-medium text-foreground hover:text-muted-foreground dark:hover:text-muted-foreground transition-all duration-200 hover:scale-105"
             >
               Data Products
             </Link>
             <Link 
-              href="/metric-definitions" 
+              to="/metric-definitions" 
               className="text-sm font-medium text-foreground hover:text-muted-foreground dark:hover:text-muted-foreground transition-all duration-200 hover:scale-105"
             >
               Metric Definitions
             </Link>
             <Link 
-              href="/stewardship" 
+              to="/stewardship" 
               className="text-sm font-medium text-foreground hover:text-muted-foreground dark:hover:text-muted-foreground transition-all duration-200 hover:scale-105"
             >
               Data Stewardship
