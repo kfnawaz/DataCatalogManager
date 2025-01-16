@@ -269,9 +269,50 @@ export async function seedDataProducts() {
 
     // Create base metric definitions if they don't exist
     const baseMetrics = [
-      { name: "Data Completeness", type: "completeness", description: "Measures the completeness of required data fields" },
-      { name: "Data Accuracy", type: "accuracy", description: "Measures the accuracy of data values" },
-      { name: "Data Timeliness", type: "timeliness", description: "Measures how current the data is" }
+      { 
+        name: "Data Completeness", 
+        type: "completeness" as const, 
+        description: "Measures the completeness of required data fields",
+        defaultFormula: "COUNT(*) FILTER (WHERE {column} IS NOT NULL) * 100.0 / COUNT(*)",
+        parameters: {
+          column: {
+            type: "string",
+            description: "Column to check for completeness",
+            required: true
+          }
+        }
+      },
+      { 
+        name: "Data Accuracy", 
+        type: "accuracy" as const, 
+        description: "Measures the accuracy of data values",
+        defaultFormula: "COUNT(*) FILTER (WHERE {validation_check}) * 100.0 / COUNT(*)",
+        parameters: {
+          validation_check: {
+            type: "string",
+            description: "SQL condition for accuracy check",
+            required: true
+          }
+        }
+      },
+      { 
+        name: "Data Timeliness", 
+        type: "timeliness" as const, 
+        description: "Measures how current the data is",
+        defaultFormula: "COUNT(*) FILTER (WHERE {timestamp_column} >= NOW() - INTERVAL '{max_age}') * 100.0 / COUNT(*)",
+        parameters: {
+          timestamp_column: {
+            type: "string",
+            description: "Timestamp column to check",
+            required: true
+          },
+          max_age: {
+            type: "string",
+            description: "Maximum acceptable age (e.g., '1 day')",
+            required: true
+          }
+        }
+      }
     ];
 
     for (const metric of baseMetrics) {
@@ -337,7 +378,8 @@ export async function seedDataProducts() {
   }
 }
 
-if (require.main === module) {
+// Run seed function if file is executed directly
+if (import.meta.url === new URL(import.meta.url).href) {
   seedDataProducts()
     .then(() => process.exit(0))
     .catch((error) => {

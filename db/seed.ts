@@ -2,12 +2,13 @@ import { db } from "@db";
 import { metricTemplates } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { seedDataProducts } from "./seed_data_products";
+import { seedLineageData } from "./seed_lineage.ts";
 
 const defaultTemplates = [
   {
     name: "Null Value Check",
     description: "Measures the percentage of non-null values in specified columns",
-    type: "completeness",
+    type: "completeness" as const,
     defaultFormula: "COUNT(*) FILTER (WHERE {column} IS NOT NULL) * 100.0 / COUNT(*)",
     parameters: {
       column: {
@@ -22,7 +23,7 @@ const defaultTemplates = [
   {
     name: "Value Range Check",
     description: "Verifies if numeric values fall within an expected range",
-    type: "accuracy",
+    type: "accuracy" as const,
     defaultFormula: "COUNT(*) FILTER (WHERE {column} BETWEEN {min} AND {max}) * 100.0 / COUNT(*)",
     parameters: {
       column: {
@@ -47,7 +48,7 @@ const defaultTemplates = [
   {
     name: "Pattern Match Check",
     description: "Validates if text values match a specific pattern",
-    type: "validity",
+    type: "validity" as const,
     defaultFormula: "COUNT(*) FILTER (WHERE {column} ~ {pattern}) * 100.0 / COUNT(*)",
     parameters: {
       column: {
@@ -63,41 +64,6 @@ const defaultTemplates = [
     },
     example: "Validating email format with regex pattern",
     tags: ["validity", "pattern-match"]
-  },
-  {
-    name: "Freshness Check",
-    description: "Measures how recent the data is based on a timestamp column",
-    type: "timeliness",
-    defaultFormula: "COUNT(*) FILTER (WHERE {timestamp_column} >= NOW() - INTERVAL '{max_age}') * 100.0 / COUNT(*)",
-    parameters: {
-      timestamp_column: {
-        type: "string",
-        description: "Timestamp column to check",
-        required: true
-      },
-      max_age: {
-        type: "string",
-        description: "Maximum acceptable age (e.g., '1 day', '2 hours')",
-        required: true
-      }
-    },
-    example: "Checking if data is less than 24 hours old",
-    tags: ["timeliness", "freshness"]
-  },
-  {
-    name: "Unique Value Check",
-    description: "Measures the percentage of unique values in a column",
-    type: "uniqueness",
-    defaultFormula: "COUNT(DISTINCT {column}) * 100.0 / COUNT(*)",
-    parameters: {
-      column: {
-        type: "string",
-        description: "Column name to check for uniqueness",
-        required: true
-      }
-    },
-    example: "Checking uniqueness of customer IDs",
-    tags: ["uniqueness"]
   }
 ];
 
@@ -135,8 +101,9 @@ export async function seedTemplates() {
   }
 }
 
-if (require.main === module) {
-  Promise.all([seedTemplates(), seedDataProducts()])
+// Run all seed functions if file is executed directly
+if (import.meta.url === new URL(import.meta.url).href) {
+  Promise.all([seedTemplates(), seedDataProducts(), seedLineageData()])
     .then(() => process.exit(0))
     .catch((error) => {
       console.error(error);

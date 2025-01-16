@@ -27,7 +27,7 @@ interface D3LineageGraphProps {
 
 interface Node {
   id: string;
-  type: 'source' | 'transformation' | 'target';
+  type: 'source-aligned' | 'aggregate' | 'consumer-aligned' | 'source' | 'transformation' | 'target';
   label: string;
   metadata?: Record<string, any>;
 }
@@ -289,6 +289,12 @@ export default function D3LineageGraph({
 
 function getNodeColor(type: string): string {
   switch (type) {
+    case "source-aligned":
+      return "#4CAF50";  // Green for source-aligned nodes
+    case "aggregate":
+      return "#2196F3";  // Blue for aggregate nodes
+    case "consumer-aligned":
+      return "#F44336";  // Red for consumer-aligned nodes
     case "source":
       return "#4CAF50";
     case "transformation":
@@ -296,6 +302,6 @@ function getNodeColor(type: string): string {
     case "target":
       return "#F44336";
     default:
-      return "#9E9E9E";
+      return "#9E9E9E";  // Grey for unknown types
   }
 }

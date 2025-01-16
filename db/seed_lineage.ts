@@ -3,97 +3,79 @@ import { lineageNodes, lineageEdges, lineageVersions } from "@db/schema";
 
 export async function seedLineageData() {
   try {
-    // Sample nodes for the financial data products
+    // Sample nodes for the financial data products with Data Mesh architecture
     const nodes = await db
       .insert(lineageNodes)
       .values([
         {
-          name: "Trading System Data",
+          name: "Market Data",
           type: "source-aligned",
           dataProductId: 1,
           metadata: {
-            owner: "Trading Systems Team",
-            description: "Real-time trading data from multiple exchanges",
-            format: "JSON/FIX Protocol",
+            description: "Real-time market data feed",
+            format: "JSON",
             frequency: "Real-time",
+            owner: "Market Data Team",
             sla: "99.99% availability",
             qualityMetrics: {
               accuracy: 0.99,
               completeness: 0.98,
               timeliness: 0.99
-            },
-            schema: [
-              { name: "trade_id", type: "string", description: "Unique trade identifier" },
-              { name: "timestamp", type: "datetime", description: "Trade execution time" },
-              { name: "price", type: "decimal", description: "Execution price" },
-              { name: "volume", type: "decimal", description: "Trade volume" }
-            ]
+            }
           }
         },
         {
-          name: "Market Reference Data",
+          name: "Position Data",
           type: "source-aligned",
           dataProductId: 1,
           metadata: {
-            owner: "Market Data Team",
-            description: "Reference data for financial instruments",
-            format: "XML",
+            description: "Current trading positions",
+            format: "CSV",
             frequency: "Daily",
+            owner: "Trading Systems Team",
             sla: "99.9% availability",
             qualityMetrics: {
               accuracy: 0.98,
               completeness: 0.95,
               timeliness: 0.97
-            },
-            schema: [
-              { name: "instrument_id", type: "string", description: "Unique instrument identifier" },
-              { name: "asset_class", type: "string", description: "Asset classification" },
-              { name: "currency", type: "string", description: "Trading currency" }
-            ]
+            }
           }
         },
         {
-          name: "Aggregated Position Data",
+          name: "Risk Calculator",
           type: "aggregate",
           dataProductId: 1,
           metadata: {
+            description: "VaR calculation engine",
+            algorithm: "Historical simulation",
+            parameters: {
+              confidenceLevel: 0.99,
+              timeHorizon: "10D"
+            },
             owner: "Risk Analytics Team",
-            description: "Aggregated trading positions with risk metrics",
-            format: "Parquet",
-            frequency: "Hourly",
             sla: "99.5% availability",
             qualityMetrics: {
               accuracy: 0.97,
               completeness: 0.96,
               timeliness: 0.95
-            },
-            schema: [
-              { name: "portfolio_id", type: "string", description: "Portfolio identifier" },
-              { name: "position_value", type: "decimal", description: "Aggregated position value" },
-              { name: "risk_metrics", type: "json", description: "Calculated risk metrics" }
-            ]
+            }
           }
         },
         {
-          name: "VaR Analytics Product",
+          name: "VaR Report",
           type: "consumer-aligned",
           dataProductId: 1,
           metadata: {
+            description: "Daily VaR report",
+            format: "PDF",
+            distribution: "Email",
             owner: "Risk Management Team",
-            description: "Value at Risk calculations for risk reporting",
-            format: "JSON/REST API",
-            frequency: "Daily",
             sla: "99.9% availability",
             qualityMetrics: {
               accuracy: 0.95,
               completeness: 0.98,
               timeliness: 0.96
-            },
-            schema: [
-              { name: "var_metric", type: "decimal", description: "VaR calculation result" },
-              { name: "confidence_level", type: "decimal", description: "Statistical confidence" },
-              { name: "time_horizon", type: "string", description: "Calculation time horizon" }
-            ]
+            }
           }
         }
       ])
@@ -104,50 +86,33 @@ export async function seedLineageData() {
       .insert(lineageEdges)
       .values([
         {
-          sourceId: nodes[0].id, // Trading System Data -> Aggregated Position
+          sourceId: nodes[0].id,
           targetId: nodes[2].id,
-          transformationLogic: "Position aggregation and risk calculation pipeline",
+          transformationLogic: "Apply market scenarios and calculate price changes",
           metadata: {
-            type: "batch-processing",
-            frequency: "Hourly",
-            dependencies: ["Apache Spark", "Risk Engine"],
-            validationRules: [
-              "No negative positions",
-              "All mandatory fields present",
-              "Timestamps within valid range"
-            ],
-            impact: "Critical - Core position calculation"
+            dataVolume: "~1M records/day",
+            latency: "<100ms",
+            type: "data_flow"
           }
         },
         {
-          sourceId: nodes[1].id, // Market Reference -> Aggregated Position
+          sourceId: nodes[1].id,
           targetId: nodes[2].id,
-          transformationLogic: "Instrument enrichment and classification",
+          transformationLogic: "Apply position weights and aggregation",
           metadata: {
-            type: "streaming",
-            frequency: "Real-time",
-            dependencies: ["Reference Data Service"],
-            validationRules: [
-              "Valid instrument IDs",
-              "Required reference data present"
-            ],
-            impact: "High - Position classification"
+            dataVolume: "~100K records/day",
+            latency: "<50ms",
+            type: "data_flow"
           }
         },
         {
-          sourceId: nodes[2].id, // Aggregated Position -> VaR Analytics
+          sourceId: nodes[2].id,
           targetId: nodes[3].id,
-          transformationLogic: "VaR calculation using historical simulation",
+          transformationLogic: "Generate formatted report with charts and analysis",
           metadata: {
-            type: "batch-processing",
-            frequency: "Daily",
-            dependencies: ["Statistical Engine", "Historical Data Store"],
-            validationRules: [
-              "Minimum data points requirement met",
-              "Confidence level validation",
-              "Time horizon validation"
-            ],
-            impact: "Critical - Risk measurement"
+            format: "PDF",
+            schedule: "Daily @ 18:00",
+            type: "data_flow"
           }
         }
       ]);
@@ -164,48 +129,31 @@ export async function seedLineageData() {
         {
           source: nodes[0].id.toString(),
           target: nodes[2].id.toString(),
-          transformationLogic: "Position aggregation and risk calculation pipeline",
+          transformationLogic: "Apply market scenarios and calculate price changes",
           metadata: {
-            type: "batch-processing",
-            frequency: "Hourly",
-            dependencies: ["Apache Spark", "Risk Engine"],
-            validationRules: [
-              "No negative positions",
-              "All mandatory fields present",
-              "Timestamps within valid range"
-            ],
-            impact: "Critical - Core position calculation"
+            dataVolume: "~1M records/day",
+            latency: "<100ms",
+            type: "data_flow"
           }
         },
         {
           source: nodes[1].id.toString(),
           target: nodes[2].id.toString(),
-          transformationLogic: "Instrument enrichment and classification",
+          transformationLogic: "Apply position weights and aggregation",
           metadata: {
-            type: "streaming",
-            frequency: "Real-time",
-            dependencies: ["Reference Data Service"],
-            validationRules: [
-              "Valid instrument IDs",
-              "Required reference data present"
-            ],
-            impact: "High - Position classification"
+            dataVolume: "~100K records/day",
+            latency: "<50ms",
+            type: "data_flow"
           }
         },
         {
           source: nodes[2].id.toString(),
           target: nodes[3].id.toString(),
-          transformationLogic: "VaR calculation using historical simulation",
+          transformationLogic: "Generate formatted report with charts and analysis",
           metadata: {
-            type: "batch-processing",
-            frequency: "Daily",
-            dependencies: ["Statistical Engine", "Historical Data Store"],
-            validationRules: [
-              "Minimum data points requirement met",
-              "Confidence level validation",
-              "Time horizon validation"
-            ],
-            impact: "Critical - Risk measurement"
+            format: "PDF",
+            schedule: "Daily @ 18:00",
+            type: "data_flow"
           }
         }
       ]

@@ -131,11 +131,11 @@ export const qualityMetrics = pgTable("quality_metrics", {
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
-// Add lineage node types enum
+// Update the lineage node types enum to support Data Mesh architecture
 export const lineageNodeTypeEnum = pgEnum('lineage_node_type', [
-  'source',
-  'transformation',
-  'target'
+  'source-aligned',
+  'aggregate',
+  'consumer-aligned'
 ]);
 
 // Add lineage nodes table
