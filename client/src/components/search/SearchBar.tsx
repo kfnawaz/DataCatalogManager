@@ -36,6 +36,21 @@ export default function SearchBar({ onSelect, initialValue, className }: SearchB
   const [selectedProduct, setSelectedProduct] = useState<DataProduct | null>(null);
   const [recentItems, setRecentItems] = useState<DataProduct[]>([]);
 
+  const { data: searchResults, isLoading } = useQuery<DataProduct[]>({
+    queryKey: ["/api/data-products"],
+    staleTime: 30000,
+  });
+
+  // Update selected product when initialValue changes
+  useEffect(() => {
+    if (initialValue && searchResults) {
+      const product = searchResults.find(p => p.id === initialValue);
+      if (product) {
+        setSelectedProduct(product);
+      }
+    }
+  }, [initialValue, searchResults]);
+
   // Load recent items from localStorage on mount
   useEffect(() => {
     try {
@@ -61,21 +76,6 @@ export default function SearchBar({ onSelect, initialValue, className }: SearchB
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const { data: searchResults, isLoading } = useQuery<DataProduct[]>({
-    queryKey: ["/api/data-products"],
-    staleTime: 30000,
-  });
-
-  // Update selected product when initialValue changes
-  useEffect(() => {
-    if (initialValue && searchResults) {
-      const product = searchResults.find(p => p.id === initialValue);
-      if (product) {
-        setSelectedProduct(product);
-      }
-    }
-  }, [initialValue, searchResults]);
-
   // Filter and sort results based on search input
   const filteredResults = searchResults?.filter(item => {
     if (!search.trim()) return true;
@@ -90,22 +90,18 @@ export default function SearchBar({ onSelect, initialValue, className }: SearchB
   });
 
   const handleSelect = (item: DataProduct) => {
-    try {
-      onSelect(item.id);
-      setSelectedProduct(item);
-      setOpen(false);
+    setSelectedProduct(item);
+    onSelect(item.id);
+    setOpen(false);
 
-      // Update recent items
-      const newRecent = [
-        item,
-        ...recentItems.filter(i => i.id !== item.id)
-      ].slice(0, MAX_RECENT_ITEMS);
+    // Update recent items
+    const newRecent = [
+      item,
+      ...recentItems.filter(i => i.id !== item.id)
+    ].slice(0, MAX_RECENT_ITEMS);
 
-      setRecentItems(newRecent);
-      localStorage.setItem('recentDataProducts', JSON.stringify(newRecent));
-    } catch (error) {
-      console.error('Error handling selection:', error);
-    }
+    setRecentItems(newRecent);
+    localStorage.setItem('recentDataProducts', JSON.stringify(newRecent));
   };
 
   return (
@@ -127,12 +123,8 @@ export default function SearchBar({ onSelect, initialValue, className }: SearchB
       <CommandDialog 
         open={open} 
         onOpenChange={setOpen}
-        aria-describedby="search-description"
       >
         <DialogTitle className="sr-only">Search Data Products</DialogTitle>
-        <div id="search-description" className="sr-only">
-          Search through available data products by name, description, domain, owner, or tags
-        </div>
         <CommandInput 
           placeholder="Type to search data products..." 
           value={search}
