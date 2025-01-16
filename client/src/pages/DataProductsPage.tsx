@@ -63,10 +63,13 @@ export default function DataProductsPage() {
     queryKey: ['/api/data-products'],
   });
 
-  const { data: selectedProduct, isLoading } = useQuery<DataProduct>({
+  const { data: selectedProduct, isLoading: isLoadingSelected } = useQuery<DataProduct>({
     queryKey: [`/api/metadata/${selectedDataProduct}`],
     enabled: selectedDataProduct !== null,
+    retry: false,
   });
+
+  const isLoading = isLoadingAll || (selectedDataProduct !== null && isLoadingSelected);
 
   return (
     <TooltipProvider>
@@ -97,7 +100,7 @@ export default function DataProductsPage() {
           </div>
 
           <div>
-            <AnimatePresence>
+            <AnimatePresence mode="wait">
               {isLoading && (
                 <motion.div {...fadeIn} key="loading">
                   <Skeleton className="h-8 w-1/3 mb-2" />
@@ -125,9 +128,9 @@ export default function DataProductsPage() {
                     className="space-y-4"
                   >
                     <TabsList>
-                      <TabsTrigger value="metadata" className="metadata-tab">Metadata</TabsTrigger>
-                      <TabsTrigger value="quality" className="quality-tab">Quality Metrics</TabsTrigger>
-                      <TabsTrigger value="lineage" className="lineage-tab">Lineage</TabsTrigger>
+                      <TabsTrigger value="metadata">Metadata</TabsTrigger>
+                      <TabsTrigger value="quality">Quality Metrics</TabsTrigger>
+                      <TabsTrigger value="lineage">Lineage</TabsTrigger>
                     </TabsList>
 
                     <AnimatePresence mode="wait">
@@ -137,25 +140,14 @@ export default function DataProductsPage() {
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0 }}
                         >
-                          <div className="space-y-4">
-                            <Card>
-                              <CardHeader>
-                                <h3 className="text-lg font-semibold">Metadata Management</h3>
-                              </CardHeader>
-                              <CardContent>
-                                <MetadataPanel dataProductId={selectedDataProduct} />
-                              </CardContent>
-                            </Card>
-
-                            <Card>
-                              <CardHeader>
-                                <h3 className="text-lg font-semibold">Comments & Annotations</h3>
-                              </CardHeader>
-                              <CardContent className="comment-section">
-                                <DataProductComments dataProductId={selectedDataProduct} />
-                              </CardContent>
-                            </Card>
-                          </div>
+                          <Card>
+                            <CardHeader>
+                              <h3 className="text-lg font-semibold">Metadata Management</h3>
+                            </CardHeader>
+                            <CardContent>
+                              <MetadataPanel dataProductId={selectedDataProduct} />
+                            </CardContent>
+                          </Card>
                         </motion.div>
                       </TabsContent>
 
@@ -196,7 +188,7 @@ export default function DataProductsPage() {
 
               {!isLoading && !selectedProduct && (
                 <motion.div {...fadeIn} key="empty" className="text-center py-12 text-muted-foreground">
-                  Use the search bar above or select from the hierarchical view to find a data product
+                  Select a data product from the search bar or hierarchical view to see its details
                 </motion.div>
               )}
             </AnimatePresence>
