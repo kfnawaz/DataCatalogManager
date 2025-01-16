@@ -10,7 +10,7 @@ export async function seedLineageData() {
         {
           name: "Market Data",
           type: "source-aligned",
-          dataProductId: 1,
+          dataProductId: 26, // VaR Report data product ID
           metadata: {
             description: "Real-time market data feed",
             format: "JSON",
@@ -27,7 +27,7 @@ export async function seedLineageData() {
         {
           name: "Position Data",
           type: "source-aligned",
-          dataProductId: 1,
+          dataProductId: 26,
           metadata: {
             description: "Current trading positions",
             format: "CSV",
@@ -44,7 +44,7 @@ export async function seedLineageData() {
         {
           name: "Risk Calculator",
           type: "aggregate",
-          dataProductId: 1,
+          dataProductId: 26,
           metadata: {
             description: "VaR calculation engine",
             algorithm: "Historical simulation",
@@ -64,7 +64,7 @@ export async function seedLineageData() {
         {
           name: "VaR Report",
           type: "consumer-aligned",
-          dataProductId: 1,
+          dataProductId: 26,
           metadata: {
             description: "Daily VaR report",
             format: "PDF",
@@ -162,10 +162,10 @@ export async function seedLineageData() {
     await db
       .insert(lineageVersions)
       .values({
-        dataProductId: 1,
+        dataProductId: 26,
         version: 1,
         snapshot,
-        changeMessage: "Initial Data Mesh aligned lineage setup",
+        changeMessage: "Initial VaR Report lineage setup",
         createdBy: "system"
       });
 

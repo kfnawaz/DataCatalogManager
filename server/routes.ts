@@ -13,7 +13,7 @@ import {
   lineageEdges,
   lineageVersions
 } from "@db/schema";
-import { eq, desc, sql, and, inArray } from "drizzle-orm";
+import { eq, desc, sql, and, inArray, or } from "drizzle-orm";
 import OpenAI from "openai";
 import { trackApiUsage, getApiUsageStats } from "./utils/apiTracker";
 import fetch from 'node-fetch';
@@ -235,7 +235,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const productId = parseInt(req.params.id);
       if (isNaN(productId)) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "Invalid input",
           details: "Product ID must be a valid number"
         });
@@ -364,7 +364,7 @@ export function registerRoutes(app: Express): Server {
       res.json(response);
     } catch (error) {
       console.error("Error fetching metadata:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to fetch metadata",
         details: error instanceof Error ? error.message : "Unknown error"
       });
@@ -894,7 +894,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Update lineage API endpoint to fix the array query
+  // Update lineage API endpoint to fix the query and response
   app.get("/api/lineage", async (req, res) => {
     try {
       const dataProductId = parseInt(req.query.dataProductId as string);
@@ -917,10 +917,15 @@ export function registerRoutes(app: Express): Server {
           )
           .limit(1);
 
-        if (lineageVersion) {
+        if (lineageVersion && lineageVersion.snapshot) {
+          const versionData = lineageVersion.snapshot as {
+            nodes: any[];
+            links: any[];
+          };
+
           return res.json({
-            nodes: lineageVersion.snapshot.nodes,
-            links: lineageVersion.snapshot.links,
+            nodes: versionData.nodes,
+            links: versionData.links,
             version: lineageVersion.version,
             versions: await db
               .select({
@@ -952,12 +957,12 @@ export function registerRoutes(app: Express): Server {
       // Get all node IDs
       const nodeIds = nodes.map(n => n.id);
 
-      // Fetch edges using inArray operator
+      // Fetch edges using IN operator
       const edges = await db
         .select()
         .from(lineageEdges)
         .where(
-          and(
+          or(
             inArray(lineageEdges.sourceId, nodeIds),
             inArray(lineageEdges.targetId, nodeIds)
           )
@@ -982,13 +987,13 @@ export function registerRoutes(app: Express): Server {
           id: node.id.toString(),
           type: node.type,
           label: node.name,
-          metadata: node.metadata
+          metadata: node.metadata || {}
         })),
         links: edges.map(edge => ({
           source: edge.sourceId.toString(),
           target: edge.targetId.toString(),
-          transformationLogic: edge.transformationLogic,
-          metadata: edge.metadata
+          transformationLogic: edge.transformationLogic || "",
+          metadata: edge.metadata || {}
         })),
         version: latestVersion,
         versions
@@ -997,12 +1002,10 @@ export function registerRoutes(app: Express): Server {
       res.json(response);
     } catch (error) {
       console.error("Error fetching lineage data:", error);
+      await trackApiUsage("/api/lineage", 500, error instanceof Error ? error.message : "Unknown error");
       res.status(500).json({
         error: "Failed to fetch lineage data",
-        details: error instanceof Error ? error.message : String(error),
-        timestamp: new Date().toISOString(),
-        path: "/api/lineage",
-        query: { dataProductId: req.query.dataProductId, version: req.query.version }
+        details: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
