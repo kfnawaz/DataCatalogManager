@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -39,14 +40,24 @@ const fadeIn = {
 export default function DataProductsPage() {
   const [selectedDataProduct, setSelectedDataProduct] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("metadata");
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search);
     const productId = params.get('product');
     if (productId) {
-      setSelectedDataProduct(parseInt(productId));
+      const id = parseInt(productId);
+      if (!isNaN(id)) {
+        setSelectedDataProduct(id);
+      }
     }
-  }, []);
+  }, [location.search]);
+
+  const handleProductSelect = (id: number) => {
+    setSelectedDataProduct(id);
+    navigate(`/data-products?product=${id}`);
+  };
 
   const { data: allDataProducts, isLoading: isLoadingAll } = useQuery<DataProduct[]>({
     queryKey: ['/api/data-products'],
@@ -65,9 +76,12 @@ export default function DataProductsPage() {
         className="container mx-auto px-4 py-6"
       >
         <div className="grid grid-cols-[300px_1fr] gap-6">
-          {/* Left sidebar with hierarchical view */}
           <div className="space-y-4">
-            <SearchBar onSelect={setSelectedDataProduct} initialValue={selectedDataProduct} className="search-bar" />
+            <SearchBar 
+              onSelect={handleProductSelect} 
+              initialValue={selectedDataProduct} 
+              className="search-bar" 
+            />
             {isLoadingAll ? (
               <div className="space-y-2">
                 <Skeleton className="h-8 w-full" />
@@ -76,13 +90,12 @@ export default function DataProductsPage() {
             ) : allDataProducts ? (
               <HierarchicalView
                 dataProducts={allDataProducts}
-                onSelect={setSelectedDataProduct}
+                onSelect={handleProductSelect}
                 selectedId={selectedDataProduct}
               />
             ) : null}
           </div>
 
-          {/* Main content area */}
           <div>
             <AnimatePresence>
               {isLoading && (
