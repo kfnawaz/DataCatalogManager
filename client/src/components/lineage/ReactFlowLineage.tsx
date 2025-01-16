@@ -22,34 +22,45 @@ import {
 } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue 
-} from "@/components/ui/select";
 import { Search, ZoomIn, ZoomOut, Maximize2, Download, Share2, Image } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import * as htmlToImage from 'html-to-image';
 
 interface LineageMetadata {
+  owner?: string;
+  sla?: string;
+  qualityMetrics?: {
+    accuracy?: number;
+    completeness?: number;
+    timeliness?: number;
+  };
+  version?: string;
   description?: string;
   format?: string;
   frequency?: string;
-  algorithm?: string;
-  parameters?: Record<string, any>;
   dataVolume?: string;
   latency?: string;
-  schedule?: string;
-  distribution?: string;
+  schema?: {
+    name: string;
+    type: string;
+    description?: string;
+  }[];
+}
+
+interface TransformationMetadata {
+  type: string;
+  frequency: string;
+  dependencies: string[];
+  validationRules?: string[];
+  impact?: string;
 }
 
 interface LineageNode {
   id: string;
-  type: 'source' | 'transformation' | 'target';
+  type: 'source-aligned' | 'aggregate' | 'consumer-aligned';
   label: string;
+  category?: string;
   metadata?: LineageMetadata;
 }
 
@@ -57,7 +68,7 @@ interface LineageLink {
   source: string;
   target: string;
   transformationLogic?: string;
-  metadata?: LineageMetadata;
+  metadata?: TransformationMetadata;
 }
 
 interface ReactFlowLineageProps {
@@ -69,36 +80,86 @@ interface ReactFlowLineageProps {
   isLoading: boolean;
 }
 
-// Format metadata for display
-const formatMetadataForDisplay = (metadata: LineageMetadata): JSX.Element => {
-  return (
-    <div className="space-y-2 p-2">
-      {Object.entries(metadata).map(([key, value]) => (
-        <div key={key} className="text-sm">
-          <span className="font-medium capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}: </span>
-          <span className="text-muted-foreground">
-            {typeof value === 'object' ? JSON.stringify(value, null, 2) : value}
-          </span>
+// Format metadata for display with enhanced details
+const formatMetadataForDisplay = (metadata: LineageMetadata | TransformationMetadata): JSX.Element => {
+  const formatQualityMetrics = (metrics: LineageMetadata['qualityMetrics']) => {
+    if (!metrics) return null;
+    return (
+      <div className="mt-2">
+        <div className="font-medium mb-1">Quality Metrics:</div>
+        <div className="grid grid-cols-3 gap-2">
+          {Object.entries(metrics).map(([key, value]) => (
+            <div key={key} className="text-center">
+              <Badge variant={value >= 0.8 ? "success" : value >= 0.6 ? "warning" : "destructive"}>
+                {(value * 100).toFixed(1)}%
+              </Badge>
+              <div className="text-xs mt-1 capitalize">{key}</div>
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-3 p-3">
+      {Object.entries(metadata).map(([key, value]) => {
+        if (key === 'qualityMetrics') {
+          return formatQualityMetrics(value as LineageMetadata['qualityMetrics']);
+        }
+        if (key === 'schema' && Array.isArray(value)) {
+          return (
+            <div key={key} className="space-y-2">
+              <div className="font-medium">Schema:</div>
+              <div className="space-y-1">
+                {value.map((field, idx) => (
+                  <div key={idx} className="text-sm">
+                    <span className="font-medium">{field.name}</span>
+                    <span className="text-muted-foreground"> ({field.type})</span>
+                    {field.description && (
+                      <div className="text-xs text-muted-foreground">{field.description}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        }
+        if (typeof value === 'object') {
+          return (
+            <div key={key} className="space-y-1">
+              <div className="font-medium capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</div>
+              <div className="text-sm text-muted-foreground">
+                {Array.isArray(value) ? value.join(', ') : JSON.stringify(value, null, 2)}
+              </div>
+            </div>
+          );
+        }
+        return (
+          <div key={key} className="text-sm">
+            <span className="font-medium capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}: </span>
+            <span className="text-muted-foreground">{value}</span>
+          </div>
+        );
+      })}
     </div>
   );
 };
 
-// Custom node component with enhanced accessibility and tooltips
+// Custom node component with enhanced styling and metadata display
 function LineageNodeComponent({ data }: { data: { label: string; type: string; metadata?: LineageMetadata; isHighlighted?: boolean } }) {
   const getNodeStyle = (type: string, isHighlighted?: boolean) => {
     const baseStyle = {
       padding: '16px',
       border: '2px solid',
       borderRadius: '8px',
-      minWidth: '180px',
+      minWidth: '200px',
       transition: 'all 0.2s ease',
       opacity: isHighlighted === false ? 0.5 : 1,
     };
 
     switch (type) {
-      case 'source':
+      case 'source-aligned':
         return {
           ...baseStyle,
           background: '#4CAF50',
@@ -106,7 +167,7 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; m
           borderColor: '#43A047',
           boxShadow: isHighlighted ? '0 0 15px rgba(76, 175, 80, 0.5)' : '0 0 0 1px rgba(76, 175, 80, 0.2)',
         };
-      case 'transformation':
+      case 'aggregate':
         return {
           ...baseStyle,
           background: '#2196F3',
@@ -114,7 +175,7 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; m
           borderColor: '#1E88E5',
           boxShadow: isHighlighted ? '0 0 15px rgba(33, 150, 243, 0.5)' : '0 0 0 1px rgba(33, 150, 243, 0.2)',
         };
-      case 'target':
+      case 'consumer-aligned':
         return {
           ...baseStyle,
           background: '#F44336',
@@ -131,28 +192,28 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; m
     <TooltipProvider>
       <Tooltip delayDuration={300}>
         <TooltipTrigger asChild>
-          <div 
-            style={getNodeStyle(data.type, data.isHighlighted)} 
+          <div
+            style={getNodeStyle(data.type, data.isHighlighted)}
             className="group relative focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             role="button"
             tabIndex={0}
             aria-label={`${data.type} node: ${data.label}`}
           >
-            <Handle 
-              type="target" 
-              position={Position.Left} 
+            <Handle
+              type="target"
+              position={Position.Left}
               className="!bg-white !border-2 !border-current"
-              aria-label="Input connection point" 
+              aria-label="Input connection point"
             />
             <div className="text-center">
               <div className="font-medium mb-1">{data.label}</div>
               <div className="text-xs text-white/80">
-                {data.type.charAt(0).toUpperCase() + data.type.slice(1)}
+                {data.type.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
               </div>
             </div>
-            <Handle 
-              type="source" 
-              position={Position.Right} 
+            <Handle
+              type="source"
+              position={Position.Right}
               className="!bg-white !border-2 !border-current"
               aria-label="Output connection point"
             />
@@ -181,29 +242,23 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(['source', 'transformation', 'target']);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(['source-aligned', 'aggregate', 'consumer-aligned']);
   const { fitView, zoomIn: flowZoomIn, zoomOut: flowZoomOut, getNodes } = useReactFlow();
   const { toast } = useToast();
   const flowRef = useRef<HTMLDivElement>(null);
 
-  // Zoom level presets
-  const zoomToFit = useCallback(() => {
-    fitView({ duration: 800, padding: 0.2 });
-  }, [fitView]);
-
-  const handleZoomIn = () => flowZoomIn({ duration: 800 });
-  const handleZoomOut = () => flowZoomOut({ duration: 800 });
+  // Layout configuration
+  const LAYOUT_CONFIG = {
+    HORIZONTAL_SPACING: 300,
+    VERTICAL_SPACING: 150,
+    INITIAL_X: 50,
+    INITIAL_Y: 50,
+    LEVEL_HEIGHT: 200,
+  };
 
   useEffect(() => {
     if (!lineageData) return;
 
-    // Calculate layout positions
-    const HORIZONTAL_SPACING = 250;
-    const VERTICAL_SPACING = 120;
-    const INITIAL_X = 50;
-    const INITIAL_Y = 50;
-
-    // Filter and highlight nodes based on search and type filters
     const isNodeVisible = (node: LineageNode) => {
       const matchesSearch = node.label.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesType = selectedTypes.includes(node.type);
@@ -217,19 +272,19 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
     });
     const uniqueNodes = Array.from(uniqueNodesMap.values());
 
-    // Group nodes by type
-    const sourceNodes = uniqueNodes.filter(n => n.type === 'source');
-    const transformNodes = uniqueNodes.filter(n => n.type === 'transformation');
-    const targetNodes = uniqueNodes.filter(n => n.type === 'target');
+    // Group nodes by type for hierarchical layout
+    const sourceNodes = uniqueNodes.filter(n => n.type === 'source-aligned');
+    const aggregateNodes = uniqueNodes.filter(n => n.type === 'aggregate');
+    const consumerNodes = uniqueNodes.filter(n => n.type === 'consumer-aligned');
 
-    // Create nodes with positions and highlighting
+    // Calculate positions for hierarchical layout
     const flowNodes = [
       ...sourceNodes.map((node, i) => ({
         id: node.id,
         type: 'custom',
-        position: { 
-          x: INITIAL_X, 
-          y: INITIAL_Y + (i * VERTICAL_SPACING) 
+        position: {
+          x: LAYOUT_CONFIG.INITIAL_X,
+          y: LAYOUT_CONFIG.INITIAL_Y + (i * LAYOUT_CONFIG.VERTICAL_SPACING)
         },
         data: {
           label: node.label,
@@ -237,14 +292,14 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
           metadata: node.metadata,
           isHighlighted: isNodeVisible(node),
         },
-        ariaLabel: `Source node: ${node.label}`,
+        ariaLabel: `Source-aligned node: ${node.label}`,
       })),
-      ...transformNodes.map((node, i) => ({
+      ...aggregateNodes.map((node, i) => ({
         id: node.id,
         type: 'custom',
-        position: { 
-          x: INITIAL_X + HORIZONTAL_SPACING, 
-          y: INITIAL_Y + (i * VERTICAL_SPACING)
+        position: {
+          x: LAYOUT_CONFIG.INITIAL_X + LAYOUT_CONFIG.HORIZONTAL_SPACING,
+          y: LAYOUT_CONFIG.INITIAL_Y + (i * LAYOUT_CONFIG.VERTICAL_SPACING)
         },
         data: {
           label: node.label,
@@ -252,14 +307,14 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
           metadata: node.metadata,
           isHighlighted: isNodeVisible(node),
         },
-        ariaLabel: `Transformation node: ${node.label}`,
+        ariaLabel: `Aggregate node: ${node.label}`,
       })),
-      ...targetNodes.map((node, i) => ({
+      ...consumerNodes.map((node, i) => ({
         id: node.id,
         type: 'custom',
-        position: { 
-          x: INITIAL_X + (HORIZONTAL_SPACING * 2), 
-          y: INITIAL_Y + (i * VERTICAL_SPACING)
+        position: {
+          x: LAYOUT_CONFIG.INITIAL_X + (LAYOUT_CONFIG.HORIZONTAL_SPACING * 2),
+          y: LAYOUT_CONFIG.INITIAL_Y + (i * LAYOUT_CONFIG.VERTICAL_SPACING)
         },
         data: {
           label: node.label,
@@ -267,55 +322,50 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
           metadata: node.metadata,
           isHighlighted: isNodeVisible(node),
         },
-        ariaLabel: `Target node: ${node.label}`,
+        ariaLabel: `Consumer-aligned node: ${node.label}`,
       })),
     ];
 
-    // Create edges between visible nodes
+    // Create edges between visible nodes with enhanced styling
     const visibleNodeIds = flowNodes
       .filter(node => node.data.isHighlighted)
       .map(node => node.id);
 
-    // Create a Map to deduplicate edges
     const uniqueEdgesMap = new Map();
     lineageData.links.forEach(link => {
       if (visibleNodeIds.includes(link.source) && visibleNodeIds.includes(link.target)) {
-        const edgeKey = `${link.source}-${link.target}`;
-        uniqueEdgesMap.set(edgeKey, link);
+        const edgeKey = `${link.source}-${link.target}-${Date.now()}`;
+        uniqueEdgesMap.set(edgeKey, {
+          id: edgeKey,
+          source: link.source,
+          target: link.target,
+          type: 'smoothstep',
+          animated: true,
+          label: link.transformationLogic,
+          labelStyle: { fill: 'hsl(var(--foreground))', fontWeight: 500 },
+          style: {
+            stroke: 'hsl(var(--foreground))',
+            strokeWidth: 2,
+          },
+          data: {
+            metadata: link.metadata,
+          },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 20,
+            height: 20,
+            color: 'hsl(var(--foreground))',
+          },
+        });
       }
     });
 
-    // Create edges from unique links with tooltips
-    const flowEdges = Array.from(uniqueEdgesMap.values()).map(link => ({
-      id: generateEdgeId(link.source, link.target),
-      source: link.source,
-      target: link.target,
-      type: 'smoothstep',
-      animated: true,
-      label: link.transformationLogic,
-      labelStyle: { fill: 'hsl(var(--foreground))', fontWeight: 500 },
-      style: {
-        stroke: 'hsl(var(--foreground))',
-        strokeWidth: 2,
-      },
-      ariaLabel: `Connection from ${link.source} to ${link.target}${link.transformationLogic ? `: ${link.transformationLogic}` : ''}`,
-      data: {
-        metadata: link.metadata,
-      },
-      markerEnd: {
-        type: MarkerType.ArrowClosed,
-        width: 20,
-        height: 20,
-        color: 'hsl(var(--foreground))',
-      },
-    }));
-
     setNodes(flowNodes);
-    setEdges(flowEdges);
+    setEdges(Array.from(uniqueEdgesMap.values()));
   }, [lineageData, searchTerm, selectedTypes, setNodes, setEdges]);
 
   const handleTypeToggle = (type: string) => {
-    setSelectedTypes(prev => 
+    setSelectedTypes(prev =>
       prev.includes(type)
         ? prev.filter(t => t !== type)
         : [...prev, type]
@@ -406,14 +456,14 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
             </div>
           </div>
           <div className="flex gap-2">
-            {['source', 'transformation', 'target'].map(type => (
+            {['source-aligned', 'aggregate', 'consumer-aligned'].map(type => (
               <Badge
                 key={type}
                 variant={selectedTypes.includes(type) ? 'default' : 'outline'}
                 className="cursor-pointer"
                 onClick={() => handleTypeToggle(type)}
               >
-                {type.charAt(0).toUpperCase() + type.slice(1)}
+                {type.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
               </Badge>
             ))}
           </div>
@@ -486,25 +536,25 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
               },
             }}
           >
-            <Background 
+            <Background
               color="hsl(var(--muted-foreground))"
               className="opacity-5"
             />
-            <Controls 
+            <Controls
               className="bg-card border border-border shadow-sm"
               position="bottom-right"
               showInteractive={false}
               aria-label="Graph controls"
             />
-            <MiniMap 
+            <MiniMap
               nodeStrokeColor="hsl(var(--muted-foreground))"
               nodeColor={node => {
                 switch (node.data?.type) {
-                  case "source":
+                  case "source-aligned":
                     return "hsl(142.1 70.6% 45.3%)";
-                  case "transformation":
+                  case "aggregate":
                     return "hsl(217.2 91.2% 59.8%)";
-                  case "target":
+                  case "consumer-aligned":
                     return "hsl(0 84.2% 60.2%)";
                   default:
                     return "hsl(var(--muted))";
