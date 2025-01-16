@@ -22,18 +22,17 @@ import {
 } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
+import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue 
 } from "@/components/ui/select";
 import { Search, ZoomIn, ZoomOut, Maximize2, Download, Share2, Image } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import * as htmlToImage from 'html-to-image';
-import { Database, Git, Table, FileSpreadsheet, Code, ChartBar } from "lucide-react";
 
 interface LineageMetadata {
   description?: string;
@@ -45,7 +44,6 @@ interface LineageMetadata {
   latency?: string;
   schedule?: string;
   distribution?: string;
-  quality?: number;
 }
 
 interface LineageNode {
@@ -87,139 +85,75 @@ const formatMetadataForDisplay = (metadata: LineageMetadata): JSX.Element => {
   );
 };
 
-// Enhanced node styling component
+// Custom node component with enhanced accessibility and tooltips
 function LineageNodeComponent({ data }: { data: { label: string; type: string; metadata?: LineageMetadata; isHighlighted?: boolean } }) {
   const getNodeStyle = (type: string, isHighlighted?: boolean) => {
     const baseStyle = {
       padding: '16px',
-      transition: 'all 0.3s ease',
+      border: '2px solid',
+      borderRadius: '8px',
+      minWidth: '180px',
+      transition: 'all 0.2s ease',
       opacity: isHighlighted === false ? 0.5 : 1,
-      minWidth: '200px',
-      minHeight: '100px',
-      display: 'flex',
-      flexDirection: 'column' as const,
-      alignItems: 'center',
-      justifyContent: 'center',
-      position: 'relative' as const,
     };
 
     switch (type) {
       case 'source':
         return {
           ...baseStyle,
-          background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)',
+          background: '#4CAF50',
           color: 'white',
-          clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-          border: '2px solid #43A047',
-          boxShadow: isHighlighted
-            ? '0 0 20px rgba(76, 175, 80, 0.5)'
-            : '0 4px 6px rgba(76, 175, 80, 0.2)',
+          borderColor: '#43A047',
+          boxShadow: isHighlighted ? '0 0 15px rgba(76, 175, 80, 0.5)' : '0 0 0 1px rgba(76, 175, 80, 0.2)',
         };
       case 'transformation':
         return {
           ...baseStyle,
-          background: 'linear-gradient(135deg, #2196F3 0%, #1e88e5 100%)',
+          background: '#2196F3',
           color: 'white',
-          clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
-          border: '2px solid #1E88E5',
-          boxShadow: isHighlighted
-            ? '0 0 20px rgba(33, 150, 243, 0.5)'
-            : '0 4px 6px rgba(33, 150, 243, 0.2)',
-          animation: isHighlighted ? 'pulse 2s infinite' : 'none',
+          borderColor: '#1E88E5',
+          boxShadow: isHighlighted ? '0 0 15px rgba(33, 150, 243, 0.5)' : '0 0 0 1px rgba(33, 150, 243, 0.2)',
         };
       case 'target':
         return {
           ...baseStyle,
-          background: 'linear-gradient(135deg, #F44336 0%, #e53935 100%)',
+          background: '#F44336',
           color: 'white',
-          borderRadius: '12px',
-          border: '2px solid #E53935',
-          boxShadow: isHighlighted
-            ? '0 0 20px rgba(244, 67, 54, 0.5)'
-            : '0 4px 6px rgba(244, 67, 54, 0.2)',
+          borderColor: '#E53935',
+          boxShadow: isHighlighted ? '0 0 15px rgba(244, 67, 54, 0.5)' : '0 0 0 1px rgba(244, 67, 54, 0.2)',
         };
       default:
         return baseStyle;
     }
   };
 
-  const getNodeIcon = (type: string) => {
-    switch (type) {
-      case 'source':
-        return <Database className="h-6 w-6 mb-2" />;
-      case 'transformation':
-        return <Code className="h-6 w-6 mb-2" />;
-      case 'target':
-        return <ChartBar className="h-6 w-6 mb-2" />;
-      default:
-        return null;
-    }
-  };
-
-  const getQualityIndicator = (metadata?: LineageMetadata) => {
-    if (!metadata) return null;
-    const quality = metadata.quality || 0.75; // Default quality score
-    const color = quality > 0.8 ? '#4CAF50' : quality > 0.6 ? '#FFC107' : '#F44336';
-
-    return (
-      <div className="absolute top-2 right-2 flex items-center gap-1">
-        <div
-          className="h-2 w-2 rounded-full"
-          style={{ backgroundColor: color }}
-        />
-      </div>
-    );
-  };
-
-  const getMetadataBadges = (metadata?: LineageMetadata) => {
-    if (!metadata) return null;
-
-    return (
-      <div className="flex gap-1 mt-2">
-        {metadata.format && (
-          <Badge variant="secondary" className="text-xs">
-            {metadata.format}
-          </Badge>
-        )}
-        {metadata.frequency && (
-          <Badge variant="secondary" className="text-xs">
-            {metadata.frequency}
-          </Badge>
-        )}
-      </div>
-    );
-  };
-
   return (
     <TooltipProvider>
       <Tooltip delayDuration={300}>
         <TooltipTrigger asChild>
-          <div
-            style={getNodeStyle(data.type, data.isHighlighted)}
+          <div 
+            style={getNodeStyle(data.type, data.isHighlighted)} 
             className="group relative focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             role="button"
             tabIndex={0}
             aria-label={`${data.type} node: ${data.label}`}
           >
-            <Handle
-              type="target"
-              position={Position.Left}
-              className="!bg-white !border-2 !border-current !w-3 !h-3"
-              aria-label="Input connection point"
+            <Handle 
+              type="target" 
+              position={Position.Left} 
+              className="!bg-white !border-2 !border-current"
+              aria-label="Input connection point" 
             />
-            {getQualityIndicator(data.metadata)}
-            {getNodeIcon(data.type)}
-            <div className="text-center z-10">
+            <div className="text-center">
               <div className="font-medium mb-1">{data.label}</div>
-              <div className="text-xs opacity-80">
+              <div className="text-xs text-white/80">
                 {data.type.charAt(0).toUpperCase() + data.type.slice(1)}
               </div>
-              {getMetadataBadges(data.metadata)}
             </div>
-            <Handle
-              type="source"
-              position={Position.Right}
-              className="!bg-white !border-2 !border-current !w-3 !h-3"
+            <Handle 
+              type="source" 
+              position={Position.Right} 
+              className="!bg-white !border-2 !border-current"
               aria-label="Output connection point"
             />
           </div>
@@ -233,17 +167,6 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; m
     </TooltipProvider>
   );
 }
-
-// Add keyframe animation for transformation nodes
-const styleSheet = document.createElement('style');
-styleSheet.textContent = `
-  @keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-  }
-`;
-document.head.appendChild(styleSheet);
 
 const nodeTypes = {
   custom: LineageNodeComponent,
@@ -304,9 +227,9 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
       ...sourceNodes.map((node, i) => ({
         id: node.id,
         type: 'custom',
-        position: {
-          x: INITIAL_X,
-          y: INITIAL_Y + (i * VERTICAL_SPACING)
+        position: { 
+          x: INITIAL_X, 
+          y: INITIAL_Y + (i * VERTICAL_SPACING) 
         },
         data: {
           label: node.label,
@@ -319,8 +242,8 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
       ...transformNodes.map((node, i) => ({
         id: node.id,
         type: 'custom',
-        position: {
-          x: INITIAL_X + HORIZONTAL_SPACING,
+        position: { 
+          x: INITIAL_X + HORIZONTAL_SPACING, 
           y: INITIAL_Y + (i * VERTICAL_SPACING)
         },
         data: {
@@ -334,8 +257,8 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
       ...targetNodes.map((node, i) => ({
         id: node.id,
         type: 'custom',
-        position: {
-          x: INITIAL_X + (HORIZONTAL_SPACING * 2),
+        position: { 
+          x: INITIAL_X + (HORIZONTAL_SPACING * 2), 
           y: INITIAL_Y + (i * VERTICAL_SPACING)
         },
         data: {
@@ -392,7 +315,7 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
   }, [lineageData, searchTerm, selectedTypes, setNodes, setEdges]);
 
   const handleTypeToggle = (type: string) => {
-    setSelectedTypes(prev =>
+    setSelectedTypes(prev => 
       prev.includes(type)
         ? prev.filter(t => t !== type)
         : [...prev, type]
@@ -563,17 +486,17 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
               },
             }}
           >
-            <Background
+            <Background 
               color="hsl(var(--muted-foreground))"
               className="opacity-5"
             />
-            <Controls
+            <Controls 
               className="bg-card border border-border shadow-sm"
               position="bottom-right"
               showInteractive={false}
               aria-label="Graph controls"
             />
-            <MiniMap
+            <MiniMap 
               nodeStrokeColor="hsl(var(--muted-foreground))"
               nodeColor={node => {
                 switch (node.data?.type) {
