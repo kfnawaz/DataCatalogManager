@@ -9,6 +9,7 @@ import ReactFlow, {
   MarkerType,
   MiniMap,
   useReactFlow,
+  ReactFlowProvider,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from "@/components/ui/card";
@@ -173,7 +174,7 @@ const generateEdgeId = (source: string, target: string): string => {
   return `edge-${source}-${target}-${Date.now()}`;
 };
 
-export default function ReactFlowLineage({ dataProductId, lineageData, isLoading }: ReactFlowLineageProps) {
+function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineageProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -436,5 +437,13 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
         )}
       </div>
     </Card>
+  );
+}
+
+export default function ReactFlowLineage(props: ReactFlowLineageProps) {
+  return (
+    <ReactFlowProvider>
+      <LineageFlow {...props} />
+    </ReactFlowProvider>
   );
 }
