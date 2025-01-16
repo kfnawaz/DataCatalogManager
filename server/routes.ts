@@ -255,7 +255,8 @@ export function registerRoutes(app: Express): Server {
           sla: dataProducts.sla,
           updateFrequency: dataProducts.updateFrequency,
           createdAt: dataProducts.createdAt,
-          updatedAt: dataProducts.updatedAt
+          updatedAt: dataProducts.updatedAt,
+          sources: dataProducts.sources
         })
         .from(dataProducts)
         .where(eq(dataProducts.id, productId))
@@ -275,7 +276,8 @@ export function registerRoutes(app: Express): Server {
             sla: dataProducts.sla,
             updateFrequency: dataProducts.updateFrequency,
             createdAt: dataProducts.createdAt,
-            updatedAt: dataProducts.updatedAt
+            updatedAt: dataProducts.updatedAt,
+            sources: dataProducts.sources
           })
           .from(dataProducts)
           .where(sql`LOWER(${dataProducts.name}) = LOWER(${req.params.id})`)
@@ -287,6 +289,7 @@ export function registerRoutes(app: Express): Server {
         product = productByName;
       }
 
+      console.log('Sources from database:', product.sources);
       // Get lineage nodes for this data product
       const nodes = await db
         .select({
@@ -335,8 +338,14 @@ export function registerRoutes(app: Express): Server {
         .limit(10);
 
       // Format response
-      const response = {
+      const metadata = {
         ...product,
+        tags: product.tags || [],
+        sources: product.sources || []
+      };
+
+      const response = {
+        ...metadata,
         lineage: {
           nodes: nodes.map(node => ({
             id: node.id.toString(),
