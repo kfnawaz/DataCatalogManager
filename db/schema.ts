@@ -131,6 +131,16 @@ export const qualityMetrics = pgTable("quality_metrics", {
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
+// Add nodeQualityMetrics table after qualityMetrics table definition
+export const nodeQualityMetrics = pgTable("node_quality_metrics", {
+  id: serial("id").primaryKey(),
+  nodeId: integer("node_id").references(() => lineageNodes.id).notNull(),
+  metricDefinitionId: integer("metric_definition_id").references(() => metricDefinitions.id).notNull(),
+  value: integer("value").notNull(),
+  metadata: jsonb("metadata"),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
 // Update the lineage node types enum to support Data Mesh architecture
 export const lineageNodeTypeEnum = pgEnum('lineage_node_type', [
   'source-aligned',
@@ -298,6 +308,7 @@ export const metricDefinitionVersionRelations = relations(metricDefinitionVersio
   }),
 }));
 
+// Add relation to lineageNodes
 export const lineageNodeRelations = relations(lineageNodes, ({ one, many }) => ({
   dataProduct: one(dataProducts, {
     fields: [lineageNodes.dataProductId],
@@ -305,6 +316,7 @@ export const lineageNodeRelations = relations(lineageNodes, ({ one, many }) => (
   }),
   outgoingEdges: many(lineageEdges, { relationName: "source" }),
   incomingEdges: many(lineageEdges, { relationName: "target" }),
+  qualityMetrics: many(nodeQualityMetrics)
 }));
 
 export const lineageEdgeRelations = relations(lineageEdges, ({ one }) => ({
@@ -362,7 +374,7 @@ export const selectCommentBadgeSchema = createSelectSchema(commentBadges);
 export const insertApiUsageSchema = createInsertSchema(apiUsage);
 export const selectApiUsageSchema = createSelectSchema(apiUsage);
 
-// Add new schemas for lineage
+// Add new schemas
 export const insertLineageNodeSchema = createInsertSchema(lineageNodes);
 export const selectLineageNodeSchema = createSelectSchema(lineageNodes);
 export const insertLineageEdgeSchema = createInsertSchema(lineageEdges);
@@ -383,6 +395,10 @@ export const insertStewardshipChallengeSchema = createInsertSchema(stewardshipCh
 export const selectStewardshipChallengeSchema = createSelectSchema(stewardshipChallenges);
 export const insertChallengeParticipationSchema = createInsertSchema(challengeParticipation);
 export const selectChallengeParticipationSchema = createSelectSchema(challengeParticipation);
+
+// Add new schemas
+export const insertNodeQualityMetricSchema = createInsertSchema(nodeQualityMetrics);
+export const selectNodeQualityMetricSchema = createSelectSchema(nodeQualityMetrics);
 
 // Types
 export type DataProduct = typeof dataProducts.$inferSelect;
@@ -431,3 +447,7 @@ export type StewardshipChallenge = typeof stewardshipChallenges.$inferSelect;
 export type NewStewardshipChallenge = typeof stewardshipChallenges.$inferInsert;
 export type ChallengeParticipation = typeof challengeParticipation.$inferSelect;
 export type NewChallengeParticipation = typeof challengeParticipation.$inferInsert;
+
+// Add new types
+export type NodeQualityMetric = typeof nodeQualityMetrics.$inferSelect;
+export type NewNodeQualityMetric = typeof nodeQualityMetrics.$inferInsert;

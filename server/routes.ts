@@ -11,7 +11,8 @@ import {
   commentReactions,
   lineageNodes,
   lineageEdges,
-  lineageVersions
+  lineageVersions,
+  nodeQualityMetrics // Added import for node quality metrics
 } from "@db/schema";
 import { eq, desc, sql, and, inArray, or } from "drizzle-orm";
 import OpenAI from "openai";
@@ -894,7 +895,131 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Update lineage API endpoint to fix the query and response
+  // Add endpoint to get quality metrics for a specific node
+  app.get("/api/lineage/nodes/:nodeId/metrics", async (req, res) => {
+    try {
+      const nodeId = parseInt(req.params.nodeId);
+      if (isNaN(nodeId)) {
+        return res.status(400).json({ error: "Invalid node ID" });
+      }
+
+      // Get time range from query parameter
+      const timeRange = req.query.timeRange as string;
+      let dateFilter = new Date(0); // Default to all time
+
+      if (timeRange) {
+        const now = new Date();
+        switch (timeRange) {
+          case '7d':
+            dateFilter = new Date(now.setDate(now.getDate() - 7));
+            break;
+          case '30d':
+            dateFilter = new Date(now.setDate(now.getDate() - 30));
+            break;
+          case '90d':
+            dateFilter = new Date(now.setDate(now.getDate() - 90));
+            break;
+        }
+      }
+
+      // Join with metric_definitions to get the metric type
+      const metrics = await db
+        .select({
+          id: nodeQualityMetrics.id,
+          value: nodeQualityMetrics.value,
+          timestamp: nodeQualityMetrics.timestamp,
+          metadata: nodeQualityMetrics.metadata,
+          type: metricDefinitions.type
+        })
+        .from(nodeQualityMetrics)
+        .innerJoin(
+          metricDefinitions,
+          eq(nodeQualityMetrics.metricDefinitionId, metricDefinitions.id)
+        )
+        .where(
+          and(
+            eq(nodeQualityMetrics.nodeId, nodeId),
+            sql`${nodeQualityMetrics.timestamp} >= ${dateFilter}`
+          )
+        )
+        .orderBy(desc(nodeQualityMetrics.timestamp));
+
+      if (metrics.length === 0) {
+        return res.json({
+          current: {
+            completeness: 0,
+            accuracy: 0,
+            timeliness: 0,
+          },
+          history: [],
+        });
+      }
+
+      // Group metrics by type to get current values
+      const currentMetrics = metrics.reduce((acc, metric) => {
+        if (!acc[metric.type]) {
+          acc[metric.type] = metric.value;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Format history data
+      const history = metrics.map(m => ({
+        timestamp: m.timestamp,
+        [m.type]: m.value,
+        metadata: m.metadata,
+      }));
+
+      res.json({
+        current: {
+          completeness: currentMetrics.completeness || 0,
+          accuracy: currentMetrics.accuracy || 0,
+          timeliness: currentMetrics.timeliness || 0,
+          customMetrics: Object.entries(currentMetrics)
+            .filter(([key]) => !['completeness', 'accuracy', 'timeliness'].includes(key))
+            .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})
+        },
+        history: history
+      });
+    } catch (error) {
+      console.error("Error fetching node quality metrics:", error);
+      res.status(500).json({ error: "Failed to fetch node quality metrics" });
+    }
+  });
+
+  // Add endpoint to update metrics for a node
+  app.post("/api/lineage/nodes/:nodeId/metrics", async (req, res) => {
+    try {
+      const nodeId = parseInt(req.params.nodeId);
+      if (isNaN(nodeId)) {
+        return res.status(400).json({ error: "Invalid node ID" });
+      }
+
+      const { metricDefinitionId, value, metadata } = req.body;
+
+      if (!metricDefinitionId || typeof value !== 'number') {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      // Add new metric
+      const [newMetric] = await db
+        .insert(nodeQualityMetrics)
+        .values({
+          nodeId,
+          metricDefinitionId,
+          value,
+          metadata: metadata || null,
+        })
+        .returning();
+
+      res.json(newMetric);
+    } catch (error) {
+      console.error("Error adding node quality metric:", error);
+      res.status(500).json({ error: "Failed to add node quality metric" });
+    }
+  });
+
+  // Update the existing lineage endpoint to include quality metrics
   app.get("/api/lineage", async (req, res) => {
     try {
       const dataProductId = parseInt(req.query.dataProductId as string);
@@ -943,6 +1068,34 @@ export function registerRoutes(app: Express): Server {
           )
         );
 
+      // Get latest quality metrics for each node
+      const nodeMetrics = await Promise.all(
+        nodes.map(async (node) => {
+          const metrics = await db
+            .select({
+              id: nodeQualityMetrics.id,
+              value: nodeQualityMetrics.value,
+              type: metricDefinitions.type
+            })
+            .from(nodeQualityMetrics)
+            .innerJoin(
+              metricDefinitions,
+              eq(nodeQualityMetrics.metricDefinitionId, metricDefinitions.id)
+            )
+            .where(eq(nodeQualityMetrics.nodeId, node.id))
+            .orderBy(desc(nodeQualityMetrics.timestamp))
+            .limit(1);
+
+          return {
+            nodeId: node.id,
+            metrics: metrics.reduce((acc, m) => ({
+              ...acc,
+              [m.type]: m.value
+            }), {})
+          };
+        })
+      );
+
       // Get version history
       const versions = await db
         .select({
@@ -954,15 +1107,23 @@ export function registerRoutes(app: Express): Server {
         .where(eq(lineageVersions.dataProductId, dataProductId))
         .orderBy(desc(lineageVersions.version));
 
-      // Format response with consistent types
+      // Format response with consistent types and include metrics
       const response = {
-        nodes: nodes.map(node => ({
-          id: node.id.toString(),
-          type: node.type,
-          label: node.name,
-          metadata: node.metadata || {},
-          version: node.version
-        })),
+        nodes: nodes.map(node => {
+          const nodeMetric = nodeMetrics.find(nm => nm.nodeId === node.id);
+          return {
+            id: node.id.toString(),
+            type: node.type,
+            label: node.name,
+            metadata: node.metadata || {},
+            version: node.version,
+            metrics: nodeMetric?.metrics || {
+              completeness: 0,
+              accuracy: 0,
+              timeliness: 0
+            }
+          };
+        }),
         links: edges.map(edge => ({
           id: edge.id.toString(),
           source: edge.sourceId.toString(),
