@@ -238,8 +238,21 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Invalid product ID" });
       }
 
+      // Get data product information
       const [product] = await db
-        .select()
+        .select({
+          id: dataProducts.id,
+          name: dataProducts.name,
+          description: dataProducts.description,
+          owner: dataProducts.owner,
+          domain: dataProducts.domain,
+          schema: dataProducts.schema,
+          tags: dataProducts.tags,
+          sla: dataProducts.sla,
+          updateFrequency: dataProducts.updateFrequency,
+          createdAt: dataProducts.createdAt,
+          updatedAt: dataProducts.updatedAt
+        })
         .from(dataProducts)
         .where(eq(dataProducts.id, productId))
         .limit(1);
@@ -248,10 +261,88 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ error: "Data product not found" });
       }
 
-      res.json(product);
+      // Get lineage nodes for this data product
+      const nodes = await db
+        .select({
+          id: lineageNodes.id,
+          name: lineageNodes.name,
+          type: lineageNodes.type,
+          metadata: lineageNodes.metadata,
+          version: lineageNodes.version
+        })
+        .from(lineageNodes)
+        .where(eq(lineageNodes.dataProductId, productId));
+
+      // Get lineage edges if nodes exist
+      let edges = [];
+      if (nodes.length > 0) {
+        const nodeIds = nodes.map(n => n.id);
+        edges = await db
+          .select({
+            id: lineageEdges.id,
+            sourceId: lineageEdges.sourceId,
+            targetId: lineageEdges.targetId,
+            metadata: lineageEdges.metadata,
+            transformationLogic: lineageEdges.transformationLogic
+          })
+          .from(lineageEdges)
+          .where(
+            and(
+              inArray(lineageEdges.sourceId, nodeIds),
+              inArray(lineageEdges.targetId, nodeIds)
+            )
+          );
+      }
+
+      // Get quality metrics
+      const metrics = await db
+        .select({
+          id: qualityMetrics.id,
+          value: qualityMetrics.value,
+          timestamp: qualityMetrics.timestamp,
+          metadata: qualityMetrics.metadata,
+          definitionId: qualityMetrics.metricDefinitionId
+        })
+        .from(qualityMetrics)
+        .where(eq(qualityMetrics.dataProductId, productId))
+        .orderBy(desc(qualityMetrics.timestamp))
+        .limit(10);
+
+      // Format response
+      const response = {
+        ...product,
+        lineage: {
+          nodes: nodes.map(node => ({
+            id: node.id.toString(),
+            name: node.name,
+            type: node.type,
+            metadata: node.metadata,
+            version: node.version
+          })),
+          edges: edges.map(edge => ({
+            id: edge.id.toString(),
+            source: edge.sourceId.toString(),
+            target: edge.targetId.toString(),
+            metadata: edge.metadata,
+            transformationLogic: edge.transformationLogic
+          }))
+        },
+        metrics: metrics.map(metric => ({
+          id: metric.id,
+          value: metric.value,
+          timestamp: metric.timestamp,
+          metadata: metric.metadata,
+          definitionId: metric.definitionId
+        }))
+      };
+
+      res.json(response);
     } catch (error) {
       console.error("Error fetching metadata:", error);
-      res.status(500).json({ error: "Failed to fetch metadata" });
+      res.status(500).json({ 
+        error: "Failed to fetch metadata",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
@@ -902,8 +993,7 @@ export function registerRoutes(app: Express): Server {
 
       // Get current version number
       const [currentVersion] = await db
-        .select()
-        .from(lineageVersions)
+        .select        .from(lineageVersions)
         .where(eq(lineageVersions.dataProductId, dataProductId))
         .orderBy(desc(lineageVersions.version))
         .limit(1);
