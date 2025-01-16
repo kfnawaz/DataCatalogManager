@@ -110,10 +110,10 @@ export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
               <TableRow>
                 <TableCell className="font-medium text-foreground">Sources</TableCell>
                 <TableCell className="text-foreground">
-                  {metadata.sources?.length ? (
+                  {metadata.sources && metadata.sources.length > 0 ? (
                     <div className="flex gap-2 flex-wrap">
-                      {metadata.sources.map((source) => (
-                        <Badge key={source} variant="secondary">
+                      {metadata.sources.map((source, index) => (
+                        <Badge key={`${source}-${index}`} variant="secondary">
                           {source}
                         </Badge>
                       ))}
