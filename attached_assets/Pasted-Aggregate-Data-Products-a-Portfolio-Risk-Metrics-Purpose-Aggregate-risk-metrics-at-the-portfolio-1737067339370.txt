@@ -1,0 +1,76 @@
+Aggregate Data Products
+a. Portfolio Risk Metrics
+* Purpose: Aggregate risk metrics at the portfolio level.
+* Inputs:
+    * Position-level risk metrics.
+    * Market data (e.g., volatility, correlation).
+* Outputs:
+    * Portfolio-level sensitivities (delta, gamma, vega).
+    * Aggregated risk exposure by asset class or geography.
+* Attributes:
+•	Attribute Name	•	Description	•	Data Type
+•	portfolio_id	•	Unique identifier for the portfolio	•	STRING
+•	total_exposure	•	Total market exposure of the portfolio	•	FLOAT
+•	delta	•	Portfolio sensitivity to price changes	•	FLOAT
+•	gamma	•	Second-order price sensitivity	•	FLOAT
+•	vega	•	Sensitivity to changes in volatility	•	FLOAT
+•	risk_classification	•	Classification of portfolio risk	•	STRING
+b. Stress Testing and Scenario Data
+* Purpose: Provide precomputed stress test results for different market scenarios.
+* Inputs:
+    * Historical market data.
+    * Scenario definitions (e.g., economic shocks, black swan events).
+* Outputs:
+    * Stress test results for portfolio and position levels.
+    * Impact analysis of extreme market movements.
+* Attributes:
+•	Attribute Name	•	Description	•	Data Type
+•	scenario_id	•	Unique identifier for the stress scenario	•	STRING
+•	portfolio_id	•	Portfolio under evaluation	•	STRING
+•	scenario_description	•	Details of the stress scenario	•	STRING
+•	impact_value	•	Portfolio impact under the scenario	•	FLOAT
+•	probability_of_event	•	Likelihood of the stress scenario	•	FLOAT
+•	calculation_date	•	Date of stress testing	•	DATE
+c. Market Risk Factors
+* Purpose: Provide aggregated data on market risk factors such as volatility, correlations, and interest rate curves.
+* Inputs:
+    * Source-aligned market data.
+* Outputs:
+    * Cleaned and aggregated time series data for risk factors.
+    * Forward-looking metrics like implied volatility surfaces.
+* Attributes:
+•	Attribute Name	•	Description	•	Data Type
+•	risk_factor_id	•	Unique identifier for the risk factor	•	STRING
+•	risk_factor_type	•	Type of risk factor (e.g., volatility)	•	STRING
+•	time_series_date	•	Date of the risk factor data	•	DATE
+•	value	•	Value of the risk factor	•	FLOAT
+•	source	•	Source of the data (e.g., Bloomberg)	•	STRING
+d. Counterparty Risk Metrics
+* Purpose: Aggregate counterparty risk exposure metrics.
+* Inputs:
+    * Source-aligned counterparty exposure data.
+    * Credit ratings, default probabilities.
+* Outputs:
+    * Aggregated counterparty exposure and credit risk metrics.
+* Attributes:
+•	Attribute Name	•	Description	•	Data Type
+•	counterparty_id	•	Unique identifier for the counterparty	•	STRING
+•	exposure_value	•	Total exposure to the counterparty	•	FLOAT
+•	credit_rating	•	Credit rating of the counterparty	•	STRING
+•	default_probability	•	Probability of default	•	FLOAT
+•	lgd	•	Loss given default	•	FLOAT
+•	last_updated	•	Timestamp of the last update	•	TIMESTAMP
+e. Regulatory Metrics
+* Purpose: Provide precomputed regulatory metrics related to VaR (e.g., Basel III compliance).
+* Inputs:
+    * Source-aligned regulatory data.
+* Outputs:
+    * Precomputed regulatory measures such as capital charge for market risk.
+* Attributes:
+•	Attribute Name	•	Description	•	Data Type
+•	metric_id	•	Unique identifier for the regulatory metric	•	STRING
+•	portfolio_id	•	Portfolio under evaluation	•	STRING
+•	metric_type	•	Type of regulatory metric (e.g., VaR limit)	•	STRING
+•	value	•	Value of the metric	•	FLOAT
+•	compliance_status	•	Whether the metric is compliant	•	BOOLEAN
+•	last_calculation_date	•	Date of the last metric calculation	•	DATE

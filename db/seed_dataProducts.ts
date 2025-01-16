@@ -8,10 +8,12 @@ import { dataProducts } from "@db/schema";
  */
 export async function seed_dataProducts() {
   try {
+    // Create a new source-aligned data product
     // Market Data
     await db.insert(dataProducts).values({
       name: "Market Data",
-      description: "Real-time and historical market data from various exchanges and data providers",
+      description:
+        "Real-time and historical market data from various exchanges and data providers",
       owner: "Market Data Team",
       domain: "Market",
       sources: ["Bloomberg", "Reuters", "exchange feeds"],
@@ -20,31 +22,31 @@ export async function seed_dataProducts() {
         properties: {
           symbol: {
             type: "string",
-            description: "Unique identifier for the financial instrument"
+            description: "Unique identifier for the financial instrument",
           },
           price: {
             type: "number",
-            description: "Current market price"
+            description: "Current market price",
           },
           timestamp: {
             type: "string",
             format: "date-time",
-            description: "Time of the price update"
+            description: "Time of the price update",
           },
           volume: {
             type: "number",
-            description: "Trading volume"
+            description: "Trading volume",
           },
           exchange: {
             type: "string",
-            description: "Source exchange"
-          }
+            description: "Source exchange",
+          },
         },
-        required: ["symbol", "price", "timestamp"]
+        required: ["symbol", "price", "timestamp"],
       },
       tags: ["market-data", "real-time", "pricing"],
       sla: "99.99% availability during market hours",
-      updateFrequency: "Real-time"
+      updateFrequency: "Real-time",
     });
 
     // Trade and Position Data
@@ -59,47 +61,48 @@ export async function seed_dataProducts() {
         properties: {
           tradeId: {
             type: "string",
-            description: "Unique trade identifier"
+            description: "Unique trade identifier",
           },
           instrumentId: {
             type: "string",
-            description: "Identifier of the traded instrument"
+            description: "Identifier of the traded instrument",
           },
           quantity: {
             type: "number",
-            description: "Trade quantity"
+            description: "Trade quantity",
           },
           price: {
             type: "number",
-            description: "Trade execution price"
+            description: "Trade execution price",
           },
           tradeDate: {
             type: "string",
             format: "date-time",
-            description: "Date and time of trade execution"
+            description: "Date and time of trade execution",
           },
           settlementDate: {
             type: "string",
             format: "date",
-            description: "Settlement date"
+            description: "Settlement date",
           },
           status: {
             type: "string",
             enum: ["pending", "settled", "cancelled"],
-            description: "Current trade status"
-          }
+            description: "Current trade status",
+          },
         },
-        required: ["tradeId", "instrumentId", "quantity", "price", "tradeDate"]
+        required: ["tradeId", "instrumentId", "quantity", "price", "tradeDate"],
       },
       tags: ["trading", "positions", "settlement"],
       sla: "99.9% availability",
-      updateFrequency: "Near real-time"
+      updateFrequency: "Near real-time",
     });
 
     // Reference Data
     await db.insert(dataProducts).values({
       name: "Reference Data",
-      description: "Static and reference data for financial instruments and entities",
+      description:
+        "Static and reference data for financial instruments and entities",
       owner: "Reference Data Team",
       domain: "Reference",
       sources: ["Internal or external master data services"],
@@ -108,36 +111,36 @@ export async function seed_dataProducts() {
         properties: {
           instrumentId: {
             type: "string",
-            description: "Unique identifier for the instrument"
+            description: "Unique identifier for the instrument",
           },
           isin: {
             type: "string",
-            description: "International Securities Identification Number"
+            description: "International Securities Identification Number",
           },
           cusip: {
             type: "string",
-            description: "CUSIP identifier"
+            description: "CUSIP identifier",
           },
           instrumentType: {
             type: "string",
             enum: ["equity", "bond", "derivative", "fund"],
-            description: "Type of financial instrument"
+            description: "Type of financial instrument",
           },
           issuer: {
             type: "string",
-            description: "Issuing entity"
+            description: "Issuing entity",
           },
           issuanceDate: {
             type: "string",
             format: "date",
-            description: "Date of issuance"
-          }
+            description: "Date of issuance",
+          },
         },
-        required: ["instrumentId", "instrumentType"]
+        required: ["instrumentId", "instrumentType"],
       },
       tags: ["reference-data", "static-data"],
       sla: "99.9% availability",
-      updateFrequency: "Daily"
+      updateFrequency: "Daily",
     });
 
     // Risk Factor Data
@@ -152,32 +155,32 @@ export async function seed_dataProducts() {
         properties: {
           factorId: {
             type: "string",
-            description: "Unique identifier for the risk factor"
+            description: "Unique identifier for the risk factor",
           },
           factorType: {
             type: "string",
             enum: ["interest-rate", "fx-rate", "credit-spread", "volatility"],
-            description: "Type of risk factor"
+            description: "Type of risk factor",
           },
           value: {
             type: "number",
-            description: "Current value of the risk factor"
+            description: "Current value of the risk factor",
           },
           confidenceInterval: {
             type: "number",
-            description: "Confidence interval for the value"
+            description: "Confidence interval for the value",
           },
           timestamp: {
             type: "string",
             format: "date-time",
-            description: "Time of the last update"
-          }
+            description: "Time of the last update",
+          },
         },
-        required: ["factorId", "factorType", "value"]
+        required: ["factorId", "factorType", "value"],
       },
       tags: ["risk", "market-risk", "scenarios"],
       sla: "99.9% availability",
-      updateFrequency: "Daily"
+      updateFrequency: "Daily",
     });
 
     // Credit Risk Data
@@ -192,31 +195,31 @@ export async function seed_dataProducts() {
         properties: {
           counterpartyId: {
             type: "string",
-            description: "Unique identifier for the counterparty"
+            description: "Unique identifier for the counterparty",
           },
           exposureAmount: {
             type: "number",
-            description: "Current exposure amount"
+            description: "Current exposure amount",
           },
           rating: {
             type: "string",
-            description: "Credit rating"
+            description: "Credit rating",
           },
           pdScore: {
             type: "number",
-            description: "Probability of default score"
+            description: "Probability of default score",
           },
           lastReviewDate: {
             type: "string",
             format: "date",
-            description: "Date of last credit review"
-          }
+            description: "Date of last credit review",
+          },
         },
-        required: ["counterpartyId", "exposureAmount", "rating"]
+        required: ["counterpartyId", "exposureAmount", "rating"],
       },
       tags: ["credit-risk", "exposure", "ratings"],
       sla: "99.9% availability",
-      updateFrequency: "Daily"
+      updateFrequency: "Daily",
     });
 
     // Regulatory Data
@@ -231,36 +234,36 @@ export async function seed_dataProducts() {
         properties: {
           reportId: {
             type: "string",
-            description: "Unique identifier for the regulatory report"
+            description: "Unique identifier for the regulatory report",
           },
           reportType: {
             type: "string",
             enum: ["MIFID", "EMIR", "SFTR", "FRTB"],
-            description: "Type of regulatory report"
+            description: "Type of regulatory report",
           },
           submissionDate: {
             type: "string",
             format: "date-time",
-            description: "Date and time of report submission"
+            description: "Date and time of report submission",
           },
           status: {
             type: "string",
             enum: ["draft", "submitted", "accepted", "rejected"],
-            description: "Status of the regulatory report"
+            description: "Status of the regulatory report",
           },
           validationErrors: {
             type: "array",
             items: {
-              type: "string"
+              type: "string",
             },
-            description: "List of validation errors if any"
-          }
+            description: "List of validation errors if any",
+          },
         },
-        required: ["reportId", "reportType", "submissionDate", "status"]
+        required: ["reportId", "reportType", "submissionDate", "status"],
       },
       tags: ["regulatory", "compliance", "reporting"],
       sla: "99.99% availability",
-      updateFrequency: "As required by regulation"
+      updateFrequency: "As required by regulation",
     });
 
     console.log("✅ Data products Seed data inserted successfully");
@@ -268,4 +271,10 @@ export async function seed_dataProducts() {
     console.error("Error seeding Data products data:", error);
     throw error;
   }
+
+  // Create a new aggregate data product
+  //
+
+  // Create a new consumer data product
+  //
 }

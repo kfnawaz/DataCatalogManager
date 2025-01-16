@@ -4,7 +4,7 @@ import { metricTypeEnum } from "@db/schema";
 
 export async function seed_metricsData() {
   try {
-    // First, create metric templates with generic patterns that can be applied to any data
+    // First, create metric templates with generic patterns that can be applied to any data product
     const completenessTemplate = await db.insert(metricTemplates).values({
       name: "Data Completeness",
       description: "Measures the percentage of non-null values in required fields. Basic foundation for data quality assessment.",
