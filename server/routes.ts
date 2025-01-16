@@ -235,7 +235,10 @@ export function registerRoutes(app: Express): Server {
     try {
       const productId = parseInt(req.params.id);
       if (isNaN(productId)) {
-        return res.status(400).json({ error: "Invalid product ID" });
+        return res.status(400).json({ 
+          error: "Invalid input",
+          details: "Product ID must be a valid number"
+        });
       }
 
       // Get data product information
@@ -258,7 +261,29 @@ export function registerRoutes(app: Express): Server {
         .limit(1);
 
       if (!product) {
-        return res.status(404).json({ error: "Data product not found" });
+        // Try to find by name if ID lookup fails
+        const [productByName] = await db
+          .select({
+            id: dataProducts.id,
+            name: dataProducts.name,
+            description: dataProducts.description,
+            owner: dataProducts.owner,
+            domain: dataProducts.domain,
+            schema: dataProducts.schema,
+            tags: dataProducts.tags,
+            sla: dataProducts.sla,
+            updateFrequency: dataProducts.updateFrequency,
+            createdAt: dataProducts.createdAt,
+            updatedAt: dataProducts.updatedAt
+          })
+          .from(dataProducts)
+          .where(sql`LOWER(${dataProducts.name}) = LOWER(${req.params.id})`)
+          .limit(1);
+
+        if (!productByName) {
+          return res.status(404).json({ error: "Data product not found" });
+        }
+        product = productByName;
       }
 
       // Get lineage nodes for this data product
@@ -271,7 +296,7 @@ export function registerRoutes(app: Express): Server {
           version: lineageNodes.version
         })
         .from(lineageNodes)
-        .where(eq(lineageNodes.dataProductId, productId));
+        .where(eq(lineageNodes.dataProductId, product.id));
 
       // Get lineage edges if nodes exist
       let edges = [];
@@ -304,7 +329,7 @@ export function registerRoutes(app: Express): Server {
           definitionId: qualityMetrics.metricDefinitionId
         })
         .from(qualityMetrics)
-        .where(eq(qualityMetrics.dataProductId, productId))
+        .where(eq(qualityMetrics.dataProductId, product.id))
         .orderBy(desc(qualityMetrics.timestamp))
         .limit(10);
 
@@ -993,7 +1018,8 @@ export function registerRoutes(app: Express): Server {
 
       // Get current version number
       const [currentVersion] = await db
-        .select        .from(lineageVersions)
+        .select()
+        .from(lineageVersions)
         .where(eq(lineageVersions.dataProductId, dataProductId))
         .orderBy(desc(lineageVersions.version))
         .limit(1);
