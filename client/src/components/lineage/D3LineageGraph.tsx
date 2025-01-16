@@ -46,7 +46,7 @@ interface LineageData {
 }
 
 const generateVersionKey = (version: number, timestamp: string): string => {
-  return `version-${version}-${timestamp}`;
+  return `d3-version-${version}-${new Date(timestamp).getTime()}`;
 };
 
 export default function D3LineageGraph({

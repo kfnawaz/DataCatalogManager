@@ -25,6 +25,10 @@ interface LineageData {
   versions: { version: number; timestamp: string }[];
 }
 
+const generateVersionKey = (version: number, timestamp: string): string => {
+  return `lineage-version-${version}-${new Date(timestamp).getTime()}`;
+};
+
 export default function LineageGraph({ dataProductId }: LineageGraphProps) {
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
 
@@ -56,7 +60,7 @@ export default function LineageGraph({ dataProductId }: LineageGraphProps) {
             <SelectContent>
               {lineageData.versions.map((v) => (
                 <SelectItem
-                  key={`version-${v.version}-${v.timestamp}`}
+                  key={generateVersionKey(v.version, v.timestamp)}
                   value={v.version.toString()}
                 >
                   Version {v.version} ({new Date(v.timestamp).toLocaleDateString()})
