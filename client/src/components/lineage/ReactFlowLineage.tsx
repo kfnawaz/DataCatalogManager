@@ -10,26 +10,16 @@ import ReactFlow, {
   MiniMap,
   useReactFlow,
   ReactFlowProvider,
-  Panel,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from "@/components/ui/card";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-
 
 interface LineageNode {
   id: string;
-  type: 'source-aligned' | 'aggregate' | 'consumer-aligned';
+  type: 'source' | 'transformation' | 'target';
   label: string;
   metadata?: Record<string, any>;
 }
@@ -61,21 +51,21 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; i
     };
 
     switch (type) {
-      case 'source-aligned':
+      case 'source':
         return {
           ...baseStyle,
           background: '#4CAF50',
           color: 'white',
           borderColor: '#43A047',
         };
-      case 'aggregate':
+      case 'transformation':
         return {
           ...baseStyle,
           background: '#2196F3',
           color: 'white',
           borderColor: '#1E88E5',
         };
-      case 'consumer-aligned':
+      case 'target':
         return {
           ...baseStyle,
           background: '#F44336',
@@ -97,7 +87,7 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; i
       <div className="text-center">
         <div className="font-medium">{data.label}</div>
         <div className="text-xs opacity-80">
-          {data.type.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+          {data.type.charAt(0).toUpperCase() + data.type.slice(1)}
         </div>
       </div>
       <Handle
@@ -113,31 +103,85 @@ const nodeTypes = {
   custom: LineageNodeComponent,
 };
 
+const LAYOUT_CONFIG = {
+  HORIZONTAL_SPACING: 250,
+  VERTICAL_SPACING: 100,
+  INITIAL_X: 50,
+  INITIAL_Y: 50,
+};
+
 function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineageProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const { fitView, zoomIn: flowZoomIn, zoomOut: flowZoomOut } = useReactFlow();
-  const { toast } = useToast();
-  const flowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!lineageData) return;
 
-    // Create nodes with proper positioning
-    const flowNodes = lineageData.nodes.map((node, index) => ({
-      id: node.id,
-      type: 'custom',
-      position: { 
-        x: (index % 3) * 300 + 50,
-        y: Math.floor(index / 3) * 200 + 50
-      },
-      data: {
-        label: node.label,
-        type: node.type,
-        isHighlighted: !searchTerm || node.label.toLowerCase().includes(searchTerm.toLowerCase()),
-      },
-    }));
+    // Group nodes by type
+    const nodesByType = {
+      source: lineageData.nodes.filter(n => n.type === 'source'),
+      transformation: lineageData.nodes.filter(n => n.type === 'transformation'),
+      target: lineageData.nodes.filter(n => n.type === 'target')
+    };
+
+    // Create nodes with hierarchical positioning
+    const flowNodes = [];
+    let column = 0;
+
+    // Position source nodes on the left
+    nodesByType.source.forEach((node, index) => {
+      flowNodes.push({
+        id: node.id,
+        type: 'custom',
+        position: {
+          x: LAYOUT_CONFIG.INITIAL_X + (column * LAYOUT_CONFIG.HORIZONTAL_SPACING),
+          y: LAYOUT_CONFIG.INITIAL_Y + (index * LAYOUT_CONFIG.VERTICAL_SPACING)
+        },
+        data: {
+          label: node.label,
+          type: node.type,
+          isHighlighted: !searchTerm || node.label.toLowerCase().includes(searchTerm.toLowerCase()),
+        },
+      });
+    });
+
+    // Position transformation nodes in the middle
+    column++;
+    nodesByType.transformation.forEach((node, index) => {
+      flowNodes.push({
+        id: node.id,
+        type: 'custom',
+        position: {
+          x: LAYOUT_CONFIG.INITIAL_X + (column * LAYOUT_CONFIG.HORIZONTAL_SPACING),
+          y: LAYOUT_CONFIG.INITIAL_Y + (index * LAYOUT_CONFIG.VERTICAL_SPACING)
+        },
+        data: {
+          label: node.label,
+          type: node.type,
+          isHighlighted: !searchTerm || node.label.toLowerCase().includes(searchTerm.toLowerCase()),
+        },
+      });
+    });
+
+    // Position target nodes on the right
+    column++;
+    nodesByType.target.forEach((node, index) => {
+      flowNodes.push({
+        id: node.id,
+        type: 'custom',
+        position: {
+          x: LAYOUT_CONFIG.INITIAL_X + (column * LAYOUT_CONFIG.HORIZONTAL_SPACING),
+          y: LAYOUT_CONFIG.INITIAL_Y + (index * LAYOUT_CONFIG.VERTICAL_SPACING)
+        },
+        data: {
+          label: node.label,
+          type: node.type,
+          isHighlighted: !searchTerm || node.label.toLowerCase().includes(searchTerm.toLowerCase()),
+        },
+      });
+    });
 
     // Create edges between nodes
     const flowEdges = lineageData.links.map((link) => ({
@@ -157,7 +201,6 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
     setEdges(flowEdges);
   }, [lineageData, searchTerm, setNodes, setEdges]);
 
-  // Zoom control functions
   const handleZoomIn = useCallback(() => {
     flowZoomIn();
   }, [flowZoomIn]);
@@ -167,47 +210,8 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
   }, [flowZoomOut]);
 
   const handleFitView = useCallback(() => {
-    fitView({ duration: 800 });
+    fitView({ duration: 800, padding: 0.2 });
   }, [fitView]);
-
-  // Export functionality (retained from original code)
-  const downloadImage = useCallback(async (type: 'svg' | 'png') => {
-    if (!flowRef.current) return;
-
-    try {
-      let dataUrl;
-      if (type === 'svg') {
-        dataUrl = await htmlToImage.toSvg(flowRef.current, {
-          quality: 1,
-          backgroundColor: window.getComputedStyle(document.body).backgroundColor,
-        });
-      } else {
-        dataUrl = await htmlToImage.toPng(flowRef.current, {
-          quality: 1,
-          backgroundColor: window.getComputedStyle(document.body).backgroundColor,
-        });
-      }
-
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = `lineage-graph-${Date.now()}.${type}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      toast({
-        title: "Export Successful",
-        description: `Graph exported as ${type.toUpperCase()}`,
-      });
-    } catch (error) {
-      toast({
-        title: "Export Failed",
-        description: "Failed to export the graph. Please try again.",
-        variant: "destructive",
-      });
-    }
-  }, [toast]);
-
 
   return (
     <Card className="w-full space-y-4">
@@ -258,7 +262,20 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
           >
             <Background />
             <Controls />
-            <MiniMap />
+            <MiniMap 
+              nodeColor={(node) => {
+                switch (node.data?.type) {
+                  case 'source':
+                    return '#4CAF50';
+                  case 'transformation':
+                    return '#2196F3';
+                  case 'target':
+                    return '#F44336';
+                  default:
+                    return '#999';
+                }
+              }}
+            />
           </ReactFlow>
         )}
       </div>

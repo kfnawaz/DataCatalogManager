@@ -2,25 +2,28 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import ReactFlowLineage from "./ReactFlowLineage";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface LineageGraphProps {
   dataProductId: number | null;
 }
 
+interface LineageNode {
+  id: string;
+  type: 'source' | 'transformation' | 'target';
+  label: string;
+  metadata?: Record<string, any>;
+}
+
+interface LineageLink {
+  source: string;
+  target: string;
+  transformationLogic?: string;
+}
+
 interface LineageData {
-  nodes: Array<{
-    id: string;
-    type: 'source' | 'transformation' | 'target';
-    label: string;
-    metadata?: Record<string, any>;
-  }>;
-  links: Array<{
-    source: string;
-    target: string;
-    transformationLogic?: string;
-  }>;
+  nodes: LineageNode[];
+  links: LineageLink[];
   version: number;
   versions: { version: number; timestamp: string }[];
 }
