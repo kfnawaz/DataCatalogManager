@@ -1,7 +1,12 @@
 import { db } from "@db";
 import { dataProducts } from "@db/schema";
 
-async function seed() {
+/**
+ * Seeds the database with source-aligned data products.
+ * This script matches the existing data in the database.
+ * WARNING: Only run this script on a fresh database to avoid duplicates.
+ */
+export async function seed_dataProducts() {
   try {
     // Market Data
     await db.insert(dataProducts).values({
@@ -258,12 +263,9 @@ async function seed() {
       updateFrequency: "As required by regulation"
     });
 
-    console.log("✅ Seed data inserted successfully");
+    console.log("✅ Data products Seed data inserted successfully");
   } catch (error) {
-    console.error("Error seeding data:", error);
+    console.error("Error seeding Data products data:", error);
     throw error;
   }
 }
-
-// Export the seed function to be used by the runner
-export { seed };
