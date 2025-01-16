@@ -898,50 +898,20 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/lineage", async (req, res) => {
     try {
       const dataProductId = parseInt(req.query.dataProductId as string);
-      const version = req.query.version ? parseInt(req.query.version as string) : null;
 
       if (isNaN(dataProductId)) {
         return res.status(400).json({ error: "Invalid data product ID" });
       }
 
-      // If version is specified, fetch that specific version
-      if (version !== null) {
-        const [lineageVersion] = await db
-          .select()
-          .from(lineageVersions)
-          .where(
-            and(
-              eq(lineageVersions.dataProductId, dataProductId),
-              eq(lineageVersions.version, version)
-            )
-          )
-          .limit(1);
-
-        if (lineageVersion && lineageVersion.snapshot) {
-          const versionData = lineageVersion.snapshot as {
-            nodes: any[];
-            links: any[];
-          };
-
-          return res.json({
-            nodes: versionData.nodes,
-            links: versionData.links,
-            version: lineageVersion.version,
-            versions: await db
-              .select({
-                version: lineageVersions.version,
-                timestamp: lineageVersions.createdAt,
-              })
-              .from(lineageVersions)
-              .where(eq(lineageVersions.dataProductId, dataProductId))
-              .orderBy(desc(lineageVersions.version))
-          });
-        }
-      }
-
-      // Fetch current lineage data
+      // Get all nodes for this data product first
       const nodes = await db
-        .select()
+        .select({
+          id: lineageNodes.id,
+          name: lineageNodes.name,
+          type: lineageNodes.type,
+          metadata: lineageNodes.metadata,
+          version: lineageNodes.version
+        })
         .from(lineageNodes)
         .where(eq(lineageNodes.dataProductId, dataProductId));
 
@@ -954,12 +924,17 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      // Get all node IDs
+      // Get all edges where either source or target is one of our nodes
       const nodeIds = nodes.map(n => n.id);
-
-      // Fetch edges using IN operator
       const edges = await db
-        .select()
+        .select({
+          id: lineageEdges.id,
+          sourceId: lineageEdges.sourceId,
+          targetId: lineageEdges.targetId,
+          metadata: lineageEdges.metadata,
+          transformationLogic: lineageEdges.transformationLogic,
+          version: lineageEdges.version
+        })
         .from(lineageEdges)
         .where(
           or(
@@ -968,41 +943,45 @@ export function registerRoutes(app: Express): Server {
           )
         );
 
-      // Get all versions
+      // Get version history
       const versions = await db
         .select({
           version: lineageVersions.version,
           timestamp: lineageVersions.createdAt,
+          changeMessage: lineageVersions.changeMessage
         })
         .from(lineageVersions)
         .where(eq(lineageVersions.dataProductId, dataProductId))
         .orderBy(desc(lineageVersions.version));
 
-      // Get latest version number
-      const latestVersion = versions.length > 0 ? versions[0].version : 1;
-
-      // Format response
+      // Format response with consistent types
       const response = {
         nodes: nodes.map(node => ({
           id: node.id.toString(),
           type: node.type,
           label: node.name,
-          metadata: node.metadata || {}
+          metadata: node.metadata || {},
+          version: node.version
         })),
         links: edges.map(edge => ({
+          id: edge.id.toString(),
           source: edge.sourceId.toString(),
           target: edge.targetId.toString(),
+          metadata: edge.metadata || {},
           transformationLogic: edge.transformationLogic || "",
-          metadata: edge.metadata || {}
+          version: edge.version
         })),
-        version: latestVersion,
-        versions
+        version: versions.length > 0 ? versions[0].version : 1,
+        versions: versions.map(v => ({
+          version: v.version,
+          timestamp: v.timestamp,
+          changeMessage: v.changeMessage
+        }))
       };
 
       res.json(response);
     } catch (error) {
       console.error("Error fetching lineage data:", error);
-      await trackApiUsage("/api/lineage", 500, error instanceof Error ? error.message : "Unknown error");
       res.status(500).json({
         error: "Failed to fetch lineage data",
         details: error instanceof Error ? error.message : "Unknown error"
