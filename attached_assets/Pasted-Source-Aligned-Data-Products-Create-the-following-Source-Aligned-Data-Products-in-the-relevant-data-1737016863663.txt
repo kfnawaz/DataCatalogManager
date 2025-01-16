@@ -1,0 +1,61 @@
+Source-Aligned Data Products: Create the following Source-Aligned Data Products in the relevant database tables and assign them a tag "SOURCE"
+
+a. Market Data
+* Sources: Bloomberg, Reuters, exchange feeds.
+* Attributes:
+•	Attribute Name	•	Description	•	Data Type
+•	instrument_id	•	Unique identifier for the financial instrument	•	STRING
+•	price	•	Closing price of the instrument	•	FLOAT
+•	date	•	Date of the price data	•	DATE
+•	volatility	•	Historical or implied volatility	•	FLOAT
+•	source	•	Source of the market data	•	STRING
+b. Trade and Position Data
+* Sources: Internal or external master data services.
+* Attributes:
+•	Attribute Name	•	Description	•	Data Type
+•	trade_id	•	Unique identifier for the trade	•	STRING
+•	portfolio_id	•	Portfolio associated with the trade	•	STRING
+•	instrument_id	•	Financial instrument involved	•	STRING
+•	quantity	•	Quantity traded	•	INTEGER
+•	trade_date	•	Date of the trade	•	DATE
+•	counterparty_id	•	Counterparty involved in the trade	•	STRING
+c. Reference Data
+* Sources: Internal or external master data services.
+* Attributes:
+•	Attribute Name	•	Description	•	Data Type
+•	instrument_id	•	Unique identifier for the instrument	•	STRING
+•	isin	•	International Securities Identification Number	•	STRING
+•	sector	•	Sector classification of the instrument	•	STRING
+•	issuer	•	Issuer of the instrument	•	STRING
+•	rating	•	Credit rating of the issuer	•	STRING
+d. Risk Factor Data
+* Sources: Risk engines, pricing libraries.
+* Attributes:
+•	Attribute Name	•	Description	•	Data Type
+•	risk_factor_id	•	Unique identifier for the risk factor	•	STRING
+•	sensitivity_type	•	Type of sensitivity (e.g., delta, gamma)	•	STRING
+•	sensitivity_value	•	Value of the sensitivity	•	FLOAT
+•	date	•	Date of the sensitivity data	•	DATE
+
+e. Credit Risk Data
+* Sources: Credit risk management systems.
+* Attributes:
+Attribute Name	Description	Data Type
+counterparty_id	Unique identifier for the counterparty.	STRING
+credit_exposure	The total credit exposure of the counterparty.	FLOAT
+probability_of_default	Probability that the counterparty will default on obligations.	FLOAT
+loss_given_default	Estimated percentage of exposure lost if a default occurs.	FLOAT
+exposure_date	The date when the credit exposure was calculated.	DATE
+credit_rating	Creditworthiness rating of the counterparty (e.g., AAA, BBB).	STRING
+
+f. Regulatory Data
+* Sources: Compliance and regulatory systems.
+* Attributes:
+Attribute Name	Description	Data Type
+portfolio_id	Unique identifier for the financial portfolio.	STRING
+basel_metric_type	Type of Basel III/IV metric (e.g., Tier 1 Capital, Liquidity Coverage).	STRING
+basel_metric_value	Value of the specified Basel III/IV metric.	FLOAT
+regulatory_limit	Defined limit or threshold for compliance with regulations.	FLOAT
+compliance_status	Indicates if the portfolio complies with regulatory requirements (Y/N).	BOOLEAN
+calculation_date	The date when the metric or compliance was evaluated.	DATE
+jurisdiction	Regulatory jurisdiction (e.g., US, EU, APAC).	STRING

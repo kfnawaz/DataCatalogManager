@@ -10,11 +10,24 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Info } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-interface SchemaColumn {
-  name: string;
+interface SchemaProperty {
   type: string;
   description?: string;
+  format?: string;
+  enum?: string[];
+}
+
+interface Schema {
+  type: string;
+  properties: Record<string, SchemaProperty>;
+  required?: string[];
 }
 
 interface Metadata {
@@ -23,9 +36,7 @@ interface Metadata {
   owner: string;
   sla?: string;
   updateFrequency?: string;
-  schema: {
-    columns: SchemaColumn[];
-  };
+  schema: Schema;
   tags: string[];
 }
 
@@ -58,6 +69,18 @@ export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
       </div>
     );
   }
+
+  // Helper function to format schema property type
+  const formatPropertyType = (property: SchemaProperty): string => {
+    let type = property.type;
+    if (property.format === 'date-time') {
+      type = 'datetime';
+    }
+    if (property.enum) {
+      type = `enum(${property.enum.join(', ')})`;
+    }
+    return type;
+  };
 
   return (
     <ScrollArea className="h-[500px]">
@@ -97,19 +120,45 @@ export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
               <TableRow>
                 <TableHead className="text-foreground">Column</TableHead>
                 <TableHead className="text-foreground">Type</TableHead>
+                <TableHead className="text-foreground">Required</TableHead>
                 <TableHead className="text-foreground">Description</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {metadata.schema?.columns?.map((column) => (
-                <TableRow key={column.name}>
-                  <TableCell className="text-foreground">{column.name}</TableCell>
-                  <TableCell className="text-foreground">{column.type}</TableCell>
-                  <TableCell className="text-foreground">{column.description || 'No description'}</TableCell>
-                </TableRow>
-              )) || (
+              {metadata.schema?.properties ? (
+                Object.entries(metadata.schema.properties).map(([name, property]) => (
+                  <TableRow key={name}>
+                    <TableCell className="font-medium text-foreground">{name}</TableCell>
+                    <TableCell className="text-foreground">
+                      <div className="flex items-center gap-2">
+                        {formatPropertyType(property)}
+                        {property.enum && (
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Info className="h-4 w-4 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Allowed values: {property.enum.join(', ')}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-foreground">
+                      {metadata.schema.required?.includes(name) ? (
+                        <Badge variant="default">Required</Badge>
+                      ) : (
+                        <Badge variant="secondary">Optional</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-foreground">
+                      {property.description || 'No description'}
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground">
+                  <TableCell colSpan={4} className="text-center text-muted-foreground">
                     No schema information available
                   </TableCell>
                 </TableRow>
