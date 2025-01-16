@@ -34,9 +34,10 @@ export const dataProducts = pgTable("data_products", {
   name: text("name").notNull(),
   description: text("description"),
   owner: text("owner").notNull(),
-  domain: text("domain").notNull(), // Added domain field
+  domain: text("domain").notNull(),
   schema: jsonb("schema").notNull(),
   tags: text("tags").array(),
+  sources: text("sources").array(), // Changed from source to sources for better naming
   sla: text("sla"),
   updateFrequency: text("update_frequency"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -81,7 +82,7 @@ export const metricTemplates = pgTable("metric_templates", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description").notNull(),
-  type: metricTypeEnum("type").notNull(),
+  type: metricTypeEnum("type").notNull().default('completeness'),
   defaultFormula: text("default_formula").notNull(),
   parameters: jsonb("parameters").notNull(),
   example: text("example"),
@@ -94,7 +95,7 @@ export const metricDefinitions = pgTable("metric_definitions", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description").notNull(),
-  type: metricTypeEnum("type").notNull(),
+  type: metricTypeEnum("type").notNull().default('completeness'),
   templateId: integer("template_id").references(() => metricTemplates.id),
   formula: text("formula"),
   parameters: jsonb("parameters"),
@@ -152,7 +153,7 @@ export const lineageNodeTypeEnum = pgEnum('lineage_node_type', [
 export const lineageNodes = pgTable("lineage_nodes", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  type: lineageNodeTypeEnum("type").notNull(),
+  type: lineageNodeTypeEnum("type").notNull().default('source-aligned'),
   dataProductId: integer("data_product_id").references(() => dataProducts.id),
   metadata: jsonb("metadata"),
   version: integer("version").notNull().default(1),

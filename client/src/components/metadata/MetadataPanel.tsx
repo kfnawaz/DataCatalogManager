@@ -34,6 +34,8 @@ interface Metadata {
   name: string;
   description?: string;
   owner: string;
+  sources?: string[];
+  domain: string;
   sla?: string;
   updateFrequency?: string;
   schema: Schema;
@@ -100,6 +102,24 @@ export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
               <TableRow>
                 <TableCell className="font-medium text-foreground">Owner</TableCell>
                 <TableCell className="text-foreground">{metadata.owner}</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-medium text-foreground">Domain</TableCell>
+                <TableCell className="text-foreground">{metadata.domain}</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-medium text-foreground">Sources</TableCell>
+                <TableCell className="text-foreground">
+                  {metadata.sources?.length ? (
+                    <div className="flex gap-2 flex-wrap">
+                      {metadata.sources.map((source) => (
+                        <Badge key={source} variant="secondary">
+                          {source}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : 'No sources specified'}
+                </TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium text-foreground">SLA</TableCell>
