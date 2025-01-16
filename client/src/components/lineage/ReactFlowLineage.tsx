@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -10,6 +10,7 @@ import ReactFlow, {
   MiniMap,
   useReactFlow,
   ReactFlowProvider,
+  Panel,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from "@/components/ui/card";
@@ -28,8 +29,10 @@ import {
   SelectTrigger,
   SelectValue 
 } from "@/components/ui/select";
-import { Search, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import { Search, ZoomIn, ZoomOut, Maximize2, Download, Share2, Image } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import * as htmlToImage from 'html-to-image';
 
 interface LineageMetadata {
   description?: string;
@@ -179,7 +182,9 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTypes, setSelectedTypes] = useState<string[]>(['source', 'transformation', 'target']);
-  const { fitView, zoomIn: flowZoomIn, zoomOut: flowZoomOut } = useReactFlow();
+  const { fitView, zoomIn: flowZoomIn, zoomOut: flowZoomOut, getNodes } = useReactFlow();
+  const { toast } = useToast();
+  const flowRef = useRef<HTMLDivElement>(null);
 
   // Zoom level presets
   const zoomToFit = useCallback(() => {
@@ -317,6 +322,73 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
     );
   };
 
+  // Export functionality
+  const downloadImage = useCallback(async (type: 'svg' | 'png') => {
+    if (!flowRef.current) return;
+
+    try {
+      let dataUrl;
+      if (type === 'svg') {
+        dataUrl = await htmlToImage.toSvg(flowRef.current, {
+          quality: 1,
+          backgroundColor: window.getComputedStyle(document.body).backgroundColor,
+        });
+      } else {
+        dataUrl = await htmlToImage.toPng(flowRef.current, {
+          quality: 1,
+          backgroundColor: window.getComputedStyle(document.body).backgroundColor,
+        });
+      }
+
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `lineage-graph-${Date.now()}.${type}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Export Successful",
+        description: `Graph exported as ${type.toUpperCase()}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "Failed to export the graph. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
+  // Share functionality
+  const shareGraph = useCallback(async () => {
+    try {
+      // Create a shareable URL with current graph state
+      const state = {
+        dataProductId,
+        searchTerm,
+        selectedTypes,
+        nodes: getNodes(),
+      };
+
+      const stateParam = encodeURIComponent(JSON.stringify(state));
+      const url = `${window.location.origin}${window.location.pathname}?state=${stateParam}`;
+
+      await navigator.clipboard.writeText(url);
+
+      toast({
+        title: "Link Copied",
+        description: "Shareable link has been copied to clipboard",
+      });
+    } catch (error) {
+      toast({
+        title: "Share Failed",
+        description: "Failed to create shareable link. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [dataProductId, searchTerm, selectedTypes, getNodes, toast]);
+
   return (
     <Card className="w-full space-y-4">
       {/* Filter controls */}
@@ -346,24 +418,40 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
             ))}
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={handleZoomIn}>
-            <ZoomIn className="h-4 w-4 mr-1" />
-            Zoom In
-          </Button>
-          <Button size="sm" variant="outline" onClick={handleZoomOut}>
-            <ZoomOut className="h-4 w-4 mr-1" />
-            Zoom Out
-          </Button>
-          <Button size="sm" variant="outline" onClick={zoomToFit}>
-            <Maximize2 className="h-4 w-4 mr-1" />
-            Fit View
-          </Button>
+        <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={handleZoomIn}>
+              <ZoomIn className="h-4 w-4 mr-1" />
+              Zoom In
+            </Button>
+            <Button size="sm" variant="outline" onClick={handleZoomOut}>
+              <ZoomOut className="h-4 w-4 mr-1" />
+              Zoom Out
+            </Button>
+            <Button size="sm" variant="outline" onClick={zoomToFit}>
+              <Maximize2 className="h-4 w-4 mr-1" />
+              Fit View
+            </Button>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => downloadImage('svg')}>
+              <Image className="h-4 w-4 mr-1" />
+              Export SVG
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => downloadImage('png')}>
+              <Download className="h-4 w-4 mr-1" />
+              Export PNG
+            </Button>
+            <Button size="sm" variant="outline" onClick={shareGraph}>
+              <Share2 className="h-4 w-4 mr-1" />
+              Share Graph
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Graph area */}
-      <div className="h-[600px]">
+      <div className="h-[600px]" ref={flowRef}>
         {isLoading ? (
           <div className="w-full h-full flex items-center justify-center">
             <div className="space-y-4 w-full p-8" role="alert" aria-live="polite">
