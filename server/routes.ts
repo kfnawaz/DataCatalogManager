@@ -3,20 +3,6 @@ import { createServer, type Server } from "http";
 import { db } from "@db";
 import {
   dataProducts,
-
-app.delete("/api/data-products/cleanup", async (req, res) => {
-  try {
-    await db
-      .delete(dataProducts)
-      .where(sql`${dataProducts.id} >= 7`);
-    
-    res.json({ message: "Successfully removed duplicate data products" });
-  } catch (error) {
-    console.error("Error cleaning up data products:", error);
-    res.status(500).json({ error: "Failed to clean up data products" });
-  }
-});
-
   metricDefinitions,
   metricDefinitionVersions,
   qualityMetrics,
