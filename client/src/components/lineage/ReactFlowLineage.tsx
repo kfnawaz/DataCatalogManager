@@ -256,6 +256,19 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
     LEVEL_HEIGHT: 200,
   };
 
+  // Zoom control functions
+  const handleZoomIn = useCallback(() => {
+    flowZoomIn({ duration: 800 });
+  }, [flowZoomIn]);
+
+  const handleZoomOut = useCallback(() => {
+    flowZoomOut({ duration: 800 });
+  }, [flowZoomOut]);
+
+  const zoomToFit = useCallback(() => {
+    fitView({ duration: 800, padding: 0.2 });
+  }, [fitView]);
+
   useEffect(() => {
     if (!lineageData) return;
 
