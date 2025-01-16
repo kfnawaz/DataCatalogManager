@@ -983,7 +983,7 @@ export function registerRoutes(app: Express): Server {
       });
     } catch (error) {
       console.error("Error fetching node quality metrics:", error);
-      res.status(500).json({ error: "Failed to fetch node quality metrics" });
+      resstatus(500).json({ error: "Failed to fetch node quality metrics" });
     }
   });
 
@@ -1287,6 +1287,153 @@ Keep responses concise and engaging, using emojis occasionally to maintain a fri
       console.error("Chatbot Error:", error);
       await trackApiUsage("/api/wellness/chat", 500, error.type);
       res.status(500).json({ error: "Something unexpected happened. Please try again." });
+    }
+  });
+
+  // Update endpoint to handle batch updates for node metrics
+  app.post("/api/lineage/nodes/:nodeId/metrics/batch", async (req, res) => {
+    try {
+      const nodeId = parseInt(req.params.nodeId);
+      if (isNaN(nodeId)) {
+        return res.status(400).json({ error: "Invalid node ID" });
+      }
+
+      const { metrics } = req.body;
+      if (!Array.isArray(metrics)) {
+        return res.status(400).json({ error: "Metrics must be an array" });
+      }
+
+      // Validate all metrics before inserting
+      for (const metric of metrics) {
+        if (!metric.metricDefinitionId || typeof metric.value !== 'number') {
+          return res.status(400).json({
+            error: "Invalid metric data",
+            details: "Each metric must have metricDefinitionId and value"
+          });
+        }
+      }
+
+      // Insert all metrics in a transaction
+      await db.transaction(async (tx) => {
+        for (const metric of metrics) {
+          await tx.insert(nodeQualityMetrics).values({
+            nodeId,
+            metricDefinitionId: metric.metricDefinitionId,
+            value: metric.value,
+            metadata: metric.metadata || null,
+            timestamp: new Date()
+          });
+        }
+      });
+
+      // Get updated metrics for response
+      const updatedMetrics = await db
+        .select({
+          id: nodeQualityMetrics.id,
+          value: nodeQualityMetrics.value,
+          timestamp: nodeQualityMetrics.timestamp,
+          metadata: nodeQualityMetrics.metadata,
+          type: metricDefinitions.type
+        })
+        .from(nodeQualityMetrics)
+        .innerJoin(
+          metricDefinitions,
+          eq(nodeQualityMetrics.metricDefinitionId, metricDefinitions.id)
+        )
+        .where(eq(nodeQualityMetrics.nodeId, nodeId))
+        .orderBy(desc(nodeQualityMetrics.timestamp));
+
+      const currentMetrics = updatedMetrics.reduce((acc, metric) => {
+        if (!acc[metric.type]) {
+          acc[metric.type] = metric.value;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+
+      res.json({
+        current: {
+          completeness: currentMetrics.completeness || 0,
+          accuracy: currentMetrics.accuracy || 0,
+          timeliness: currentMetrics.timeliness || 0,
+          customMetrics: Object.entries(currentMetrics)
+            .filter(([key]) => !['completeness', 'accuracy', 'timeliness'].includes(key))
+            .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})
+        },
+        metrics: updatedMetrics
+      });
+    } catch (error) {
+      console.error("Error updating node quality metrics:", error);
+      res.status(500).json({ error: "Failed to update node quality metrics" });
+    }
+  });
+
+  // Add endpoint to get node quality metrics summary
+  app.get("/api/lineage/nodes/metrics/summary", async (req, res) => {
+    try {
+      const timeRange = req.query.timeRange as string;
+      let dateFilter = new Date(0); // Default to all time
+
+      if (timeRange) {
+        const now = new Date();
+        switch (timeRange) {
+          case '7d':
+            dateFilter = new Date(now.setDate(now.getDate() - 7));
+            break;
+          case '30d':
+            dateFilter = new Date(now.setDate(now.getDate() - 30));
+            break;
+          case '90d':
+            dateFilter = new Date(now.setDate(now.getDate() - 90));
+            break;
+        }
+      }
+
+      // Get all nodes with their latest metrics
+      const nodeMetrics = await db
+        .select({
+          nodeId: nodeQualityMetrics.nodeId,
+          nodeName: lineageNodes.name,
+          nodeType: lineageNodes.type,
+          value: nodeQualityMetrics.value,
+          metricType: metricDefinitions.type,
+          timestamp: nodeQualityMetrics.timestamp
+        })
+        .from(nodeQualityMetrics)
+        .innerJoin(
+          metricDefinitions,
+          eq(nodeQualityMetrics.metricDefinitionId, metricDefinitions.id)
+        )
+        .innerJoin(
+          lineageNodes,
+          eq(nodeQualityMetrics.nodeId, lineageNodes.id)
+        )
+        .where(sql`${nodeQualityMetrics.timestamp} >= ${dateFilter}`)
+        .orderBy(nodeQualityMetrics.timestamp);
+
+      // Group metrics by node
+      const summary = nodeMetrics.reduce((acc, metric) => {
+        if (!acc[metric.nodeId]) {
+          acc[metric.nodeId] = {
+            id: metric.nodeId,
+            name: metric.nodeName,
+            type: metric.nodeType,
+            metrics: {}
+          };
+        }
+
+        // Only keep the latest value for each metric type
+        acc[metric.nodeId].metrics[metric.metricType] = metric.value;
+
+        return acc;
+      }, {} as Record<string, any>);
+
+      res.json({
+        nodes: Object.values(summary),
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error fetching node quality metrics summary:", error);
+      res.status(500).json({ error: "Failed to fetch node quality metrics summary" });
     }
   });
 

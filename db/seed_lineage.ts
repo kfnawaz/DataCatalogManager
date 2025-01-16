@@ -1,10 +1,23 @@
 import { db } from "@db";
 import { lineageNodes, lineageEdges, lineageVersions, dataProducts, nodeQualityMetrics, metricDefinitions } from "@db/schema";
-import { sql } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 
 export async function seedLineageData() {
   try {
-    // First create the VaR Report data product
+    console.log("Starting VaR Report lineage seeding...");
+
+    // First clean up any existing data
+    await db.delete(nodeQualityMetrics);
+    await db.delete(lineageEdges);
+    await db.delete(lineageNodes);
+    await db.delete(lineageVersions);
+
+    // Remove any existing VaR Report products
+    await db
+      .delete(dataProducts)
+      .where(eq(dataProducts.name, "VaR Report"));
+
+    // Create the VaR Report data product
     const [varReportProduct] = await db
       .insert(dataProducts)
       .values({
@@ -203,7 +216,13 @@ export async function seedLineageData() {
     const metricDefs = await db
       .select()
       .from(metricDefinitions)
-      .where(sql`type IN ('completeness', 'accuracy', 'timeliness')`);
+      .where(
+        or(
+          eq(metricDefinitions.type, "completeness"),
+          eq(metricDefinitions.type, "accuracy"),
+          eq(metricDefinitions.type, "timeliness")
+        )
+      );
 
     // Add quality metrics for each node
     for (const node of nodes) {
