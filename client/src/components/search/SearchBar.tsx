@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Loader2, Clock, Tag } from "lucide-react";
+import { Search, Loader2, Tag } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -8,7 +8,6 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-  CommandSeparator,
 } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
 import { DialogTitle } from "@/components/ui/dialog";
@@ -27,8 +26,6 @@ interface DataProduct {
   owner: string;
   tags?: string[];
 }
-
-const MAX_RECENT_ITEMS = 5;
 
 export default function SearchBar({ onSelect, initialValue, className }: SearchBarProps) {
   const [open, setOpen] = useState(false);
@@ -50,18 +47,6 @@ export default function SearchBar({ onSelect, initialValue, className }: SearchB
       }
     }
   }, [initialValue, searchResults]);
-
-  // Load recent items from localStorage on mount
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('recentDataProducts');
-      if (stored) {
-        setRecentItems(JSON.parse(stored));
-      }
-    } catch (e) {
-      console.error('Error loading recent items:', e);
-    }
-  }, []);
 
   // Add keyboard shortcut listener
   useEffect(() => {
@@ -93,15 +78,6 @@ export default function SearchBar({ onSelect, initialValue, className }: SearchB
     setSelectedProduct(item);
     onSelect(item.id);
     setOpen(false);
-
-    // Update recent items
-    const newRecent = [
-      item,
-      ...recentItems.filter(i => i.id !== item.id)
-    ].slice(0, MAX_RECENT_ITEMS);
-
-    setRecentItems(newRecent);
-    localStorage.setItem('recentDataProducts', JSON.stringify(newRecent));
   };
 
   return (
@@ -138,65 +114,34 @@ export default function SearchBar({ onSelect, initialValue, className }: SearchB
               Loading data products...
             </div>
           ) : (
-            <>
-              {recentItems.length > 0 && !search && (
-                <>
-                  <CommandGroup heading="Recent">
-                    {recentItems.map((item) => (
-                      <CommandItem
-                        key={`recent-${item.id}`}
-                        onSelect={() => handleSelect(item)}
-                        className="flex items-start gap-2 p-2"
-                      >
-                        <Clock className="h-4 w-4 mt-1 flex-shrink-0" />
-                        <div className="flex flex-col gap-1">
-                          <span>{item.name}</span>
-                          <div className="flex flex-wrap gap-1">
-                            <Badge variant="outline">{item.domain}</Badge>
-                            <Badge variant="outline">{item.owner}</Badge>
-                            {item.tags?.map((tag) => (
-                              <Badge key={tag} variant="secondary" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                  <CommandSeparator />
-                </>
-              )}
-
-              <CommandGroup heading="Data Products">
-                {filteredResults?.map((item) => (
-                  <CommandItem
-                    key={item.id}
-                    onSelect={() => handleSelect(item)}
-                    className="flex items-start gap-2 p-2"
-                  >
-                    <Tag className="h-4 w-4 mt-1 flex-shrink-0" />
-                    <div className="flex flex-col gap-1">
-                      <span>{item.name}</span>
-                      {item.description && (
-                        <span className="text-xs text-muted-foreground line-clamp-2">
-                          {item.description}
-                        </span>
-                      )}
-                      <div className="flex flex-wrap gap-1">
-                        <Badge variant="outline">{item.domain}</Badge>
-                        <Badge variant="outline">{item.owner}</Badge>
-                        {item.tags?.map((tag) => (
-                          <Badge key={tag} variant="secondary" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
+            <CommandGroup heading="Data Products">
+              {filteredResults?.map((item) => (
+                <CommandItem
+                  key={item.id}
+                  onSelect={() => handleSelect(item)}
+                  className="flex items-start gap-2 p-2"
+                >
+                  <Tag className="h-4 w-4 mt-1 flex-shrink-0" />
+                  <div className="flex flex-col gap-1">
+                    <span>{item.name}</span>
+                    {item.description && (
+                      <span className="text-xs text-muted-foreground line-clamp-2">
+                        {item.description}
+                      </span>
+                    )}
+                    <div className="flex flex-wrap gap-1">
+                      <Badge variant="outline">{item.domain}</Badge>
+                      <Badge variant="outline">{item.owner}</Badge>
+                      {item.tags?.map((tag) => (
+                        <Badge key={tag} variant="secondary" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
                     </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </>
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
           )}
         </CommandList>
       </CommandDialog>
