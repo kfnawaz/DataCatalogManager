@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -8,6 +8,7 @@ import ReactFlow, {
   useEdgesState,
   MarkerType,
   MiniMap,
+  useReactFlow,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from "@/components/ui/card";
@@ -17,6 +18,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue 
+} from "@/components/ui/select";
+import { Search, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface LineageMetadata {
   description?: string;
@@ -70,14 +82,15 @@ const formatMetadataForDisplay = (metadata: LineageMetadata): JSX.Element => {
 };
 
 // Custom node component with enhanced accessibility and tooltips
-function LineageNodeComponent({ data }: { data: { label: string; type: string; metadata?: LineageMetadata } }) {
-  const getNodeStyle = (type: string) => {
+function LineageNodeComponent({ data }: { data: { label: string; type: string; metadata?: LineageMetadata; isHighlighted?: boolean } }) {
+  const getNodeStyle = (type: string, isHighlighted?: boolean) => {
     const baseStyle = {
       padding: '16px',
       border: '2px solid',
       borderRadius: '8px',
       minWidth: '180px',
       transition: 'all 0.2s ease',
+      opacity: isHighlighted === false ? 0.5 : 1,
     };
 
     switch (type) {
@@ -87,7 +100,7 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; m
           background: '#4CAF50',
           color: 'white',
           borderColor: '#43A047',
-          boxShadow: '0 0 0 1px rgba(76, 175, 80, 0.2)',
+          boxShadow: isHighlighted ? '0 0 15px rgba(76, 175, 80, 0.5)' : '0 0 0 1px rgba(76, 175, 80, 0.2)',
         };
       case 'transformation':
         return {
@@ -95,7 +108,7 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; m
           background: '#2196F3',
           color: 'white',
           borderColor: '#1E88E5',
-          boxShadow: '0 0 0 1px rgba(33, 150, 243, 0.2)',
+          boxShadow: isHighlighted ? '0 0 15px rgba(33, 150, 243, 0.5)' : '0 0 0 1px rgba(33, 150, 243, 0.2)',
         };
       case 'target':
         return {
@@ -103,7 +116,7 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; m
           background: '#F44336',
           color: 'white',
           borderColor: '#E53935',
-          boxShadow: '0 0 0 1px rgba(244, 67, 54, 0.2)',
+          boxShadow: isHighlighted ? '0 0 15px rgba(244, 67, 54, 0.5)' : '0 0 0 1px rgba(244, 67, 54, 0.2)',
         };
       default:
         return baseStyle;
@@ -115,7 +128,7 @@ function LineageNodeComponent({ data }: { data: { label: string; type: string; m
       <Tooltip delayDuration={300}>
         <TooltipTrigger asChild>
           <div 
-            style={getNodeStyle(data.type)} 
+            style={getNodeStyle(data.type, data.isHighlighted)} 
             className="group relative focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             role="button"
             tabIndex={0}
@@ -157,12 +170,23 @@ const nodeTypes = {
 
 // Generate a unique edge ID
 const generateEdgeId = (source: string, target: string): string => {
-  return `edge-${source}-${target}`;
+  return `edge-${source}-${target}-${Date.now()}`;
 };
 
 export default function ReactFlowLineage({ dataProductId, lineageData, isLoading }: ReactFlowLineageProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(['source', 'transformation', 'target']);
+  const { fitView, zoomIn: flowZoomIn, zoomOut: flowZoomOut } = useReactFlow();
+
+  // Zoom level presets
+  const zoomToFit = useCallback(() => {
+    fitView({ duration: 800, padding: 0.2 });
+  }, [fitView]);
+
+  const handleZoomIn = () => flowZoomIn({ duration: 800 });
+  const handleZoomOut = () => flowZoomOut({ duration: 800 });
 
   useEffect(() => {
     if (!lineageData) return;
@@ -172,6 +196,13 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
     const VERTICAL_SPACING = 120;
     const INITIAL_X = 50;
     const INITIAL_Y = 50;
+
+    // Filter and highlight nodes based on search and type filters
+    const isNodeVisible = (node: LineageNode) => {
+      const matchesSearch = node.label.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType = selectedTypes.includes(node.type);
+      return matchesSearch && matchesType;
+    };
 
     // Create a Map to deduplicate nodes
     const uniqueNodesMap = new Map();
@@ -185,7 +216,7 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
     const transformNodes = uniqueNodes.filter(n => n.type === 'transformation');
     const targetNodes = uniqueNodes.filter(n => n.type === 'target');
 
-    // Create nodes with positions
+    // Create nodes with positions and highlighting
     const flowNodes = [
       ...sourceNodes.map((node, i) => ({
         id: node.id,
@@ -198,6 +229,7 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
           label: node.label,
           type: node.type,
           metadata: node.metadata,
+          isHighlighted: isNodeVisible(node),
         },
         ariaLabel: `Source node: ${node.label}`,
       })),
@@ -212,6 +244,7 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
           label: node.label,
           type: node.type,
           metadata: node.metadata,
+          isHighlighted: isNodeVisible(node),
         },
         ariaLabel: `Transformation node: ${node.label}`,
       })),
@@ -226,16 +259,24 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
           label: node.label,
           type: node.type,
           metadata: node.metadata,
+          isHighlighted: isNodeVisible(node),
         },
         ariaLabel: `Target node: ${node.label}`,
       })),
     ];
 
+    // Create edges between visible nodes
+    const visibleNodeIds = flowNodes
+      .filter(node => node.data.isHighlighted)
+      .map(node => node.id);
+
     // Create a Map to deduplicate edges
     const uniqueEdgesMap = new Map();
     lineageData.links.forEach(link => {
-      const edgeKey = `${link.source}-${link.target}`;
-      uniqueEdgesMap.set(edgeKey, link);
+      if (visibleNodeIds.includes(link.source) && visibleNodeIds.includes(link.target)) {
+        const edgeKey = `${link.source}-${link.target}`;
+        uniqueEdgesMap.set(edgeKey, link);
+      }
     });
 
     // Create edges from unique links with tooltips
@@ -265,81 +306,135 @@ export default function ReactFlowLineage({ dataProductId, lineageData, isLoading
 
     setNodes(flowNodes);
     setEdges(flowEdges);
-  }, [lineageData, setNodes, setEdges]);
+  }, [lineageData, searchTerm, selectedTypes, setNodes, setEdges]);
+
+  const handleTypeToggle = (type: string) => {
+    setSelectedTypes(prev => 
+      prev.includes(type)
+        ? prev.filter(t => t !== type)
+        : [...prev, type]
+    );
+  };
 
   return (
-    <Card className="w-full h-[600px]">
-      {isLoading ? (
-        <div className="w-full h-full flex items-center justify-center">
-          <div className="space-y-4 w-full p-8" role="alert" aria-live="polite">
-            <div className="h-8 bg-gray-200 rounded-md animate-pulse" />
-            <div className="h-[500px] bg-gray-100 rounded-lg animate-pulse">
-              <div className="h-full w-full flex items-center justify-center text-gray-400">
-                Loading lineage data...
+    <Card className="w-full space-y-4">
+      {/* Filter controls */}
+      <div className="p-4 border-b space-y-4">
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex-1 min-w-[200px]">
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search nodes..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {['source', 'transformation', 'target'].map(type => (
+              <Badge
+                key={type}
+                variant={selectedTypes.includes(type) ? 'default' : 'outline'}
+                className="cursor-pointer"
+                onClick={() => handleTypeToggle(type)}
+              >
+                {type.charAt(0).toUpperCase() + type.slice(1)}
+              </Badge>
+            ))}
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={handleZoomIn}>
+            <ZoomIn className="h-4 w-4 mr-1" />
+            Zoom In
+          </Button>
+          <Button size="sm" variant="outline" onClick={handleZoomOut}>
+            <ZoomOut className="h-4 w-4 mr-1" />
+            Zoom Out
+          </Button>
+          <Button size="sm" variant="outline" onClick={zoomToFit}>
+            <Maximize2 className="h-4 w-4 mr-1" />
+            Fit View
+          </Button>
+        </div>
+      </div>
+
+      {/* Graph area */}
+      <div className="h-[600px]">
+        {isLoading ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="space-y-4 w-full p-8" role="alert" aria-live="polite">
+              <div className="h-8 bg-gray-200 rounded-md animate-pulse" />
+              <div className="h-[500px] bg-gray-100 rounded-lg animate-pulse">
+                <div className="h-full w-full flex items-center justify-center text-gray-400">
+                  Loading lineage data...
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      ) : (
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          nodeTypes={nodeTypes}
-          fitView
-          proOptions={{ hideAttribution: true }}
-          className="bg-background"
-          aria-label="Data lineage visualization"
-          defaultEdgeOptions={{
-            type: 'smoothstep',
-            animated: true,
-            style: { stroke: 'hsl(var(--muted-foreground))', strokeWidth: 2 },
-            markerEnd: {
-              type: MarkerType.ArrowClosed,
-              width: 20,
-              height: 20,
-              color: 'hsl(var(--muted-foreground))',
-            },
-          }}
-        >
-          <Background 
-            color="hsl(var(--muted-foreground))"
-            className="opacity-5"
-          />
-          <Controls 
-            className="bg-card border border-border shadow-sm"
-            position="bottom-right"
-            showInteractive={false}
-            aria-label="Graph controls"
-          />
-          <MiniMap 
-            nodeStrokeColor="hsl(var(--muted-foreground))"
-            nodeColor={node => {
-              switch (node.data?.type) {
-                case "source":
-                  return "hsl(142.1 70.6% 45.3%)"; // Darker green for better contrast
-                case "transformation":
-                  return "hsl(217.2 91.2% 59.8%)"; // Adjusted blue
-                case "target":
-                  return "hsl(0 84.2% 60.2%)"; // Adjusted red
-                default:
-                  return "hsl(var(--muted))";
-              }
+        ) : (
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            nodeTypes={nodeTypes}
+            fitView
+            proOptions={{ hideAttribution: true }}
+            className="bg-background"
+            aria-label="Data lineage visualization"
+            defaultEdgeOptions={{
+              type: 'smoothstep',
+              animated: true,
+              style: { stroke: 'hsl(var(--muted-foreground))', strokeWidth: 2 },
+              markerEnd: {
+                type: MarkerType.ArrowClosed,
+                width: 20,
+                height: 20,
+                color: 'hsl(var(--muted-foreground))',
+              },
             }}
-            maskColor="hsl(var(--background) / 0.7)" // Adjusted opacity for better contrast
-            style={{
-              backgroundColor: "hsl(var(--card) / 0.8)", // Slightly transparent background
-              border: "1px solid hsl(var(--border))",
-              borderRadius: "var(--radius)",
-              boxShadow: "0 2px 4px hsl(var(--background) / 0.1)", // Subtle shadow
-            }}
-            className="!bottom-24 transition-colors duration-200" // Added transition for theme changes
-            position="bottom-right"
-            aria-label="Minimap overview"
-          />
-        </ReactFlow>
-      )}
+          >
+            <Background 
+              color="hsl(var(--muted-foreground))"
+              className="opacity-5"
+            />
+            <Controls 
+              className="bg-card border border-border shadow-sm"
+              position="bottom-right"
+              showInteractive={false}
+              aria-label="Graph controls"
+            />
+            <MiniMap 
+              nodeStrokeColor="hsl(var(--muted-foreground))"
+              nodeColor={node => {
+                switch (node.data?.type) {
+                  case "source":
+                    return "hsl(142.1 70.6% 45.3%)";
+                  case "transformation":
+                    return "hsl(217.2 91.2% 59.8%)";
+                  case "target":
+                    return "hsl(0 84.2% 60.2%)";
+                  default:
+                    return "hsl(var(--muted))";
+                }
+              }}
+              maskColor="hsl(var(--background) / 0.7)"
+              style={{
+                backgroundColor: "hsl(var(--card) / 0.8)",
+                border: "1px solid hsl(var(--border))",
+                borderRadius: "var(--radius)",
+                boxShadow: "0 2px 4px hsl(var(--background) / 0.1)",
+              }}
+              className="!bottom-24 transition-colors duration-200"
+              position="bottom-right"
+              aria-label="Minimap overview"
+            />
+          </ReactFlow>
+        )}
+      </div>
     </Card>
   );
 }
