@@ -7,8 +7,8 @@ async function runSeeding() {
     await seed_dataProducts();
     console.log("✅ Data products seeded successfully!");
 
-    await seed_metricsData();
-    console.log("✅ Metrics data seeded successfully!");
+    // await seed_metricsData();
+    // console.log("✅ Metrics data seeded successfully!");
 
     console.log("🎉 Database seeding completed successfully!");
     process.exit(0);
