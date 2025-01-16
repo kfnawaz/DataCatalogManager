@@ -1,121 +1,149 @@
 import { db } from "@db";
-import { lineageNodes, lineageEdges, lineageVersions } from "@db/schema";
+import { lineageNodes, lineageEdges, lineageVersions, dataProducts, nodeQualityMetrics, metricDefinitions } from "@db/schema";
+import { sql } from "drizzle-orm";
 
 export async function seedLineageData() {
   try {
-    // Sample nodes for the financial data products with Data Mesh architecture
+    // First create the VaR Report data product
+    const [varReportProduct] = await db
+      .insert(dataProducts)
+      .values({
+        name: "VaR Report",
+        description: "Value at Risk (VaR) reporting system with data quality tracking",
+        owner: "Risk Management Team",
+        domain: "Risk Analytics",
+        schema: {
+          type: "object",
+          properties: {
+            reportDate: { type: "string", format: "date" },
+            portfolioVaR: { type: "number" },
+            confidenceLevel: { type: "number" },
+            timeHorizon: { type: "string" }
+          },
+          required: ["reportDate", "portfolioVaR", "confidenceLevel", "timeHorizon"]
+        },
+        tags: ["risk", "var", "reporting", "regulatory"],
+        sla: "99.9%",
+        updateFrequency: "Daily"
+      })
+      .returning();
+
+    console.log("Created VaR Report data product");
+
+    // Create the lineage nodes with proper relationships
     const nodes = await db
       .insert(lineageNodes)
       .values([
         {
-          name: "Market Data",
+          name: "Market Data Feed",
           type: "source-aligned",
-          dataProductId: 26, // VaR Report data product ID
+          dataProductId: varReportProduct.id,
           metadata: {
-            description: "Real-time market data feed",
+            description: "Real-time market data feed for pricing and risk factors",
             format: "JSON",
             frequency: "Real-time",
             owner: "Market Data Team",
-            sla: "99.99% availability",
-            qualityMetrics: {
-              accuracy: 0.99,
-              completeness: 0.98,
-              timeliness: 0.99
-            }
+            sla: "99.99% availability"
           }
         },
         {
           name: "Position Data",
           type: "source-aligned",
-          dataProductId: 26,
+          dataProductId: varReportProduct.id,
           metadata: {
-            description: "Current trading positions",
+            description: "Current trading positions and portfolio holdings",
             format: "CSV",
             frequency: "Daily",
             owner: "Trading Systems Team",
-            sla: "99.9% availability",
-            qualityMetrics: {
-              accuracy: 0.98,
-              completeness: 0.95,
-              timeliness: 0.97
-            }
+            sla: "99.9% availability"
           }
         },
         {
           name: "Risk Calculator",
           type: "aggregate",
-          dataProductId: 26,
+          dataProductId: varReportProduct.id,
           metadata: {
-            description: "VaR calculation engine",
+            description: "VaR calculation engine using historical simulation",
             algorithm: "Historical simulation",
             parameters: {
               confidenceLevel: 0.99,
-              timeHorizon: "10D"
+              timeHorizon: "10D",
+              lookbackPeriod: "252D"
             },
             owner: "Risk Analytics Team",
-            sla: "99.5% availability",
-            qualityMetrics: {
-              accuracy: 0.97,
-              completeness: 0.96,
-              timeliness: 0.95
-            }
+            sla: "99.5% availability"
           }
         },
         {
-          name: "VaR Report",
+          name: "VaR Report Generator",
           type: "consumer-aligned",
-          dataProductId: 26,
+          dataProductId: varReportProduct.id,
           metadata: {
-            description: "Daily VaR report",
+            description: "Daily VaR report generation system",
             format: "PDF",
-            distribution: "Email",
+            distribution: ["Email", "SharePoint"],
             owner: "Risk Management Team",
             sla: "99.9% availability",
-            qualityMetrics: {
-              accuracy: 0.95,
-              completeness: 0.98,
-              timeliness: 0.96
-            }
+            recipients: ["Risk Committee", "Trading Desk", "Compliance"]
           }
         }
       ])
       .returning();
 
-    // Create edges between nodes with transformation metadata
+    console.log("Created lineage nodes");
+
+    // Create edges between nodes with clear transformation logic
     await db
       .insert(lineageEdges)
       .values([
         {
-          sourceId: nodes[0].id,
-          targetId: nodes[2].id,
-          transformationLogic: "Apply market scenarios and calculate price changes",
+          sourceId: nodes[0].id, // Market Data Feed
+          targetId: nodes[2].id, // Risk Calculator
+          transformationLogic: `
+            1. Fetch real-time market data
+            2. Apply market scenarios
+            3. Calculate price changes
+            4. Format for risk calculations`,
           metadata: {
             dataVolume: "~1M records/day",
             latency: "<100ms",
-            type: "data_flow"
+            type: "data_flow",
+            validation: ["price range checks", "timestamp validation"]
           }
         },
         {
-          sourceId: nodes[1].id,
-          targetId: nodes[2].id,
-          transformationLogic: "Apply position weights and aggregation",
+          sourceId: nodes[1].id, // Position Data
+          targetId: nodes[2].id, // Risk Calculator
+          transformationLogic: `
+            1. Load daily positions
+            2. Apply position filters
+            3. Calculate position weights
+            4. Aggregate by risk factors`,
           metadata: {
             dataVolume: "~100K records/day",
             latency: "<50ms",
-            type: "data_flow"
+            type: "data_flow",
+            validation: ["position reconciliation", "currency validation"]
           }
         },
         {
-          sourceId: nodes[2].id,
-          targetId: nodes[3].id,
-          transformationLogic: "Generate formatted report with charts and analysis",
+          sourceId: nodes[2].id, // Risk Calculator
+          targetId: nodes[3].id, // VaR Report Generator
+          transformationLogic: `
+            1. Calculate portfolio VaR
+            2. Generate risk metrics
+            3. Create visualization data
+            4. Format report content`,
           metadata: {
             format: "PDF",
-            schedule: "Daily @ 18:00",
-            type: "data_flow"
+            schedule: "Daily @ 18:00 UTC",
+            type: "data_flow",
+            validation: ["VaR bounds check", "historical comparison"]
           }
         }
       ]);
+
+    console.log("Created lineage edges");
 
     // Create initial version snapshot
     const snapshot = {
@@ -125,11 +153,11 @@ export async function seedLineageData() {
         label: node.name,
         metadata: node.metadata
       })),
-      links: [
+      edges: [
         {
           source: nodes[0].id.toString(),
           target: nodes[2].id.toString(),
-          transformationLogic: "Apply market scenarios and calculate price changes",
+          transformationLogic: "Market data processing and scenario generation",
           metadata: {
             dataVolume: "~1M records/day",
             latency: "<100ms",
@@ -139,7 +167,7 @@ export async function seedLineageData() {
         {
           source: nodes[1].id.toString(),
           target: nodes[2].id.toString(),
-          transformationLogic: "Apply position weights and aggregation",
+          transformationLogic: "Position aggregation and weight calculation",
           metadata: {
             dataVolume: "~100K records/day",
             latency: "<50ms",
@@ -149,10 +177,10 @@ export async function seedLineageData() {
         {
           source: nodes[2].id.toString(),
           target: nodes[3].id.toString(),
-          transformationLogic: "Generate formatted report with charts and analysis",
+          transformationLogic: "VaR calculation and report generation",
           metadata: {
             format: "PDF",
-            schedule: "Daily @ 18:00",
+            schedule: "Daily @ 18:00 UTC",
             type: "data_flow"
           }
         }
@@ -162,16 +190,51 @@ export async function seedLineageData() {
     await db
       .insert(lineageVersions)
       .values({
-        dataProductId: 26,
+        dataProductId: varReportProduct.id,
         version: 1,
         snapshot,
-        changeMessage: "Initial VaR Report lineage setup",
+        changeMessage: "Initial VaR Report lineage setup with quality metrics",
         createdBy: "system"
       });
 
-    console.log("Successfully seeded lineage data");
+    console.log("Created lineage version snapshot");
+
+    // Get metric definitions for quality metrics
+    const metricDefs = await db
+      .select()
+      .from(metricDefinitions)
+      .where(sql`type IN ('completeness', 'accuracy', 'timeliness')`);
+
+    // Add quality metrics for each node
+    for (const node of nodes) {
+      const metrics = metricDefs.map(def => ({
+        nodeId: node.id,
+        metricDefinitionId: def.id,
+        value: 85 + Math.floor(Math.random() * 15), // Random value between 85-99
+        metadata: {
+          timestamp: new Date().toISOString(),
+          calculator: "system",
+          validation: "automated"
+        }
+      }));
+
+      await db.insert(nodeQualityMetrics).values(metrics);
+    }
+
+    console.log("Added node quality metrics");
+    console.log("Successfully seeded lineage data with quality metrics");
   } catch (error) {
     console.error("Error seeding lineage data:", error);
     throw error;
   }
+}
+
+// Execute if run directly
+if (import.meta.url === new URL(import.meta.url).href) {
+  seedLineageData()
+    .then(() => process.exit(0))
+    .catch((error) => {
+      console.error(error);
+      process.exit(1);
+    });
 }
