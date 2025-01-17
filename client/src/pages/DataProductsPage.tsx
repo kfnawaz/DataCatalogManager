@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,7 +18,6 @@ import SearchBar from "../components/search/SearchBar";
 import HierarchicalView from "../components/metadata/HierarchicalView";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
-import DataProductComments from "../components/comments/DataProductComments";
 
 interface DataProduct {
   id: number;
@@ -48,11 +47,10 @@ export default function DataProductsPage() {
   const [selectedDataProduct, setSelectedDataProduct] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("metadata");
   const [isExplorerOpen, setIsExplorerOpen] = useState(true);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
+    const params = new URLSearchParams(window.location.search);
     const productId = params.get('product');
     if (productId) {
       const id = parseInt(productId);
@@ -60,11 +58,11 @@ export default function DataProductsPage() {
         setSelectedDataProduct(id);
       }
     }
-  }, [location.search]);
+  }, []);
 
   const handleProductSelect = (id: number) => {
     setSelectedDataProduct(id);
-    navigate(`/data-products?product=${id}`);
+    setLocation(`/data-products?product=${id}`);
   };
 
   const { data: allDataProducts, isLoading: isLoadingAll } = useQuery<DataProduct[]>({
@@ -90,7 +88,7 @@ export default function DataProductsPage() {
           <Collapsible 
             open={isExplorerOpen} 
             onOpenChange={setIsExplorerOpen}
-            className="relative"
+            className="relative flex-shrink-0" 
           >
             <CollapsibleContent 
               className="w-[300px] transition-all duration-300 ease-in-out"
@@ -126,17 +124,19 @@ export default function DataProductsPage() {
             </CollapsibleContent>
 
             <CollapsibleTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="absolute -right-9 top-0 hover:bg-muted"
-              >
-                {isExplorerOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              </Button>
+              <div className="absolute -right-12 top-0 flex items-center justify-center"> 
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="hover:bg-muted"
+                >
+                  {isExplorerOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                </Button>
+              </div>
             </CollapsibleTrigger>
           </Collapsible>
 
-          <div className="flex-1">
+          <div className="flex-1 min-w-0"> 
             <AnimatePresence mode="wait">
               {isLoading && (
                 <motion.div {...fadeIn} key="loading">
