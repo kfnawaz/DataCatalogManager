@@ -96,12 +96,33 @@ export async function seed_lineageData() {
 
     // Create initial version record for each data product
     await db.insert(lineageVersions).values(
-      dataProducts.map(dp => ({
-        dataProductId: dp.id,
-        version: 1,
-        snapshot: {},
-        changeMessage: "Initial lineage setup",
-        createdBy: "system"
+      await Promise.all(dataProducts.map(async (dp) => {
+        // Get all nodes and edges for this data product
+        const dpNodes = nodes.flat().filter(n => n.dataProductId === dp.id);
+        const dpEdges = edgesToCreate.filter(e => 
+          dpNodes.some(n => n.id === e.sourceId || n.id === e.targetId)
+        );
+
+        return {
+          dataProductId: dp.id,
+          version: 1,
+          snapshot: {
+            nodes: dpNodes.map(n => ({
+              id: n.id,
+              name: n.name,
+              type: n.type,
+              metadata: n.metadata
+            })),
+            edges: dpEdges.map(e => ({
+              sourceId: e.sourceId,
+              targetId: e.targetId,
+              metadata: e.metadata,
+              transformationLogic: e.transformationLogic
+            }))
+          },
+          changeMessage: "Initial lineage setup",
+          createdBy: "system"
+        };
       }))
     );
 
