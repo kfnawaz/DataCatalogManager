@@ -10,12 +10,14 @@ import ReactFlow, {
   MiniMap,
   useReactFlow,
   ReactFlowProvider,
+  Panel,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import { Search, ZoomIn, ZoomOut, Maximize2, Map } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface LineageNode {
   id: string;
@@ -39,7 +41,6 @@ interface ReactFlowLineageProps {
   isLoading: boolean;
 }
 
-// Custom node component with enhanced styling
 function LineageNodeComponent({ data }: { data: { label: string; type: string; isHighlighted?: boolean } }) {
   const getNodeStyle = (type: string, isHighlighted?: boolean) => {
     const baseStyle = {
@@ -114,23 +115,74 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showMinimap, setShowMinimap] = useState(true);
   const { fitView, zoomIn: flowZoomIn, zoomOut: flowZoomOut } = useReactFlow();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key.toLowerCase()) {
+          case 'f':
+            e.preventDefault();
+            const searchInput = document.querySelector('input[placeholder="Search nodes..."]') as HTMLInputElement;
+            if (searchInput) {
+              searchInput.focus();
+            }
+            break;
+          case '+':
+          case '=':
+            e.preventDefault();
+            flowZoomIn();
+            toast({
+              description: "Zoomed in (Ctrl/Cmd + +)",
+              duration: 1500,
+            });
+            break;
+          case '-':
+            e.preventDefault();
+            flowZoomOut();
+            toast({
+              description: "Zoomed out (Ctrl/Cmd + -)",
+              duration: 1500,
+            });
+            break;
+          case '0':
+            e.preventDefault();
+            fitView();
+            toast({
+              description: "Fit to view (Ctrl/Cmd + 0)",
+              duration: 1500,
+            });
+            break;
+          case 'm':
+            e.preventDefault();
+            setShowMinimap(prev => !prev);
+            toast({
+              description: `${showMinimap ? 'Hidden' : 'Shown'} minimap (Ctrl/Cmd + M)`,
+              duration: 1500,
+            });
+            break;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [flowZoomIn, flowZoomOut, fitView, showMinimap, toast]);
 
   useEffect(() => {
     if (!lineageData) return;
 
-    // Group nodes by type
     const nodesByType = {
       source: lineageData.nodes.filter(n => n.type === 'source'),
       transformation: lineageData.nodes.filter(n => n.type === 'transformation'),
       target: lineageData.nodes.filter(n => n.type === 'target')
     };
 
-    // Create nodes with hierarchical positioning
     const flowNodes = [];
     let column = 0;
 
-    // Position source nodes on the left
     nodesByType.source.forEach((node, index) => {
       flowNodes.push({
         id: node.id,
@@ -147,7 +199,6 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
       });
     });
 
-    // Position transformation nodes in the middle
     column++;
     nodesByType.transformation.forEach((node, index) => {
       flowNodes.push({
@@ -165,7 +216,6 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
       });
     });
 
-    // Position target nodes on the right
     column++;
     nodesByType.target.forEach((node, index) => {
       flowNodes.push({
@@ -183,7 +233,6 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
       });
     });
 
-    // Create edges between nodes
     const flowEdges = lineageData.links.map((link) => ({
       id: `edge-${link.source}-${link.target}`,
       source: link.source,
@@ -221,7 +270,7 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search nodes..."
+                placeholder="Search nodes... (Ctrl/Cmd + F)"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-8"
@@ -232,14 +281,26 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
             <Button size="sm" variant="outline" onClick={handleZoomIn}>
               <ZoomIn className="h-4 w-4 mr-1" />
               Zoom In
+              <span className="ml-1 text-xs opacity-70">(Ctrl/Cmd + +)</span>
             </Button>
             <Button size="sm" variant="outline" onClick={handleZoomOut}>
               <ZoomOut className="h-4 w-4 mr-1" />
               Zoom Out
+              <span className="ml-1 text-xs opacity-70">(Ctrl/Cmd + -)</span>
             </Button>
             <Button size="sm" variant="outline" onClick={handleFitView}>
               <Maximize2 className="h-4 w-4 mr-1" />
               Fit View
+              <span className="ml-1 text-xs opacity-70">(Ctrl/Cmd + 0)</span>
+            </Button>
+            <Button 
+              size="sm" 
+              variant={showMinimap ? "secondary" : "outline"}
+              onClick={() => setShowMinimap(prev => !prev)}
+            >
+              <Map className="h-4 w-4 mr-1" />
+              Minimap
+              <span className="ml-1 text-xs opacity-70">(Ctrl/Cmd + M)</span>
             </Button>
           </div>
         </div>
@@ -262,20 +323,31 @@ function LineageFlow({ dataProductId, lineageData, isLoading }: ReactFlowLineage
           >
             <Background />
             <Controls />
-            <MiniMap 
-              nodeColor={(node) => {
-                switch (node.data?.type) {
-                  case 'source':
-                    return '#4CAF50';
-                  case 'transformation':
-                    return '#2196F3';
-                  case 'target':
-                    return '#F44336';
-                  default:
-                    return '#999';
-                }
-              }}
-            />
+            {showMinimap && (
+              <MiniMap 
+                nodeColor={(node) => {
+                  switch (node.data?.type) {
+                    case 'source':
+                      return '#4CAF50';
+                    case 'transformation':
+                      return '#2196F3';
+                    case 'target':
+                      return '#F44336';
+                    default:
+                      return '#999';
+                  }
+                }}
+                className="!bottom-20 !right-2"
+              />
+            )}
+            <Panel position="bottom-center" className="p-2 bg-background/80 backdrop-blur-sm rounded-lg shadow-lg">
+              <div className="text-xs text-muted-foreground space-x-4">
+                <span>Ctrl/Cmd + F: Search</span>
+                <span>Ctrl/Cmd + +/-: Zoom</span>
+                <span>Ctrl/Cmd + 0: Fit View</span>
+                <span>Ctrl/Cmd + M: Toggle Minimap</span>
+              </div>
+            </Panel>
           </ReactFlow>
         )}
       </div>
