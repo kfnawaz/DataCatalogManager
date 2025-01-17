@@ -67,7 +67,6 @@ export default function DataProductsPage() {
   const { data: selectedProduct, isLoading: isLoadingSelected } = useQuery<DataProduct>({
     queryKey: [`/api/metadata/${selectedDataProduct}`],
     enabled: selectedDataProduct !== null,
-    retry: false,
   });
 
   const isLoading = isLoadingAll || (selectedDataProduct !== null && isLoadingSelected);
@@ -176,10 +175,10 @@ export default function DataProductsPage() {
                             className="h-full"
                           >
                             <Card className="h-full">
-                              <CardHeader>
+                              <CardHeader className="border-b">
                                 <h3 className="text-lg font-semibold">Metadata Management</h3>
                               </CardHeader>
-                              <CardContent className="h-[calc(100%-4rem)]">
+                              <CardContent className="flex-1 overflow-hidden">
                                 <MetadataPanel dataProductId={selectedDataProduct} />
                               </CardContent>
                             </Card>
@@ -194,7 +193,7 @@ export default function DataProductsPage() {
                             className="h-full"
                           >
                             <Card className="h-full">
-                              <CardHeader>
+                              <CardHeader className="border-b">
                                 <h3 className="text-lg font-semibold">Quality Metrics</h3>
                               </CardHeader>
                               <CardContent className="h-[calc(100%-4rem)]">
