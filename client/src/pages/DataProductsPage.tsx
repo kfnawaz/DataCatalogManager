@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,12 +11,6 @@ import SearchBar from "../components/search/SearchBar";
 import HierarchicalView from "../components/metadata/HierarchicalView";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
-import DataProductComments from "../components/comments/DataProductComments";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -48,11 +42,11 @@ export default function DataProductsPage() {
   const [selectedDataProduct, setSelectedDataProduct] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("metadata");
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [, navigate] = useLocation();
 
+  // Manage URL parameters
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
+    const params = new URLSearchParams(window.location.search);
     const productId = params.get('product');
     if (productId) {
       const id = parseInt(productId);
@@ -60,7 +54,7 @@ export default function DataProductsPage() {
         setSelectedDataProduct(id);
       }
     }
-  }, [location.search]);
+  }, []);
 
   const handleProductSelect = (id: number) => {
     setSelectedDataProduct(id);
@@ -86,43 +80,46 @@ export default function DataProductsPage() {
         animate={{ opacity: 1 }}
         className="container mx-auto px-4 py-6"
       >
-        <ResizablePanelGroup
-          direction="horizontal"
-          className="min-h-[800px] rounded-lg border"
-        >
-          <ResizablePanel 
-            defaultSize={20}
-            minSize={10}
-            maxSize={40}
-            collapsible
-            collapsedSize={4}
-            onCollapse={() => setIsCollapsed(true)}
-            onExpand={() => setIsCollapsed(false)}
-            className="p-4"
+        <div className="flex rounded-lg border bg-background">
+          <div 
+            className={`relative transition-all duration-300 ease-in-out ${
+              isCollapsed 
+                ? 'w-[50px] min-w-[50px]' 
+                : 'w-[300px] min-w-[300px]'
+            }`}
           >
-            <div className={`space-y-4 transition-all duration-300 ${isCollapsed ? 'opacity-0 invisible' : 'opacity-100 visible'}`}>
+            <div className={`p-4 h-full transition-opacity duration-300 ${
+              isCollapsed ? 'opacity-0 invisible' : 'opacity-100 visible'
+            }`}>
               <SearchBar 
                 onSelect={handleProductSelect} 
                 initialValue={selectedDataProduct} 
                 className="search-bar" 
               />
               {isLoadingAll ? (
-                <div className="space-y-2">
+                <div className="space-y-2 mt-4">
                   <Skeleton className="h-8 w-full" />
                   <Skeleton className="h-[400px] w-full" />
                 </div>
               ) : allDataProducts ? (
-                <HierarchicalView
-                  dataProducts={allDataProducts}
-                  onSelect={handleProductSelect}
-                  selectedId={selectedDataProduct}
-                />
+                <div className="mt-4">
+                  <HierarchicalView
+                    dataProducts={allDataProducts}
+                    onSelect={handleProductSelect}
+                    selectedId={selectedDataProduct}
+                  />
+                </div>
               ) : null}
             </div>
+
             <Button
               variant="ghost"
               size="sm"
-              className="absolute top-2 -right-3 z-10 h-6 w-6 rounded-full p-0 hover:bg-muted"
+              className={`absolute top-2 transition-all duration-300 ${
+                isCollapsed 
+                  ? 'right-[-12px]' 
+                  : 'right-[-12px]'
+              } z-10 h-6 w-6 rounded-full p-0 hover:bg-muted`}
               onClick={() => setIsCollapsed(!isCollapsed)}
             >
               {isCollapsed ? (
@@ -134,16 +131,9 @@ export default function DataProductsPage() {
                 {isCollapsed ? 'Expand' : 'Collapse'} sidebar
               </span>
             </Button>
-          </ResizablePanel>
+          </div>
 
-          <ResizableHandle withHandle />
-
-          <ResizablePanel
-            defaultSize={80}
-            minSize={60}
-            maxSize={90}
-            className="p-4"
-          >
+          <div className="flex-1 p-4 min-w-0">
             <AnimatePresence mode="wait">
               {isLoading && (
                 <motion.div {...fadeIn} key="loading">
@@ -236,8 +226,8 @@ export default function DataProductsPage() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+          </div>
+        </div>
       </motion.main>
     </TooltipProvider>
   );
