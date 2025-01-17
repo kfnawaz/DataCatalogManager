@@ -198,6 +198,33 @@ export async function seed_metricDefinitions() {
       ])
       .returning();
 
+    await db.insert(metricDefinitions).values([
+      {
+        name: "Price Data Latency",
+        description: "Measures latency in market price updates",
+        type: "timeliness",
+        formula: "avg(ingestion_timestamp - price_timestamp) <= threshold",
+        parameters: {
+          threshold: "PT2S",
+          criticalThreshold: "PT5S",
+          marketHoursOnly: true,
+        },
+        enabled: true,
+      },
+      {
+        name: "Market Coverage",
+        description: "Percentage of required markets with active price feeds",
+        type: "completeness",
+        formula: "count(active_price_feeds) / count(required_markets) * 100",
+        parameters: {
+          threshold: 98,
+          criticalThreshold: 95,
+          requiredMarkets: ["NYSE", "NASDAQ", "LSE"],
+        },
+        enabled: true,
+      },
+    ]);
+
     // Trade Data Metrics
     const tradeDataMetrics = await db
       .insert(metricDefinitions)
@@ -211,6 +238,8 @@ export async function seed_metricDefinitions() {
           parameters: {
             referenceSource: "clearing_system",
             threshold: 99.9,
+            criticalThreshold: 99,
+            matchingFields: ["tradeId", "quantity", "price"],
           },
           enabled: true,
         },
@@ -223,6 +252,18 @@ export async function seed_metricDefinitions() {
           parameters: {
             systems: ["front_office", "back_office"],
             threshold: 99,
+          },
+          enabled: true,
+        },
+        {
+          name: "Settlement Status Accuracy",
+          description: "Accuracy of trade settlement status",
+          type: "consistency",
+          formula: "count(consistent_settlement_status) / count(trades) * 100",
+          parameters: {
+            threshold: 99.99,
+            criticalThreshold: 99.9,
+            statusTypes: ["pending", "settled", "failed"],
           },
           enabled: true,
         },
@@ -257,8 +298,62 @@ export async function seed_metricDefinitions() {
           },
           enabled: true,
         },
+        {
+          name: "Risk Factor Coverage",
+          description: "Coverage of required risk factors",
+          type: "completeness",
+          formula:
+            "count(available_risk_factors) / count(required_risk_factors) * 100",
+          parameters: {
+            threshold: 99,
+            criticalThreshold: 95,
+            requiredFactors: ["interest_rate", "fx_rate", "credit_spread"],
+          },
+          enabled: true,
+        },
+        {
+          name: "VaR Calculation Precision",
+          description: "Precision of VaR calculations compared to benchmark",
+          type: "accuracy",
+          formula:
+            "abs(calculated_var - benchmark_var) / benchmark_var <= tolerance",
+          parameters: {
+            tolerance: 0.0001,
+            confidenceLevels: [0.95, 0.99],
+            timePeriods: ["1D", "10D"],
+          },
+          enabled: true,
+        },
       ])
       .returning();
+
+    // Reference Data Domain Metrics
+    await db.insert(metricDefinitions).values([
+      {
+        name: "Identifier Consistency",
+        description: "Consistency of security identifiers across systems",
+        type: "consistency",
+        formula: "count(matching_identifiers) / count(total_securities) * 100",
+        parameters: {
+          threshold: 100,
+          criticalThreshold: 99.9,
+          identifierTypes: ["ISIN", "CUSIP", "SEDOL"],
+        },
+        enabled: true,
+      },
+      {
+        name: "Corporate Action Timeliness",
+        description: "Timeliness of corporate action updates",
+        type: "timeliness",
+        formula: "max(update_timestamp - announcement_timestamp) <= threshold",
+        parameters: {
+          threshold: "PT4H",
+          criticalThreshold: "PT8H",
+          actionTypes: ["dividend", "split", "merger"],
+        },
+        enabled: true,
+      },
+    ]);
 
     // Add VaR Report specific metric definitions
     const varReportMetrics = await db
