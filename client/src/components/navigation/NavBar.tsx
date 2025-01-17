@@ -45,7 +45,7 @@ export default function NavBar() {
         duration: 0.3
       }}
     >
-        <div className="px-2 py-4 flex justify-between items-center">
+        <div className="px-4 py-4 flex justify-between items-center">
         <div className="flex items-center gap-8">
           <div className="text-2xl font-bold">
             <Link 

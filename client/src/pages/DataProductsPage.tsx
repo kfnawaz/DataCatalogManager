@@ -167,7 +167,7 @@ export default function DataProductsPage() {
                   <Tabs
                     value={activeTab}
                     onValueChange={setActiveTab}
-                    className="flex-1 flex flex-col mt-2 overflow-hidden"
+                    className="px-4 flex flex-col  overflow-hidden"
                   >
                     <TabsList className="px-4">
                       <TabsTrigger value="metadata">Metadata</TabsTrigger>
@@ -175,7 +175,7 @@ export default function DataProductsPage() {
                       <TabsTrigger value="lineage">Lineage</TabsTrigger>
                     </TabsList>
 
-                    <div className="flex-1 p-4 overflow-hidden">
+                    <div className="flex-1 p-0 overflow-hidden">
                       <AnimatePresence mode="wait">
                         <TabsContent
                           value="metadata"
