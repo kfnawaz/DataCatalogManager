@@ -11,6 +11,11 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  ResizablePanel,
+  ResizablePanelGroup,
+  ResizableHandle,
+} from "@/components/ui/resizable";
 import MetadataPanel from "../components/metadata/MetadataPanel";
 import LineageGraph from "../components/lineage/LineageGraph";
 import QualityMetrics from "../components/quality/QualityMetrics";
@@ -77,6 +82,8 @@ export default function DataProductsPage() {
 
   const isLoading = isLoadingAll || (selectedDataProduct !== null && isLoadingSelected);
 
+  const defaultLayout = [isExplorerOpen ? 20 : 0, 80];
+
   return (
     <TooltipProvider>
       <motion.main 
@@ -84,153 +91,167 @@ export default function DataProductsPage() {
         animate={{ opacity: 1 }}
         className="container mx-auto px-4 py-6"
       >
-        <div className="flex gap-6">
-          <Collapsible 
-            open={isExplorerOpen} 
-            onOpenChange={setIsExplorerOpen}
-            className="relative flex-shrink-0" 
+        <ResizablePanelGroup
+          direction="horizontal"
+          className="min-h-[600px] rounded-lg border"
+        >
+          <ResizablePanel 
+            defaultSize={defaultLayout[0]}
+            minSize={15}
+            maxSize={30}
+            className="relative"
           >
-            <CollapsibleContent 
-              className="w-[300px] transition-all duration-300 ease-in-out"
-              forceMount
+            <Collapsible 
+              open={isExplorerOpen} 
+              onOpenChange={setIsExplorerOpen}
+              className="relative h-full"
             >
-              <motion.div
-                initial={false}
-                animate={{
-                  width: isExplorerOpen ? 300 : 0,
-                  opacity: isExplorerOpen ? 1 : 0,
-                }}
-                transition={{ duration: 0.3 }}
-                className="space-y-4 overflow-hidden"
+              <CollapsibleContent 
+                className="transition-all duration-300 ease-in-out h-full"
+                forceMount
               >
-                <SearchBar 
-                  onSelect={handleProductSelect} 
-                  initialValue={selectedDataProduct} 
-                  className="search-bar" 
-                />
-                {isLoadingAll ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-8 w-full" />
-                    <Skeleton className="h-[400px] w-full" />
-                  </div>
-                ) : allDataProducts ? (
-                  <HierarchicalView
-                    dataProducts={allDataProducts}
-                    onSelect={handleProductSelect}
-                    selectedId={selectedDataProduct}
-                  />
-                ) : null}
-              </motion.div>
-            </CollapsibleContent>
-
-            <CollapsibleTrigger asChild>
-              <div className="absolute -right-12 top-0 flex items-center justify-center"> 
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  className="hover:bg-muted"
+                <motion.div
+                  initial={false}
+                  animate={{
+                    width: isExplorerOpen ? "100%" : 0,
+                    opacity: isExplorerOpen ? 1 : 0,
+                  }}
+                  transition={{ duration: 0.3 }}
+                  className="p-4 space-y-4 overflow-hidden h-full"
                 >
-                  {isExplorerOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                </Button>
-              </div>
-            </CollapsibleTrigger>
-          </Collapsible>
-
-          <div className="flex-1 min-w-0"> 
-            <AnimatePresence mode="wait">
-              {isLoading && (
-                <motion.div {...fadeIn} key="loading">
-                  <Skeleton className="h-8 w-1/3 mb-2" />
-                  <Skeleton className="h-4 w-2/3 mb-6" />
-                  <Skeleton className="h-[400px]" />
+                  <SearchBar 
+                    onSelect={handleProductSelect} 
+                    initialValue={selectedDataProduct} 
+                    className="search-bar" 
+                  />
+                  {isLoadingAll ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-8 w-full" />
+                      <Skeleton className="h-[400px] w-full" />
+                    </div>
+                  ) : allDataProducts ? (
+                    <HierarchicalView
+                      dataProducts={allDataProducts}
+                      onSelect={handleProductSelect}
+                      selectedId={selectedDataProduct}
+                    />
+                  ) : null}
                 </motion.div>
-              )}
+              </CollapsibleContent>
 
-              {!isLoading && selectedProduct && (
-                <motion.div {...fadeIn} key={selectedProduct.id}>
-                  <div className="mb-6">
-                    <h2 className="text-xl font-semibold text-foreground">
-                      {selectedProduct.name}
-                    </h2>
-                    {selectedProduct.description && (
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {selectedProduct.description}
-                      </p>
-                    )}
-                  </div>
-
-                  <Tabs 
-                    value={activeTab} 
-                    onValueChange={setActiveTab} 
-                    className="space-y-4"
+              <CollapsibleTrigger asChild>
+                <div className="absolute -right-12 top-0 flex items-center justify-center"> 
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="hover:bg-muted"
                   >
-                    <TabsList>
-                      <TabsTrigger value="metadata">Metadata</TabsTrigger>
-                      <TabsTrigger value="quality">Quality Metrics</TabsTrigger>
-                      <TabsTrigger value="lineage">Lineage</TabsTrigger>
-                    </TabsList>
+                    {isExplorerOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </CollapsibleTrigger>
+            </Collapsible>
+          </ResizablePanel>
 
-                    <AnimatePresence mode="wait">
-                      <TabsContent value="metadata" asChild key="metadata">
-                        <motion.div
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0 }}
-                        >
-                          <Card>
-                            <CardHeader>
-                              <h3 className="text-lg font-semibold">Metadata Management</h3>
-                            </CardHeader>
-                            <CardContent>
-                              <MetadataPanel dataProductId={selectedDataProduct} />
-                            </CardContent>
-                          </Card>
-                        </motion.div>
-                      </TabsContent>
+          <ResizableHandle withHandle />
 
-                      <TabsContent value="quality" asChild key="quality">
-                        <motion.div
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0 }}
-                        >
-                          <Card>
-                            <CardHeader>
-                              <h3 className="text-lg font-semibold">Quality Metrics</h3>
-                            </CardHeader>
-                            <CardContent>
-                              <QualityMetrics dataProductId={selectedDataProduct} />
-                            </CardContent>
-                          </Card>
-                        </motion.div>
-                      </TabsContent>
+          <ResizablePanel defaultSize={defaultLayout[1]}>
+            <div className="p-4">
+              <AnimatePresence mode="wait">
+                {isLoading && (
+                  <motion.div {...fadeIn} key="loading">
+                    <Skeleton className="h-8 w-1/3 mb-2" />
+                    <Skeleton className="h-4 w-2/3 mb-6" />
+                    <Skeleton className="h-[400px]" />
+                  </motion.div>
+                )}
 
-                      <TabsContent value="lineage" asChild key="lineage">
-                        <motion.div
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0 }}
-                        >
-                          <Card>
-                            <CardContent className="pt-6">
-                              <LineageGraph dataProductId={selectedDataProduct} />
-                            </CardContent>
-                          </Card>
-                        </motion.div>
-                      </TabsContent>
-                    </AnimatePresence>
-                  </Tabs>
-                </motion.div>
-              )}
+                {!isLoading && selectedProduct && (
+                  <motion.div {...fadeIn} key={selectedProduct.id}>
+                    <div className="mb-6">
+                      <h2 className="text-xl font-semibold text-foreground">
+                        {selectedProduct.name}
+                      </h2>
+                      {selectedProduct.description && (
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {selectedProduct.description}
+                        </p>
+                      )}
+                    </div>
 
-              {!isLoading && !selectedProduct && (
-                <motion.div {...fadeIn} key="empty" className="text-center py-12 text-muted-foreground">
-                  Select a data product from the search bar or hierarchical view to see its details
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
+                    <Tabs 
+                      value={activeTab} 
+                      onValueChange={setActiveTab} 
+                      className="space-y-4"
+                    >
+                      <TabsList>
+                        <TabsTrigger value="metadata">Metadata</TabsTrigger>
+                        <TabsTrigger value="quality">Quality Metrics</TabsTrigger>
+                        <TabsTrigger value="lineage">Lineage</TabsTrigger>
+                      </TabsList>
+
+                      <AnimatePresence mode="wait">
+                        <TabsContent value="metadata" asChild key="metadata">
+                          <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0 }}
+                          >
+                            <Card>
+                              <CardHeader>
+                                <h3 className="text-lg font-semibold">Metadata Management</h3>
+                              </CardHeader>
+                              <CardContent>
+                                <MetadataPanel dataProductId={selectedDataProduct} />
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        </TabsContent>
+
+                        <TabsContent value="quality" asChild key="quality">
+                          <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0 }}
+                          >
+                            <Card>
+                              <CardHeader>
+                                <h3 className="text-lg font-semibold">Quality Metrics</h3>
+                              </CardHeader>
+                              <CardContent>
+                                <QualityMetrics dataProductId={selectedDataProduct} />
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        </TabsContent>
+
+                        <TabsContent value="lineage" asChild key="lineage">
+                          <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0 }}
+                          >
+                            <Card>
+                              <CardContent className="pt-6">
+                                <LineageGraph dataProductId={selectedDataProduct} />
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        </TabsContent>
+                      </AnimatePresence>
+                    </Tabs>
+                  </motion.div>
+                )}
+
+                {!isLoading && !selectedProduct && (
+                  <motion.div {...fadeIn} key="empty" className="text-center py-12 text-muted-foreground">
+                    Select a data product from the search bar or hierarchical view to see its details
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </motion.main>
     </TooltipProvider>
   );
