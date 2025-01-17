@@ -1,0 +1,55 @@
+Aggregate Data Products:
+Aggregate data products represent processed and enriched datasets that serve as intermediate layers for the VaR calculation.
+a. Portfolio Risk Metrics
+* Purpose: Aggregate risk metrics at the portfolio level.
+* Inputs:
+    * Position-level risk metrics.
+    * Market data (e.g., volatility, correlation).
+* Outputs:
+    * Portfolio-level sensitivities (delta, gamma, vega).
+    * Aggregated risk exposure by asset class or geography.
+b. Stress Testing and Scenario Data
+* Purpose: Provide precomputed stress test results for different market scenarios.
+* Inputs:
+    * Historical market data.
+    * Scenario definitions (e.g., economic shocks, black swan events).
+* Outputs:
+    * Stress test results for portfolio and position levels.
+    * Impact analysis of extreme market movements.
+c. Market Risk Factors
+* Purpose: Provide aggregated data on market risk factors such as volatility, correlations, and interest rate curves.
+* Inputs:
+    * Source-aligned market data.
+* Outputs:
+    * Cleaned and aggregated time series data for risk factors.
+    * Forward-looking metrics like implied volatility surfaces.
+d. Counterparty Risk Metrics
+* Purpose: Aggregate counterparty risk exposure metrics.
+* Inputs:
+    * Source-aligned counterparty exposure data.
+    * Credit ratings, default probabilities.
+* Outputs:
+    * Aggregated counterparty exposure and credit risk metrics.
+e. Regulatory Metrics
+* Purpose: Provide precomputed regulatory metrics related to VaR (e.g., Basel III compliance).
+* Inputs:
+    * Source-aligned regulatory data.
+* Outputs:
+    * Precomputed regulatory measures such as capital charge for market risk.
+
+
+
+Consumer-Aligned Data Product:
+VaR Report Data Product
+* Purpose: Provide a comprehensive Value at Risk report, summarizing the potential loss in portfolio value due to market movements.
+* Inputs:
+    * Aggregated risk metrics (from aggregate data products).
+    * Market data.
+    * Portfolio and position-level data.
+    * Historical and simulated data for stress testing.
+* Consumers: Risk managers, regulatory reporting teams, portfolio managers.
+* Attributes:
+    * Daily, weekly, or intraday VaR calculations.
+    * Stress testing and scenario analysis.
+    * Historical VaR trends.
+
