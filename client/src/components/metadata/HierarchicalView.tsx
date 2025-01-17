@@ -108,7 +108,7 @@ export default function HierarchicalView({ dataProducts, onSelect, selectedId }:
                     {product.description && (
                       <div className="text-sm mt-1 opacity-80">{product.description}</div>
                     )}
-                    <div className="flex items-center gap-2 mt-2">
+                      <div className="flex flex-wrap gap-2 mt-2"> {/* Added flex-wrap here */}
                       <Badge variant="outline">{product.domain}</Badge>
                       <Badge variant="outline">{product.owner}</Badge>
                       {product.tags?.map(tag => (
