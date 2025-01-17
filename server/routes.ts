@@ -12,12 +12,12 @@ import {
   lineageNodes,
   lineageEdges,
   lineageVersions,
-  nodeQualityMetrics // Added import for node quality metrics
+  nodeQualityMetrics, // Added import for node quality metrics
 } from "@db/schema";
 import { eq, desc, sql, and, inArray, or } from "drizzle-orm";
 import OpenAI from "openai";
 import { trackApiUsage, getApiUsageStats } from "./utils/apiTracker";
-import fetch from 'node-fetch';
+import fetch from "node-fetch";
 import stewardshipRouter from "./routes/stewardship";
 
 // Initialize OpenAI with API key
@@ -32,7 +32,10 @@ export function registerRoutes(app: Express): Server {
   // Add usage stats endpoint
   app.get("/api/usage-stats", async (req, res) => {
     try {
-      const timeframe = (req.query.timeframe || 'day') as 'day' | 'week' | 'month';
+      const timeframe = (req.query.timeframe || "day") as
+        | "day"
+        | "week"
+        | "month";
       const stats = await getApiUsageStats(timeframe);
       res.json(stats);
     } catch (error) {
@@ -48,13 +51,13 @@ export function registerRoutes(app: Express): Server {
       await openai.chat.completions.create({
         model: "gpt-3.5-turbo",
         messages: [{ role: "user", content: "test" }],
-        max_tokens: 1
+        max_tokens: 1,
       });
 
       res.json({
         status: "healthy",
         aiService: true,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
       // If error is rate limit or auth, mark AI service as unavailable
@@ -63,7 +66,7 @@ export function registerRoutes(app: Express): Server {
       res.json({
         status: aiUnavailable ? "limited" : "healthy",
         aiService: !aiUnavailable,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
   });
@@ -83,7 +86,7 @@ export function registerRoutes(app: Express): Server {
           sla: dataProducts.sla,
           updateFrequency: dataProducts.updateFrequency,
           createdAt: dataProducts.createdAt,
-          updatedAt: dataProducts.updatedAt
+          updatedAt: dataProducts.updatedAt,
         })
         .from(dataProducts);
       res.json(products);
@@ -143,7 +146,7 @@ export function registerRoutes(app: Express): Server {
             reactions: reactionCounts,
             badges: [], // Keep badges empty for now
           };
-        })
+        }),
       );
 
       res.json(commentsWithReactions);
@@ -159,7 +162,7 @@ export function registerRoutes(app: Express): Server {
       if (isNaN(productId)) {
         return res.status(400).json({
           error: "Invalid input",
-          details: "Product ID must be a valid number"
+          details: "Product ID must be a valid number",
         });
       }
 
@@ -173,7 +176,7 @@ export function registerRoutes(app: Express): Server {
       if (!product) {
         return res.status(404).json({
           error: "Not found",
-          details: "Data product not found"
+          details: "Data product not found",
         });
       }
 
@@ -196,7 +199,7 @@ export function registerRoutes(app: Express): Server {
       if (Object.keys(errors).length > 0) {
         return res.status(400).json({
           error: "Validation failed",
-          details: errors
+          details: errors,
         });
       }
 
@@ -220,14 +223,14 @@ export function registerRoutes(app: Express): Server {
         comment: newComment,
         metrics: {
           totalComments: commentCount[0].count,
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       });
     } catch (error) {
       console.error("Error creating comment:", error);
       res.status(500).json({
         error: "Internal server error",
-        details: "Failed to create comment. Please try again later."
+        details: "Failed to create comment. Please try again later.",
       });
     }
   });
@@ -238,7 +241,7 @@ export function registerRoutes(app: Express): Server {
       if (isNaN(productId)) {
         return res.status(400).json({
           error: "Invalid input",
-          details: "Product ID must be a valid number"
+          details: "Product ID must be a valid number",
         });
       }
 
@@ -256,7 +259,7 @@ export function registerRoutes(app: Express): Server {
           updateFrequency: dataProducts.updateFrequency,
           createdAt: dataProducts.createdAt,
           updatedAt: dataProducts.updatedAt,
-          sources: dataProducts.sources
+          sources: dataProducts.sources,
         })
         .from(dataProducts)
         .where(eq(dataProducts.id, productId))
@@ -277,7 +280,7 @@ export function registerRoutes(app: Express): Server {
             updateFrequency: dataProducts.updateFrequency,
             createdAt: dataProducts.createdAt,
             updatedAt: dataProducts.updatedAt,
-            sources: dataProducts.sources
+            sources: dataProducts.sources,
           })
           .from(dataProducts)
           .where(sql`LOWER(${dataProducts.name}) = LOWER(${req.params.id})`)
@@ -289,7 +292,7 @@ export function registerRoutes(app: Express): Server {
         product = productByName;
       }
 
-      console.log('Sources from database:', product.sources);
+      console.log("Sources from database:", product.sources);
       // Get lineage nodes for this data product
       const nodes = await db
         .select({
@@ -297,7 +300,7 @@ export function registerRoutes(app: Express): Server {
           name: lineageNodes.name,
           type: lineageNodes.type,
           metadata: lineageNodes.metadata,
-          version: lineageNodes.version
+          version: lineageNodes.version,
         })
         .from(lineageNodes)
         .where(eq(lineageNodes.dataProductId, product.id));
@@ -305,21 +308,21 @@ export function registerRoutes(app: Express): Server {
       // Get lineage edges if nodes exist
       let edges = [];
       if (nodes.length > 0) {
-        const nodeIds = nodes.map(n => n.id);
+        const nodeIds = nodes.map((n) => n.id);
         edges = await db
           .select({
             id: lineageEdges.id,
             sourceId: lineageEdges.sourceId,
             targetId: lineageEdges.targetId,
             metadata: lineageEdges.metadata,
-            transformationLogic: lineageEdges.transformationLogic
+            transformationLogic: lineageEdges.transformationLogic,
           })
           .from(lineageEdges)
           .where(
             and(
               inArray(lineageEdges.sourceId, nodeIds),
-              inArray(lineageEdges.targetId, nodeIds)
-            )
+              inArray(lineageEdges.targetId, nodeIds),
+            ),
           );
       }
 
@@ -330,7 +333,7 @@ export function registerRoutes(app: Express): Server {
           value: qualityMetrics.value,
           timestamp: qualityMetrics.timestamp,
           metadata: qualityMetrics.metadata,
-          definitionId: qualityMetrics.metricDefinitionId
+          definitionId: qualityMetrics.metricDefinitionId,
         })
         .from(qualityMetrics)
         .where(eq(qualityMetrics.dataProductId, product.id))
@@ -341,34 +344,34 @@ export function registerRoutes(app: Express): Server {
       const metadata = {
         ...product,
         tags: product.tags || [],
-        sources: product.sources || []
+        sources: product.sources || [],
       };
 
       const response = {
         ...metadata,
         lineage: {
-          nodes: nodes.map(node => ({
+          nodes: nodes.map((node) => ({
             id: node.id.toString(),
             name: node.name,
             type: node.type,
             metadata: node.metadata,
-            version: node.version
+            version: node.version,
           })),
-          edges: edges.map(edge => ({
+          edges: edges.map((edge) => ({
             id: edge.id.toString(),
             source: edge.sourceId.toString(),
             target: edge.targetId.toString(),
             metadata: edge.metadata,
-            transformationLogic: edge.transformationLogic
-          }))
+            transformationLogic: edge.transformationLogic,
+          })),
         },
-        metrics: metrics.map(metric => ({
+        metrics: metrics.map((metric) => ({
           id: metric.id,
           value: metric.value,
           timestamp: metric.timestamp,
           metadata: metric.metadata,
-          definitionId: metric.definitionId
-        }))
+          definitionId: metric.definitionId,
+        })),
       };
 
       res.json(response);
@@ -376,7 +379,7 @@ export function registerRoutes(app: Express): Server {
       console.error("Error fetching metadata:", error);
       res.status(500).json({
         error: "Failed to fetch metadata",
-        details: error instanceof Error ? error.message : "Unknown error"
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
@@ -395,13 +398,13 @@ export function registerRoutes(app: Express): Server {
       if (timeRange) {
         const now = new Date();
         switch (timeRange) {
-          case '7d':
+          case "7d":
             dateFilter = new Date(now.setDate(now.getDate() - 7));
             break;
-          case '30d':
+          case "30d":
             dateFilter = new Date(now.setDate(now.getDate() - 30));
             break;
-          case '90d':
+          case "90d":
             dateFilter = new Date(now.setDate(now.getDate() - 90));
             break;
         }
@@ -414,18 +417,18 @@ export function registerRoutes(app: Express): Server {
           value: qualityMetrics.value,
           timestamp: qualityMetrics.timestamp,
           metadata: qualityMetrics.metadata,
-          type: metricDefinitions.type
+          type: metricDefinitions.type,
         })
         .from(qualityMetrics)
         .innerJoin(
           metricDefinitions,
-          eq(qualityMetrics.metricDefinitionId, metricDefinitions.id)
+          eq(qualityMetrics.metricDefinitionId, metricDefinitions.id),
         )
         .where(
           and(
             eq(qualityMetrics.dataProductId, productId),
-            sql`${qualityMetrics.timestamp} >= ${dateFilter}`
-          )
+            sql`${qualityMetrics.timestamp} >= ${dateFilter}`,
+          ),
         )
         .orderBy(desc(qualityMetrics.timestamp));
 
@@ -441,42 +444,51 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Group metrics by type to get current values
-      const currentMetrics = metrics.reduce((acc, metric) => {
-        if (!acc[metric.type]) {
-          acc[metric.type] = metric.value;
-        }
-        return acc;
-      }, {} as Record<string, number>);
+      const currentMetrics = metrics.reduce(
+        (acc, metric) => {
+          if (!acc[metric.type]) {
+            acc[metric.type] = metric.value;
+          }
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
 
       // Format history data
-      const history = metrics.map(m => ({
+      const history = metrics.map((m) => ({
         timestamp: m.timestamp,
         [m.type]: m.value,
         metadata: m.metadata,
       }));
 
       // Group history data by timestamp
-      const groupedHistory = history.reduce((acc, curr) => {
-        const timestamp = curr.timestamp?.toISOString();
-        if (!timestamp) return acc;
+      const groupedHistory = history.reduce(
+        (acc, curr) => {
+          const timestamp = curr.timestamp?.toISOString();
+          if (!timestamp) return acc;
 
-        if (!acc[timestamp]) {
-          acc[timestamp] = {
-            timestamp,
-            completeness: null,
-            accuracy: null,
-            timeliness: null,
-            metadata: curr.metadata
-          };
-        }
+          if (!acc[timestamp]) {
+            acc[timestamp] = {
+              timestamp,
+              completeness: null,
+              accuracy: null,
+              timeliness: null,
+              metadata: curr.metadata,
+            };
+          }
 
-        // Update the specific metric value
-        if (curr.completeness !== undefined) acc[timestamp].completeness = curr.completeness;
-        if (curr.accuracy !== undefined) acc[timestamp].accuracy = curr.accuracy;
-        if (curr.timeliness !== undefined) acc[timestamp].timeliness = curr.timeliness;
+          // Update the specific metric value
+          if (curr.completeness !== undefined)
+            acc[timestamp].completeness = curr.completeness;
+          if (curr.accuracy !== undefined)
+            acc[timestamp].accuracy = curr.accuracy;
+          if (curr.timeliness !== undefined)
+            acc[timestamp].timeliness = curr.timeliness;
 
-        return acc;
-      }, {} as Record<string, any>);
+          return acc;
+        },
+        {} as Record<string, any>,
+      );
 
       res.json({
         current: {
@@ -484,10 +496,13 @@ export function registerRoutes(app: Express): Server {
           accuracy: currentMetrics.accuracy || 0,
           timeliness: currentMetrics.timeliness || 0,
           customMetrics: Object.entries(currentMetrics)
-            .filter(([key]) => !['completeness', 'accuracy', 'timeliness'].includes(key))
-            .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})
+            .filter(
+              ([key]) =>
+                !["completeness", "accuracy", "timeliness"].includes(key),
+            )
+            .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {}),
         },
-        history: Object.values(groupedHistory)
+        history: Object.values(groupedHistory),
       });
     } catch (error) {
       console.error("Error fetching quality metrics:", error);
@@ -508,7 +523,15 @@ export function registerRoutes(app: Express): Server {
 
   app.post("/api/metric-templates", async (req, res) => {
     try {
-      const { name, description, type, defaultFormula, parameters, example, tags } = req.body;
+      const {
+        name,
+        description,
+        type,
+        defaultFormula,
+        parameters,
+        example,
+        tags,
+      } = req.body;
 
       if (!name || !description || !type || !defaultFormula || !parameters) {
         return res.status(400).json({ error: "Missing required fields" });
@@ -537,7 +560,10 @@ export function registerRoutes(app: Express): Server {
   // Metric definition routes
   app.get("/api/metric-definitions", async (req, res) => {
     try {
-      const definitions = await db.select().from(metricDefinitions).orderBy(metricDefinitions.name);
+      const definitions = await db
+        .select()
+        .from(metricDefinitions)
+        .orderBy(metricDefinitions.name);
       res.json(definitions);
     } catch (error) {
       console.error("Error fetching metric definitions:", error);
@@ -547,7 +573,8 @@ export function registerRoutes(app: Express): Server {
 
   app.post("/api/metric-definitions", async (req, res) => {
     try {
-      const { name, description, type, templateId, formula, parameters } = req.body;
+      const { name, description, type, templateId, formula, parameters } =
+        req.body;
 
       if (!name || !description || !type) {
         return res.status(400).json({ error: "Missing required fields" });
@@ -590,7 +617,9 @@ export function registerRoutes(app: Express): Server {
       res.json(versions);
     } catch (error) {
       console.error("Error fetching metric definition history:", error);
-      res.status(500).json({ error: "Failed to fetch metric definition history" });
+      res
+        .status(500)
+        .json({ error: "Failed to fetch metric definition history" });
     }
   });
 
@@ -602,7 +631,15 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Invalid definition ID" });
       }
 
-      const { name, description, type, templateId, formula, parameters, changeMessage } = req.body;
+      const {
+        name,
+        description,
+        type,
+        templateId,
+        formula,
+        parameters,
+        changeMessage,
+      } = req.body;
 
       if (!name || !description || !type) {
         return res.status(400).json({ error: "Missing required fields" });
@@ -663,84 +700,93 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Rollback to specific version
-  app.post("/api/metric-definitions/:id/rollback/:versionId", async (req, res) => {
-    try {
-      const definitionId = parseInt(req.params.id);
-      const versionId = parseInt(req.params.versionId);
+  app.post(
+    "/api/metric-definitions/:id/rollback/:versionId",
+    async (req, res) => {
+      try {
+        const definitionId = parseInt(req.params.id);
+        const versionId = parseInt(req.params.versionId);
 
-      if (isNaN(definitionId) || isNaN(versionId)) {
-        return res.status(400).json({ error: "Invalid ID parameters" });
-      }
+        if (isNaN(definitionId) || isNaN(versionId)) {
+          return res.status(400).json({ error: "Invalid ID parameters" });
+        }
 
-      // Get the version to rollback to
-      const [version] = await db
-        .select()
-        .from(metricDefinitionVersions)
-        .where(eq(metricDefinitionVersions.id, versionId))
-        .limit(1);
-
-      if (!version) {
-        return res.status(404).json({ error: "Version not found" });
-      }
-
-      // Start a transaction for rollback
-      await db.transaction(async (tx) => {
-        // Get current version number
-        const [currentVersion] = await tx
+        // Get the version to rollback to
+        const [version] = await db
           .select()
           .from(metricDefinitionVersions)
-          .where(eq(metricDefinitionVersions.metricDefinitionId, definitionId))
-          .orderBy(desc(metricDefinitionVersions.version))
+          .where(eq(metricDefinitionVersions.id, versionId))
           .limit(1);
 
-        const nextVersion = currentVersion ? currentVersion.version + 1 : 1;
+        if (!version) {
+          return res.status(404).json({ error: "Version not found" });
+        }
 
-        // Create new version record for the rollback
-        await tx.insert(metricDefinitionVersions).values({
-          ...version,
-          id: undefined,
-          version: nextVersion,
-          createdAt: undefined,
-          changeMessage: `Rolled back to version ${version.version}`,
+        // Start a transaction for rollback
+        await db.transaction(async (tx) => {
+          // Get current version number
+          const [currentVersion] = await tx
+            .select()
+            .from(metricDefinitionVersions)
+            .where(
+              eq(metricDefinitionVersions.metricDefinitionId, definitionId),
+            )
+            .orderBy(desc(metricDefinitionVersions.version))
+            .limit(1);
+
+          const nextVersion = currentVersion ? currentVersion.version + 1 : 1;
+
+          // Create new version record for the rollback
+          await tx.insert(metricDefinitionVersions).values({
+            ...version,
+            id: undefined,
+            version: nextVersion,
+            createdAt: undefined,
+            changeMessage: `Rolled back to version ${version.version}`,
+          });
+
+          // Update current definition
+          await tx
+            .update(metricDefinitions)
+            .set({
+              name: version.name,
+              description: version.description,
+              type: version.type,
+              templateId: version.templateId,
+              formula: version.formula,
+              parameters: version.parameters,
+            })
+            .where(eq(metricDefinitions.id, definitionId));
         });
 
-        // Update current definition
-        await tx
-          .update(metricDefinitions)
-          .set({
-            name: version.name,
-            description: version.description,
-            type: version.type,
-            templateId: version.templateId,
-            formula: version.formula,
-            parameters: version.parameters,
-          })
-          .where(eq(metricDefinitions.id, definitionId));
-      });
+        // Get updated definition
+        const [updated] = await db
+          .select()
+          .from(metricDefinitions)
+          .where(eq(metricDefinitions.id, definitionId))
+          .limit(1);
 
-      // Get updated definition
-      const [updated] = await db
-        .select()
-        .from(metricDefinitions)
-        .where(eq(metricDefinitions.id, definitionId))
-        .limit(1);
-
-      res.json(updated);
-    } catch (error) {
-      console.error("Error rolling back metric definition:", error);
-      res.status(500).json({ error: "Failed to rollback metric definition" });
-    }
-  });
+        res.json(updated);
+      } catch (error) {
+        console.error("Error rolling back metric definition:", error);
+        res.status(500).json({ error: "Failed to rollback metric definition" });
+      }
+    },
+  );
 
   // Add new route for comment summarization
   app.post("/api/data-products/:id/comments/summarize", async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       if (isNaN(productId)) {
-        await trackApiUsage("/api/data-products/:id/comments/summarize", 400, "InvalidInput");
+        await trackApiUsage(
+          "/api/data-products/:id/comments/summarize",
+          400,
+          "InvalidInput",
+        );
         return res.status(400).json({
           error: "Invalid input",
-          details: "Product ID must be a valid number"
+          details: "Product ID must be a valid number",
         });
       }
 
@@ -752,16 +798,21 @@ export function registerRoutes(app: Express): Server {
         .orderBy(desc(comments.createdAt));
 
       if (productComments.length === 0) {
-        await trackApiUsage("/api/data-products/:id/comments/summarize", 200, null, 0);
+        await trackApiUsage(
+          "/api/data-products/:id/comments/summarize",
+          200,
+          null,
+          0,
+        );
         return res.json({
           summary: "No comments available to summarize.",
-          commentCount: 0
+          commentCount: 0,
         });
       }
 
       // Prepare comments for summarization
       const commentsText = productComments
-        .map(c => `${c.authorName}: ${c.content}`)
+        .map((c) => `${c.authorName}: ${c.content}`)
         .join("\n");
 
       try {
@@ -771,58 +822,85 @@ export function registerRoutes(app: Express): Server {
           messages: [
             {
               role: "system",
-              content: "You are a helpful assistant that summarizes user comments. Provide a concise summary that captures the main points and sentiment of the comments."
+              content:
+                "You are a helpful assistant that summarizes user comments. Provide a concise summary that captures the main points and sentiment of the comments.",
             },
             {
               role: "user",
-              content: `Please summarize these comments:\n${commentsText}`
-            }
+              content: `Please summarize these comments:\n${commentsText}`,
+            },
           ],
           temperature: 0.7,
-          max_tokens: 150
+          max_tokens: 150,
         });
 
-        const summary = completion.choices[0]?.message?.content || "Unable to generate summary.";
+        const summary =
+          completion.choices[0]?.message?.content ||
+          "Unable to generate summary.";
 
-        await trackApiUsage("/api/data-products/:id/comments/summarize", 200, null, completion.usage?.total_tokens);
+        await trackApiUsage(
+          "/api/data-products/:id/comments/summarize",
+          200,
+          null,
+          completion.usage?.total_tokens,
+        );
 
         res.json({
           summary,
           commentCount: productComments.length,
-          lastUpdated: new Date().toISOString()
+          lastUpdated: new Date().toISOString(),
         });
       } catch (openaiError: any) {
         console.error("OpenAI API Error:", openaiError);
 
         // Handle specific OpenAI errors
         if (openaiError.status === 429) {
-          await trackApiUsage("/api/data-products/:id/comments/summarize", 429, "RateLimit");
+          await trackApiUsage(
+            "/api/data-products/:id/comments/summarize",
+            429,
+            "RateLimit",
+          );
           return res.status(429).json({
             error: "API Rate Limit",
-            details: "The AI service is currently unavailable due to rate limiting. Please try again later."
+            details:
+              "The AI service is currently unavailable due to rate limiting. Please try again later.",
           });
         }
 
         if (openaiError.status === 401) {
-          await trackApiUsage("/api/data-products/:id/comments/summarize", 401, "Authentication");
+          await trackApiUsage(
+            "/api/data-products/:id/comments/summarize",
+            401,
+            "Authentication",
+          );
           return res.status(401).json({
             error: "API Authentication",
-            details: "Unable to authenticate with the AI service. Please contact support."
+            details:
+              "Unable to authenticate with the AI service. Please contact support.",
           });
         }
 
-        await trackApiUsage("/api/data-products/:id/comments/summarize", 500, openaiError.type);
+        await trackApiUsage(
+          "/api/data-products/:id/comments/summarize",
+          500,
+          openaiError.type,
+        );
         return res.status(500).json({
           error: "AI Service Error",
-          details: "Failed to generate summary due to an AI service error. Please try again later."
+          details:
+            "Failed to generate summary due to an AI service error. Please try again later.",
         });
       }
     } catch (error) {
       console.error("Error summarizing comments:", error);
-      await trackApiUsage("/api/data-products/:id/comments/summarize", 500, "InternalServerError");
+      await trackApiUsage(
+        "/api/data-products/:id/comments/summarize",
+        500,
+        "InternalServerError",
+      );
       res.status(500).json({
         error: "Internal server error",
-        details: "Failed to generate comment summary. Please try again later."
+        details: "Failed to generate comment summary. Please try again later.",
       });
     }
   });
@@ -837,7 +915,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Invalid comment ID" });
       }
 
-      if (!['like', 'helpful', 'insightful'].includes(type)) {
+      if (!["like", "helpful", "insightful"].includes(type)) {
         return res.status(400).json({ error: "Invalid reaction type" });
       }
 
@@ -853,15 +931,15 @@ export function registerRoutes(app: Express): Server {
           and(
             eq(commentReactions.commentId, commentId),
             eq(commentReactions.type, type),
-            eq(commentReactions.userIdentifier, userIdentifier)
-          )
+            eq(commentReactions.userIdentifier, userIdentifier),
+          ),
         )
         .limit(1);
 
       if (existingReaction.length > 0) {
         return res.status(400).json({
           error: "Already reacted",
-          message: "You have already reacted to this comment"
+          message: "You have already reacted to this comment",
         });
       }
 
@@ -896,7 +974,7 @@ export function registerRoutes(app: Express): Server {
 
       res.json({
         success: true,
-        reactions: reactionCounts
+        reactions: reactionCounts,
       });
     } catch (error) {
       console.error("Error adding reaction:", error);
@@ -919,13 +997,13 @@ export function registerRoutes(app: Express): Server {
       if (timeRange) {
         const now = new Date();
         switch (timeRange) {
-          case '7d':
+          case "7d":
             dateFilter = new Date(now.setDate(now.getDate() - 7));
             break;
-          case '30d':
+          case "30d":
             dateFilter = new Date(now.setDate(now.getDate() - 30));
             break;
-          case '90d':
+          case "90d":
             dateFilter = new Date(now.setDate(now.getDate() - 90));
             break;
         }
@@ -938,18 +1016,18 @@ export function registerRoutes(app: Express): Server {
           value: nodeQualityMetrics.value,
           timestamp: nodeQualityMetrics.timestamp,
           metadata: nodeQualityMetrics.metadata,
-          type: metricDefinitions.type
+          type: metricDefinitions.type,
         })
         .from(nodeQualityMetrics)
         .innerJoin(
           metricDefinitions,
-          eq(nodeQualityMetrics.metricDefinitionId, metricDefinitions.id)
+          eq(nodeQualityMetrics.metricDefinitionId, metricDefinitions.id),
         )
         .where(
           and(
             eq(nodeQualityMetrics.nodeId, nodeId),
-            sql`${nodeQualityMetrics.timestamp} >= ${dateFilter}`
-          )
+            sql`${nodeQualityMetrics.timestamp} >= ${dateFilter}`,
+          ),
         )
         .orderBy(desc(nodeQualityMetrics.timestamp));
 
@@ -965,15 +1043,18 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Group metrics by type to get current values
-      const currentMetrics = metrics.reduce((acc, metric) => {
-        if (!acc[metric.type]) {
-          acc[metric.type] = metric.value;
-        }
-        return acc;
-      }, {} as Record<string, number>);
+      const currentMetrics = metrics.reduce(
+        (acc, metric) => {
+          if (!acc[metric.type]) {
+            acc[metric.type] = metric.value;
+          }
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
 
       // Format history data
-      const history = metrics.map(m => ({
+      const history = metrics.map((m) => ({
         timestamp: m.timestamp,
         [m.type]: m.value,
         metadata: m.metadata,
@@ -985,10 +1066,13 @@ export function registerRoutes(app: Express): Server {
           accuracy: currentMetrics.accuracy || 0,
           timeliness: currentMetrics.timeliness || 0,
           customMetrics: Object.entries(currentMetrics)
-            .filter(([key]) => !['completeness', 'accuracy', 'timeliness'].includes(key))
-            .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})
+            .filter(
+              ([key]) =>
+                !["completeness", "accuracy", "timeliness"].includes(key),
+            )
+            .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {}),
         },
-        history: history
+        history: history,
       });
     } catch (error) {
       console.error("Error fetching node quality metrics:", error);
@@ -1006,7 +1090,7 @@ export function registerRoutes(app: Express): Server {
 
       const { metricDefinitionId, value, metadata } = req.body;
 
-      if (!metricDefinitionId || typeof value !== 'number') {
+      if (!metricDefinitionId || typeof value !== "number") {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
@@ -1044,7 +1128,7 @@ export function registerRoutes(app: Express): Server {
           name: lineageNodes.name,
           type: lineageNodes.type,
           metadata: lineageNodes.metadata,
-          version: lineageNodes.version
+          version: lineageNodes.version,
         })
         .from(lineageNodes)
         .where(eq(lineageNodes.dataProductId, dataProductId));
@@ -1054,12 +1138,12 @@ export function registerRoutes(app: Express): Server {
           nodes: [],
           links: [],
           version: 1,
-          versions: []
+          versions: [],
         });
       }
 
       // Get all edges where either source or target is one of our nodes
-      const nodeIds = nodes.map(n => n.id);
+      const nodeIds = nodes.map((n) => n.id);
       const edges = await db
         .select({
           id: lineageEdges.id,
@@ -1067,14 +1151,14 @@ export function registerRoutes(app: Express): Server {
           targetId: lineageEdges.targetId,
           metadata: lineageEdges.metadata,
           transformationLogic: lineageEdges.transformationLogic,
-          version: lineageEdges.version
+          version: lineageEdges.version,
         })
         .from(lineageEdges)
         .where(
           or(
             inArray(lineageEdges.sourceId, nodeIds),
-            inArray(lineageEdges.targetId, nodeIds)
-          )
+            inArray(lineageEdges.targetId, nodeIds),
+          ),
         );
 
       // Get latest quality metrics for each node
@@ -1084,12 +1168,12 @@ export function registerRoutes(app: Express): Server {
             .select({
               id: nodeQualityMetrics.id,
               value: nodeQualityMetrics.value,
-              type: metricDefinitions.type
+              type: metricDefinitions.type,
             })
             .from(nodeQualityMetrics)
             .innerJoin(
               metricDefinitions,
-              eq(nodeQualityMetrics.metricDefinitionId, metricDefinitions.id)
+              eq(nodeQualityMetrics.metricDefinitionId, metricDefinitions.id),
             )
             .where(eq(nodeQualityMetrics.nodeId, node.id))
             .orderBy(desc(nodeQualityMetrics.timestamp))
@@ -1097,12 +1181,15 @@ export function registerRoutes(app: Express): Server {
 
           return {
             nodeId: node.id,
-            metrics: metrics.reduce((acc, m) => ({
-              ...acc,
-              [m.type]: m.value
-            }), {})
+            metrics: metrics.reduce(
+              (acc, m) => ({
+                ...acc,
+                [m.type]: m.value,
+              }),
+              {},
+            ),
           };
-        })
+        }),
       );
 
       // Get version history
@@ -1110,7 +1197,7 @@ export function registerRoutes(app: Express): Server {
         .select({
           version: lineageVersions.version,
           timestamp: lineageVersions.createdAt,
-          changeMessage: lineageVersions.changeMessage
+          changeMessage: lineageVersions.changeMessage,
         })
         .from(lineageVersions)
         .where(eq(lineageVersions.dataProductId, dataProductId))
@@ -1118,8 +1205,8 @@ export function registerRoutes(app: Express): Server {
 
       // Format response with consistent types and include metrics
       const response = {
-        nodes: nodes.map(node => {
-          const nodeMetric = nodeMetrics.find(nm => nm.nodeId === node.id);
+        nodes: nodes.map((node) => {
+          const nodeMetric = nodeMetrics.find((nm) => nm.nodeId === node.id);
           return {
             id: node.id.toString(),
             type: node.type,
@@ -1129,24 +1216,24 @@ export function registerRoutes(app: Express): Server {
             metrics: nodeMetric?.metrics || {
               completeness: 0,
               accuracy: 0,
-              timeliness: 0
-            }
+              timeliness: 0,
+            },
           };
         }),
-        links: edges.map(edge => ({
+        links: edges.map((edge) => ({
           id: edge.id.toString(),
           source: edge.sourceId.toString(),
           target: edge.targetId.toString(),
           metadata: edge.metadata || {},
           transformationLogic: edge.transformationLogic || "",
-          version: edge.version
+          version: edge.version,
         })),
         version: versions.length > 0 ? versions[0].version : 1,
-        versions: versions.map(v => ({
+        versions: versions.map((v) => ({
           version: v.version,
           timestamp: v.timestamp,
-          changeMessage: v.changeMessage
-        }))
+          changeMessage: v.changeMessage,
+        })),
       };
 
       res.json(response);
@@ -1154,7 +1241,7 @@ export function registerRoutes(app: Express): Server {
       console.error("Error fetching lineage data:", error);
       res.status(500).json({
         error: "Failed to fetch lineage data",
-        details: error instanceof Error ? error.message : "Unknown error"
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
@@ -1186,7 +1273,7 @@ export function registerRoutes(app: Express): Server {
           version: nextVersion,
           snapshot,
           changeMessage: changeMessage || null,
-          createdBy: createdBy || null
+          createdBy: createdBy || null,
         })
         .returning();
 
@@ -1214,14 +1301,14 @@ export function registerRoutes(app: Express): Server {
           .where(eq(lineageNodes.dataProductId, dataProductId));
 
         // Insert new nodes
-        await tx
-          .insert(lineageNodes)
-          .values(nodes.map((node: any) => ({
+        await tx.insert(lineageNodes).values(
+          nodes.map((node: any) => ({
             name: node.label,
             type: node.type,
             dataProductId,
-            metadata: node.metadata || null
-          })));
+            metadata: node.metadata || null,
+          })),
+        );
       });
 
       res.json({ success: true });
@@ -1245,14 +1332,14 @@ export function registerRoutes(app: Express): Server {
         await tx.delete(lineageEdges);
 
         // Insert new edges
-        await tx
-          .insert(lineageEdges)
-          .values(edges.map((edge: any) => ({
+        await tx.insert(lineageEdges).values(
+          edges.map((edge: any) => ({
             sourceId: parseInt(edge.source),
             targetId: parseInt(edge.target),
             transformationLogic: edge.transformationLogic || null,
-            metadata: edge.metadata || null
-          })));
+            metadata: edge.metadata || null,
+          })),
+        );
       });
 
       res.json({ success: true });
@@ -1280,22 +1367,31 @@ Keep responses concise and engaging, using emojis occasionally to maintain a fri
         model: "gpt-4",
         messages: [
           { role: "system", content: systemMessage },
-          { role: "user", content: message }
+          { role: "user", content: message },
         ],
         temperature: 0.7,
-        max_tokens: 250
+        max_tokens: 250,
       });
 
-      const response = completion.choices[0]?.message?.content || "I'm having trouble understanding right now. Could you try rephrasing that?";
+      const response =
+        completion.choices[0]?.message?.content ||
+        "I'm having trouble understanding right now. Could you try rephrasing that?";
 
       // Track API usage
-      await trackApiUsage("/api/wellness/chat", 200, null, completion.usage?.total_tokens);
+      await trackApiUsage(
+        "/api/wellness/chat",
+        200,
+        null,
+        completion.usage?.total_tokens,
+      );
 
       res.json({ message: response });
     } catch (error) {
       console.error("Chatbot Error:", error);
       await trackApiUsage("/api/wellness/chat", 500, error.type);
-      res.status(500).json({ error: "Something unexpected happened. Please try again." });
+      res
+        .status(500)
+        .json({ error: "Something unexpected happened. Please try again." });
     }
   });
 
@@ -1314,10 +1410,10 @@ Keep responses concise and engaging, using emojis occasionally to maintain a fri
 
       // Validate all metrics before inserting
       for (const metric of metrics) {
-        if (!metric.metricDefinitionId || typeof metric.value !== 'number') {
+        if (!metric.metricDefinitionId || typeof metric.value !== "number") {
           return res.status(400).json({
             error: "Invalid metric data",
-            details: "Each metric must have metricDefinitionId and value"
+            details: "Each metric must have metricDefinitionId and value",
           });
         }
       }
@@ -1330,7 +1426,7 @@ Keep responses concise and engaging, using emojis occasionally to maintain a fri
             metricDefinitionId: metric.metricDefinitionId,
             value: metric.value,
             metadata: metric.metadata || null,
-            timestamp: new Date()
+            timestamp: new Date(),
           });
         }
       });
@@ -1342,22 +1438,25 @@ Keep responses concise and engaging, using emojis occasionally to maintain a fri
           value: nodeQualityMetrics.value,
           timestamp: nodeQualityMetrics.timestamp,
           metadata: nodeQualityMetrics.metadata,
-          type: metricDefinitions.type
+          type: metricDefinitions.type,
         })
         .from(nodeQualityMetrics)
         .innerJoin(
           metricDefinitions,
-          eq(nodeQualityMetrics.metricDefinitionId, metricDefinitions.id)
+          eq(nodeQualityMetrics.metricDefinitionId, metricDefinitions.id),
         )
         .where(eq(nodeQualityMetrics.nodeId, nodeId))
         .orderBy(desc(nodeQualityMetrics.timestamp));
 
-      const currentMetrics = updatedMetrics.reduce((acc, metric) => {
-        if (!acc[metric.type]) {
-          acc[metric.type] = metric.value;
-        }
-        return acc;
-      }, {} as Record<string, number>);
+      const currentMetrics = updatedMetrics.reduce(
+        (acc, metric) => {
+          if (!acc[metric.type]) {
+            acc[metric.type] = metric.value;
+          }
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
 
       res.json({
         current: {
@@ -1365,10 +1464,13 @@ Keep responses concise and engaging, using emojis occasionally to maintain a fri
           accuracy: currentMetrics.accuracy || 0,
           timeliness: currentMetrics.timeliness || 0,
           customMetrics: Object.entries(currentMetrics)
-            .filter(([key]) => !['completeness', 'accuracy', 'timeliness'].includes(key))
-            .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})
+            .filter(
+              ([key]) =>
+                !["completeness", "accuracy", "timeliness"].includes(key),
+            )
+            .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {}),
         },
-        metrics: updatedMetrics
+        metrics: updatedMetrics,
       });
     } catch (error) {
       console.error("Error updating node quality metrics:", error);
@@ -1385,13 +1487,13 @@ Keep responses concise and engaging, using emojis occasionally to maintain a fri
       if (timeRange) {
         const now = new Date();
         switch (timeRange) {
-          case '7d':
+          case "7d":
             dateFilter = new Date(now.setDate(now.getDate() - 7));
             break;
-          case '30d':
+          case "30d":
             dateFilter = new Date(now.setDate(now.getDate() - 30));
             break;
-          case '90d':
+          case "90d":
             dateFilter = new Date(now.setDate(now.getDate() - 90));
             break;
         }
@@ -1405,44 +1507,46 @@ Keep responses concise and engaging, using emojis occasionally to maintain a fri
           nodeType: lineageNodes.type,
           value: nodeQualityMetrics.value,
           metricType: metricDefinitions.type,
-          timestamp: nodeQualityMetrics.timestamp
+          timestamp: nodeQualityMetrics.timestamp,
         })
         .from(nodeQualityMetrics)
         .innerJoin(
           metricDefinitions,
-          eq(nodeQualityMetrics.metricDefinitionId, metricDefinitions.id)
+          eq(nodeQualityMetrics.metricDefinitionId, metricDefinitions.id),
         )
-        .innerJoin(
-          lineageNodes,
-          eq(nodeQualityMetrics.nodeId, lineageNodes.id)
-        )
+        .innerJoin(lineageNodes, eq(nodeQualityMetrics.nodeId, lineageNodes.id))
         .where(sql`${nodeQualityMetrics.timestamp} >= ${dateFilter}`)
         .orderBy(nodeQualityMetrics.timestamp);
 
       // Group metrics by node
-      const summary = nodeMetrics.reduce((acc, metric) => {
-        if (!acc[metric.nodeId]) {
-          acc[metric.nodeId] = {
-            id: metric.nodeId,
-            name: metric.nodeName,
-            type: metric.nodeType,
-            metrics: {}
-          };
-        }
+      const summary = nodeMetrics.reduce(
+        (acc, metric) => {
+          if (!acc[metric.nodeId]) {
+            acc[metric.nodeId] = {
+              id: metric.nodeId,
+              name: metric.nodeName,
+              type: metric.nodeType,
+              metrics: {},
+            };
+          }
 
-        // Only keep the latest value for each metric type
-        acc[metric.nodeId].metrics[metric.metricType] = metric.value;
+          // Only keep the latest value for each metric type
+          acc[metric.nodeId].metrics[metric.metricType] = metric.value;
 
-        return acc;
-      }, {} as Record<string, any>);
+          return acc;
+        },
+        {} as Record<string, any>,
+      );
 
       res.json({
         nodes: Object.values(summary),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
       console.error("Error fetching node quality metrics summary:", error);
-      res.status(500).json({ error: "Failed to fetch node quality metrics summary" });
+      res
+        .status(500)
+        .json({ error: "Failed to fetch node quality metrics summary" });
     }
   });
 
