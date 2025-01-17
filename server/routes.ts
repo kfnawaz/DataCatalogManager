@@ -537,7 +537,7 @@ export function registerRoutes(app: Express): Server {
   // Metric definition routes
   app.get("/api/metric-definitions", async (req, res) => {
     try {
-      const definitions = await db.select().from(metricDefinitions);
+      const definitions = await db.select().from(metricDefinitions).orderBy(metricDefinitions.name);
       res.json(definitions);
     } catch (error) {
       console.error("Error fetching metric definitions:", error);
