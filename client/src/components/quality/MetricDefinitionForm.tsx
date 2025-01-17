@@ -80,37 +80,6 @@ export default function MetricDefinitionForm({ initialData, onSuccess }: MetricD
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Add keyboard shortcut handlers
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl/Cmd + S to save
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        if (form.formState.isValid && !createMetricMutation.isPending) {
-          const formData = form.getValues();
-          createMetricMutation.mutate(formData);
-          toast({
-            description: `${initialData ? "Updating" : "Creating"} metric definition (Ctrl/Cmd + S)`,
-            duration: 1500,
-          });
-        } else {
-          toast({
-            variant: "destructive",
-            description: "Please fill in all required fields correctly",
-            duration: 2000,
-          });
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [form.formState.isValid, createMetricMutation.isPending, toast, form, initialData]);
-
-  const { data: templates } = useQuery<Template[]>({
-    queryKey: ["/api/metric-templates"],
-  });
-
   const form = useForm<MetricDefinitionForm>({
     resolver: zodResolver(metricDefinitionSchema),
     defaultValues: {
@@ -171,6 +140,37 @@ export default function MetricDefinitionForm({ initialData, onSuccess }: MetricD
         description: error.message,
       });
     },
+  });
+
+  // Add keyboard shortcut handlers after form initialization
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + S to save
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (form.formState.isValid && !createMetricMutation.isPending) {
+          const formData = form.getValues();
+          createMetricMutation.mutate(formData);
+          toast({
+            description: `${initialData ? "Updating" : "Creating"} metric definition (Ctrl/Cmd + S)`,
+            duration: 1500,
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            description: "Please fill in all required fields correctly",
+            duration: 2000,
+          });
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [createMetricMutation.isPending, toast, initialData, form]);
+
+  const { data: templates } = useQuery<Template[]>({
+    queryKey: ["/api/metric-templates"],
   });
 
   const onTemplateSelect = (templateId: string) => {
