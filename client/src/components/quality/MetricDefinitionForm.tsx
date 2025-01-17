@@ -2,6 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import {
   Form,
   FormControl,
@@ -78,6 +79,33 @@ interface MetricDefinitionFormProps {
 export default function MetricDefinitionForm({ initialData, onSuccess }: MetricDefinitionFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Add keyboard shortcut handlers
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + S to save
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (form.formState.isValid && !createMetricMutation.isPending) {
+          const formData = form.getValues();
+          createMetricMutation.mutate(formData);
+          toast({
+            description: `${initialData ? "Updating" : "Creating"} metric definition (Ctrl/Cmd + S)`,
+            duration: 1500,
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            description: "Please fill in all required fields correctly",
+            duration: 2000,
+          });
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [form.formState.isValid, createMetricMutation.isPending, toast, form, initialData]);
 
   const { data: templates } = useQuery<Template[]>({
     queryKey: ["/api/metric-templates"],
@@ -188,7 +216,16 @@ export default function MetricDefinitionForm({ initialData, onSuccess }: MetricD
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form 
+        onSubmit={form.handleSubmit(onSubmit)} 
+        className="space-y-6"
+        onKeyDown={(e) => {
+          // Prevent form submission on enter key
+          if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+          }
+        }}
+      >
         {createMetricMutation.isError && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
@@ -429,7 +466,6 @@ export default function MetricDefinitionForm({ initialData, onSuccess }: MetricD
         )}
 
         <div className="grid gap-6 md:grid-cols-2">
-          
           <FormField
             control={form.control}
             name="formula"
@@ -515,13 +551,16 @@ export default function MetricDefinitionForm({ initialData, onSuccess }: MetricD
                 form.formState.isValid ? 'bg-primary' : 'bg-muted cursor-not-allowed'
               }`}
             >
-              {createMetricMutation.isPending
-                ? initialData
-                  ? "Updating..."
-                  : "Creating..."
-                : initialData
-                ? "Update Metric"
-                : "Create Metric"}
+              <div className="flex items-center gap-2">
+                {createMetricMutation.isPending
+                  ? initialData
+                    ? "Updating..."
+                    : "Creating..."
+                  : initialData
+                  ? "Update Metric"
+                  : "Create Metric"}
+                <span className="text-xs opacity-70">(Ctrl/Cmd + S)</span>
+              </div>
             </Button>
           </motion.div>
         </div>
