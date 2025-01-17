@@ -266,9 +266,9 @@ export async function seed_dataProducts() {
       updateFrequency: "As required by regulation",
     });
 
-    console.log("✅ Data products Seed data inserted successfully");
+    console.log("✅ Source-aligned data products seeded successfully");
   } catch (error) {
-    console.error("Error seeding Data products data:", error);
+    console.error("Error seeding source-aligned data products data:", error);
     throw error;
   }
 
@@ -316,7 +316,7 @@ export async function seed_dataProducts() {
       sla: "99.9% availability during market hours",
       updateFrequency: "Daily with intraday updates",
     });
-    // Stress Testing and Scenario Data
+    // Stress Testing Data
     await db.insert(dataProducts).values({
       name: "Stress Testing Data",
       description:
@@ -364,7 +364,7 @@ export async function seed_dataProducts() {
       sla: "99.9% availability",
       updateFrequency: "Daily",
     });
-    // Market Risk Factors
+    // Market Risk Factors Aggregate
     await db.insert(dataProducts).values({
       name: "Market Risk Factors Aggregate",
       description:

@@ -75,6 +75,8 @@ export async function seed_metricDefinitions() {
       })
       .returning();
 
+    console.log("✅ Metric Templates seeded successfully!");
+
     // Create generic metric definitions applicable to any data product
     await db.insert(metricDefinitions).values([
       {
@@ -161,6 +163,8 @@ export async function seed_metricDefinitions() {
         enabled: true,
       },
     ]);
+
+    console.log("✅ Generic Metric Definitions seeded successfully!");
 
     // Create domain specific metric definitions for each domain
     // Market Data Metrics
@@ -316,7 +320,7 @@ export async function seed_metricDefinitions() {
       ])
       .returning();
 
-    console.log("✅ Metrics data seeded successfully!");
+    console.log("✅ Domain Specific Metric Definitions seeded successfully!");
   } catch (error) {
     console.error("Error seeding metrics data:", error);
     throw error;
