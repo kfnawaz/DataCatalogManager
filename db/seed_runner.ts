@@ -1,8 +1,10 @@
+import { resetDatabase } from "./reset_db.js";
 import { seed_dataProducts } from "./seed_dataProducts.js";
-import { seed_metricsData } from "./seed_metricDefinitions.js";
+import { seed_metricDefinitions } from "./seed_metricDefinitions.js";
 
-// Seed data products first, then metrics
+// Reset database and run seeding
 async function runSeeding() {
+  await resetDatabase();
   try {
     await seed_dataProducts();
     console.log("✅ Data products seeded successfully!");
