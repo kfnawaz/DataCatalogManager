@@ -153,7 +153,7 @@ export default function DataProductsPage() {
                   key={selectedProduct.id}
                   className="flex flex-col flex-1 overflow-hidden"
                 >
-                  <div className="px-2 pt-2">
+                  <div className="p-2">
                     <h2 className="text-xl font-semibold text-foreground">
                       {selectedProduct.name}
                     </h2>
@@ -175,7 +175,7 @@ export default function DataProductsPage() {
                       <TabsTrigger value="lineage">Lineage</TabsTrigger>
                     </TabsList>
 
-                    <div className="flex-1 px-1 pt-2 overflow-hidden">
+                    <div className="flex-1 p-2 overflow-hidden">
                       <AnimatePresence mode="wait">
                         <TabsContent
                           value="metadata"
