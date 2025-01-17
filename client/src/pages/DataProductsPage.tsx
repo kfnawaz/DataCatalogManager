@@ -4,6 +4,13 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import { ChevronRight, ChevronLeft } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import MetadataPanel from "../components/metadata/MetadataPanel";
 import LineageGraph from "../components/lineage/LineageGraph";
 import QualityMetrics from "../components/quality/QualityMetrics";
@@ -40,6 +47,7 @@ const fadeIn = {
 export default function DataProductsPage() {
   const [selectedDataProduct, setSelectedDataProduct] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("metadata");
+  const [isExplorerOpen, setIsExplorerOpen] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -78,28 +86,57 @@ export default function DataProductsPage() {
         animate={{ opacity: 1 }}
         className="container mx-auto px-4 py-6"
       >
-        <div className="grid grid-cols-[300px_1fr] gap-6">
-          <div className="space-y-4">
-            <SearchBar 
-              onSelect={handleProductSelect} 
-              initialValue={selectedDataProduct} 
-              className="search-bar" 
-            />
-            {isLoadingAll ? (
-              <div className="space-y-2">
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-[400px] w-full" />
-              </div>
-            ) : allDataProducts ? (
-              <HierarchicalView
-                dataProducts={allDataProducts}
-                onSelect={handleProductSelect}
-                selectedId={selectedDataProduct}
-              />
-            ) : null}
-          </div>
+        <div className="flex gap-6">
+          <Collapsible 
+            open={isExplorerOpen} 
+            onOpenChange={setIsExplorerOpen}
+            className="relative"
+          >
+            <CollapsibleContent 
+              className="w-[300px] transition-all duration-300 ease-in-out"
+              forceMount
+            >
+              <motion.div
+                initial={false}
+                animate={{
+                  width: isExplorerOpen ? 300 : 0,
+                  opacity: isExplorerOpen ? 1 : 0,
+                }}
+                transition={{ duration: 0.3 }}
+                className="space-y-4 overflow-hidden"
+              >
+                <SearchBar 
+                  onSelect={handleProductSelect} 
+                  initialValue={selectedDataProduct} 
+                  className="search-bar" 
+                />
+                {isLoadingAll ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-[400px] w-full" />
+                  </div>
+                ) : allDataProducts ? (
+                  <HierarchicalView
+                    dataProducts={allDataProducts}
+                    onSelect={handleProductSelect}
+                    selectedId={selectedDataProduct}
+                  />
+                ) : null}
+              </motion.div>
+            </CollapsibleContent>
 
-          <div>
+            <CollapsibleTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="absolute -right-9 top-0 hover:bg-muted"
+              >
+                {isExplorerOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+          </Collapsible>
+
+          <div className="flex-1">
             <AnimatePresence mode="wait">
               {isLoading && (
                 <motion.div {...fadeIn} key="loading">
