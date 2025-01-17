@@ -16,7 +16,7 @@ function App() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <NavBar />
-      <main className="container mx-auto">
+      <main className="px-2">
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/data-products" element={<DataProductsPage />} />

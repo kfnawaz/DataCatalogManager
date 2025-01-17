@@ -173,7 +173,7 @@ export default function DataProductsPage() {
                       <TabsTrigger value="lineage">Lineage</TabsTrigger>
                     </TabsList>
 
-                    <div className="flex-1 px-2 pt-2 overflow-hidden">
+                      <div className="flex-1 px-1 pt-2 overflow-hidden">
                       <AnimatePresence mode="wait">
                         <TabsContent
                           value="metadata"
