@@ -86,7 +86,7 @@ export default function MetadataPanel({ dataProductId }: MetadataPanelProps) {
   };
 
   return (
-    <ScrollArea className="h-[500px]">
+    <ScrollArea className="h-full">
       <div className="space-y-6">
         <section>
           <h3 className="text-lg font-semibold mb-2 text-foreground">

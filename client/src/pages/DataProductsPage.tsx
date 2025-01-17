@@ -35,18 +35,20 @@ interface DataProduct {
 const fadeIn = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -20 }
+  exit: { opacity: 0, y: -20 },
 };
 
 export default function DataProductsPage() {
-  const [selectedDataProduct, setSelectedDataProduct] = useState<number | null>(null);
+  const [selectedDataProduct, setSelectedDataProduct] = useState<number | null>(
+    null,
+  );
   const [activeTab, setActiveTab] = useState("metadata");
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [, navigate] = useLocation();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const productId = params.get('product');
+    const productId = params.get("product");
     if (productId) {
       const id = parseInt(productId);
       if (!isNaN(id)) {
@@ -60,39 +62,43 @@ export default function DataProductsPage() {
     navigate(`/data-products?product=${id}`);
   };
 
-  const { data: allDataProducts, isLoading: isLoadingAll } = useQuery<DataProduct[]>({
-    queryKey: ['/api/data-products'],
+  const { data: allDataProducts, isLoading: isLoadingAll } = useQuery<
+    DataProduct[]
+  >({
+    queryKey: ["/api/data-products"],
   });
 
-  const { data: selectedProduct, isLoading: isLoadingSelected } = useQuery<DataProduct>({
-    queryKey: [`/api/metadata/${selectedDataProduct}`],
-    enabled: selectedDataProduct !== null,
-  });
+  const { data: selectedProduct, isLoading: isLoadingSelected } =
+    useQuery<DataProduct>({
+      queryKey: [`/api/metadata/${selectedDataProduct}`],
+      enabled: selectedDataProduct !== null,
+    });
 
-  const isLoading = isLoadingAll || (selectedDataProduct !== null && isLoadingSelected);
+  const isLoading =
+    isLoadingAll || (selectedDataProduct !== null && isLoadingSelected);
 
   return (
     <TooltipProvider>
-      <motion.main 
+      <motion.main
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className="h-screen flex flex-col bg-background"
       >
         <div className="flex flex-1 overflow-hidden">
-          <div 
+          <div
             className={`relative transition-all duration-300 ease-in-out border-r ${
-              isCollapsed 
-                ? 'w-[50px] min-w-[50px]' 
-                : 'w-[300px] min-w-[300px]'
+              isCollapsed ? "w-[50px] min-w-[50px]" : "w-[300px] min-w-[300px]"
             }`}
           >
-            <div className={`h-full transition-opacity duration-300 ${
-              isCollapsed ? 'opacity-0 invisible' : 'opacity-100 visible'
-            }`}>
-              <SearchBar 
-                onSelect={handleProductSelect} 
-                initialValue={selectedDataProduct} 
-                className="search-bar px-2 pt-2" 
+            <div
+              className={`h-full transition-opacity duration-300 ${
+                isCollapsed ? "opacity-0 invisible" : "opacity-100 visible"
+              }`}
+            >
+              <SearchBar
+                onSelect={handleProductSelect}
+                initialValue={selectedDataProduct}
+                className="search-bar px-2 pt-2"
               />
               {isLoadingAll ? (
                 <div className="space-y-2 mt-4 px-2">
@@ -114,9 +120,7 @@ export default function DataProductsPage() {
               variant="ghost"
               size="sm"
               className={`absolute top-2 transition-all duration-300 ${
-                isCollapsed 
-                  ? 'right-[-12px]' 
-                  : 'right-[-12px]'
+                isCollapsed ? "right-[-12px]" : "right-[-12px]"
               } z-10 h-6 w-6 rounded-full p-0 hover:bg-muted`}
               onClick={() => setIsCollapsed(!isCollapsed)}
             >
@@ -126,7 +130,7 @@ export default function DataProductsPage() {
                 <ChevronLeft className="h-4 w-4" />
               )}
               <span className="sr-only">
-                {isCollapsed ? 'Expand' : 'Collapse'} sidebar
+                {isCollapsed ? "Expand" : "Collapse"} sidebar
               </span>
             </Button>
           </div>
@@ -142,7 +146,11 @@ export default function DataProductsPage() {
               )}
 
               {!isLoading && selectedProduct && (
-                <motion.div {...fadeIn} key={selectedProduct.id} className="flex flex-col flex-1 overflow-hidden">
+                <motion.div
+                  {...fadeIn}
+                  key={selectedProduct.id}
+                  className="flex flex-col flex-1 overflow-hidden"
+                >
                   <div className="px-2 pt-2">
                     <h2 className="text-xl font-semibold text-foreground">
                       {selectedProduct.name}
@@ -154,8 +162,8 @@ export default function DataProductsPage() {
                     )}
                   </div>
 
-                  <Tabs 
-                    value={activeTab} 
+                  <Tabs
+                    value={activeTab}
                     onValueChange={setActiveTab}
                     className="flex-1 flex flex-col mt-2 overflow-hidden"
                   >
@@ -167,7 +175,12 @@ export default function DataProductsPage() {
 
                     <div className="flex-1 px-2 pt-2 overflow-hidden">
                       <AnimatePresence mode="wait">
-                        <TabsContent value="metadata" asChild key="metadata" className="h-full">
+                        <TabsContent
+                          value="metadata"
+                          asChild
+                          key="metadata"
+                          className="h-full"
+                        >
                           <motion.div
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -176,16 +189,25 @@ export default function DataProductsPage() {
                           >
                             <Card className="h-full flex flex-col">
                               <CardHeader className="border-b py-2">
-                                <h3 className="text-lg font-semibold">Metadata Management</h3>
+                                <h3 className="text-lg font-semibold">
+                                  Metadata Management
+                                </h3>
                               </CardHeader>
-                              <CardContent className="flex-1">
-                                <MetadataPanel dataProductId={selectedDataProduct} />
+                              <CardContent className="flex-1 h-[calc(100vh-8rem)]">
+                                <MetadataPanel
+                                  dataProductId={selectedDataProduct}
+                                />
                               </CardContent>
                             </Card>
                           </motion.div>
                         </TabsContent>
 
-                        <TabsContent value="quality" asChild key="quality" className="h-full">
+                        <TabsContent
+                          value="quality"
+                          asChild
+                          key="quality"
+                          className="h-full"
+                        >
                           <motion.div
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -194,16 +216,25 @@ export default function DataProductsPage() {
                           >
                             <Card className="h-full flex flex-col">
                               <CardHeader className="border-b py-2">
-                                <h3 className="text-lg font-semibold">Quality Metrics</h3>
+                                <h3 className="text-lg font-semibold">
+                                  Quality Metrics
+                                </h3>
                               </CardHeader>
                               <CardContent className="flex-1">
-                                <QualityMetrics dataProductId={selectedDataProduct} />
+                                <QualityMetrics
+                                  dataProductId={selectedDataProduct}
+                                />
                               </CardContent>
                             </Card>
                           </motion.div>
                         </TabsContent>
 
-                        <TabsContent value="lineage" asChild key="lineage" className="h-full">
+                        <TabsContent
+                          value="lineage"
+                          asChild
+                          key="lineage"
+                          className="h-full"
+                        >
                           <motion.div
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -212,7 +243,9 @@ export default function DataProductsPage() {
                           >
                             <Card className="h-full flex flex-col">
                               <CardContent className="flex-1">
-                                <LineageGraph dataProductId={selectedDataProduct} />
+                                <LineageGraph
+                                  dataProductId={selectedDataProduct}
+                                />
                               </CardContent>
                             </Card>
                           </motion.div>
@@ -224,8 +257,13 @@ export default function DataProductsPage() {
               )}
 
               {!isLoading && !selectedProduct && (
-                <motion.div {...fadeIn} key="empty" className="text-center py-12 text-muted-foreground">
-                  Select a data product from the search bar or hierarchical view to see its details
+                <motion.div
+                  {...fadeIn}
+                  key="empty"
+                  className="text-center py-12 text-muted-foreground"
+                >
+                  Select a data product from the search bar or hierarchical view
+                  to see its details
                 </motion.div>
               )}
             </AnimatePresence>
