@@ -98,7 +98,7 @@ export default function DataProductsPage() {
               <SearchBar
                 onSelect={handleProductSelect}
                 initialValue={selectedDataProduct}
-                className="search-bar px-2 pt-2"
+                className="search-bar p-2"
               />
               {isLoadingAll ? (
                 <div className="space-y-2 mt-4 px-2">
@@ -173,7 +173,7 @@ export default function DataProductsPage() {
                       <TabsTrigger value="lineage">Lineage</TabsTrigger>
                     </TabsList>
 
-                      <div className="flex-1 px-1 pt-2 overflow-hidden">
+                    <div className="flex-1 px-1 pt-2 overflow-hidden">
                       <AnimatePresence mode="wait">
                         <TabsContent
                           value="metadata"
