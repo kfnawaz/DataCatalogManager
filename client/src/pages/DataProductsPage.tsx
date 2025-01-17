@@ -159,13 +159,13 @@ export default function DataProductsPage() {
                     onValueChange={setActiveTab}
                     className="flex-1 flex flex-col"
                   >
-                    <TabsList>
+                    <TabsList className="px-1 py-1">
                       <TabsTrigger value="metadata">Metadata</TabsTrigger>
                       <TabsTrigger value="quality">Quality Metrics</TabsTrigger>
                       <TabsTrigger value="lineage">Lineage</TabsTrigger>
                     </TabsList>
 
-                    <div className="flex-1 mt-2">
+                    <div className="flex-1 mt-1"> {/* Reduced mt-2 to mt-1 */}
                       <AnimatePresence mode="wait">
                         <TabsContent value="metadata" asChild key="metadata" className="h-full">
                           <motion.div
