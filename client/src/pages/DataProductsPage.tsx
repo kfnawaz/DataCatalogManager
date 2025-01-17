@@ -44,7 +44,6 @@ export default function DataProductsPage() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [, navigate] = useLocation();
 
-  // Manage URL parameters
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const productId = params.get('product');
@@ -78,17 +77,17 @@ export default function DataProductsPage() {
       <motion.main 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="container mx-auto px-4 py-6"
+        className="min-h-screen bg-background"
       >
-        <div className="flex rounded-lg border bg-background">
+        <div className="flex h-screen bg-background">
           <div 
-            className={`relative transition-all duration-300 ease-in-out ${
+            className={`relative transition-all duration-300 ease-in-out border-r ${
               isCollapsed 
                 ? 'w-[50px] min-w-[50px]' 
                 : 'w-[300px] min-w-[300px]'
             }`}
           >
-            <div className={`p-4 h-full transition-opacity duration-300 ${
+            <div className={`p-3 h-full transition-opacity duration-300 ${
               isCollapsed ? 'opacity-0 invisible' : 'opacity-100 visible'
             }`}>
               <SearchBar 
@@ -133,7 +132,7 @@ export default function DataProductsPage() {
             </Button>
           </div>
 
-          <div className="flex-1 p-4 min-w-0">
+          <div className="flex-1 p-3 min-w-0 overflow-auto">
             <AnimatePresence mode="wait">
               {isLoading && (
                 <motion.div {...fadeIn} key="loading">

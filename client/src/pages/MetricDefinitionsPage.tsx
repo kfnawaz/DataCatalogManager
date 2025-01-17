@@ -41,8 +41,8 @@ export default function MetricDefinitionsPage() {
   }, [toast]);
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="min-h-screen bg-background p-3">
+      <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Metric Definitions</h1>
         <Button 
           onClick={() => setIsCreateModalOpen(true)}
@@ -69,7 +69,7 @@ export default function MetricDefinitionsPage() {
         <Sheet open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
           <SheetContent 
             side="right" 
-            className="w-[60%] sm:max-w-[60%] animate-in slide-in-from-right duration-300"
+            className="w-[60%] sm:max-w-[60%]"
           >
             <motion.div
               initial={{ opacity: 0, x: 20 }}
