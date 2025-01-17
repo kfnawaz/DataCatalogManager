@@ -153,7 +153,7 @@ export default function DataProductsPage() {
                   key={selectedProduct.id}
                   className="flex flex-col flex-1 overflow-hidden"
                 >
-                  <div className="p-2">
+                  <div className="p-4">
                     <h2 className="text-xl font-semibold text-foreground">
                       {selectedProduct.name}
                     </h2>
@@ -169,13 +169,13 @@ export default function DataProductsPage() {
                     onValueChange={setActiveTab}
                     className="flex-1 flex flex-col mt-2 overflow-hidden"
                   >
-                    <TabsList className="px-2">
+                    <TabsList className="px-4">
                       <TabsTrigger value="metadata">Metadata</TabsTrigger>
                       <TabsTrigger value="quality">Quality Metrics</TabsTrigger>
                       <TabsTrigger value="lineage">Lineage</TabsTrigger>
                     </TabsList>
 
-                    <div className="flex-1 p-2 overflow-hidden">
+                    <div className="flex-1 p-4 overflow-hidden">
                       <AnimatePresence mode="wait">
                         <TabsContent
                           value="metadata"
