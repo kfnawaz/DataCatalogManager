@@ -16,11 +16,11 @@ import { History, Pencil } from "lucide-react";
 import MetricVersionHistory from "./MetricVersionHistory";
 import MetricDefinitionForm from "./MetricDefinitionForm";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 interface MetricDefinition {
   id: number;
@@ -82,7 +82,7 @@ export default function MetricDefinitionList() {
 
   return (
     <>
-      <ScrollArea className="h-[400px]">
+      <ScrollArea className="h-[600px]">
         <Table>
           <TableHeader>
             <TableRow>
@@ -146,11 +146,11 @@ export default function MetricDefinitionList() {
       )}
 
       {selectedMetric && isEditing && (
-        <Dialog open={isEditing} onOpenChange={setIsEditing}>
-          <DialogContent className="max-w-7xl w-[calc(100vw-4rem)] h-[calc(100vh-4rem)] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-2xl">Edit Metric Definition</DialogTitle>
-            </DialogHeader>
+        <Sheet open={isEditing} onOpenChange={setIsEditing}>
+          <SheetContent side="right" className="w-[60%] sm:max-w-[60%]">
+            <SheetHeader>
+              <SheetTitle>Edit Metric Definition</SheetTitle>
+            </SheetHeader>
             <div className="py-6">
               <MetricDefinitionForm
                 initialData={selectedMetric}
@@ -161,8 +161,8 @@ export default function MetricDefinitionList() {
                 }}
               />
             </div>
-          </DialogContent>
-        </Dialog>
+          </SheetContent>
+        </Sheet>
       )}
     </>
   );
