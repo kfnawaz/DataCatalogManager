@@ -95,11 +95,13 @@ export default function DataProductsPage() {
                 isCollapsed ? "opacity-0 invisible" : "opacity-100 visible"
               }`}
             >
-              <SearchBar
-                onSelect={handleProductSelect}
-                initialValue={selectedDataProduct}
-                className="search-bar p-2"
-              />
+              <div className="p-2">
+                <SearchBar
+                  onSelect={handleProductSelect}
+                  initialValue={selectedDataProduct}
+                  className="search-bar"
+                />
+              </div>
               {isLoadingAll ? (
                 <div className="space-y-2 mt-4 px-2">
                   <Skeleton className="h-8 w-full" />
