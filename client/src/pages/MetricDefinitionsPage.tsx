@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/sheet";
 import MetricDefinitionForm from "../components/quality/MetricDefinitionForm";
 import MetricDefinitionList from "../components/quality/MetricDefinitionList";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function MetricDefinitionsPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -38,20 +39,32 @@ export default function MetricDefinitionsPage() {
         </CardContent>
       </Card>
 
-      <Sheet open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <SheetContent side="right" className="w-[60%] sm:max-w-[60%]">
-          <SheetHeader>
-            <SheetTitle>Create Metric Definition</SheetTitle>
-          </SheetHeader>
-          <div className="py-6">
-            <MetricDefinitionForm 
-              onSuccess={() => {
-                setIsCreateModalOpen(false);
-              }}
-            />
-          </div>
-        </SheetContent>
-      </Sheet>
+      <AnimatePresence>
+        <Sheet open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+          <SheetContent 
+            side="right" 
+            className="w-[60%] sm:max-w-[60%] animate-in slide-in-from-right duration-300"
+          >
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.2, delay: 0.1 }}
+            >
+              <SheetHeader>
+                <SheetTitle>Create Metric Definition</SheetTitle>
+              </SheetHeader>
+              <div className="py-6">
+                <MetricDefinitionForm 
+                  onSuccess={() => {
+                    setIsCreateModalOpen(false);
+                  }}
+                />
+              </div>
+            </motion.div>
+          </SheetContent>
+        </Sheet>
+      </AnimatePresence>
     </div>
   );
 }

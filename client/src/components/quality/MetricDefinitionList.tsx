@@ -21,6 +21,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface MetricDefinition {
   id: number;
@@ -146,23 +147,35 @@ export default function MetricDefinitionList() {
       )}
 
       {selectedMetric && isEditing && (
-        <Sheet open={isEditing} onOpenChange={setIsEditing}>
-          <SheetContent side="right" className="w-[60%] sm:max-w-[60%]">
-            <SheetHeader>
-              <SheetTitle>Edit Metric Definition</SheetTitle>
-            </SheetHeader>
-            <div className="py-6">
-              <MetricDefinitionForm
-                initialData={selectedMetric}
-                onSuccess={() => {
-                  setIsEditing(false);
-                  setSelectedMetric(null);
-                  queryClient.invalidateQueries({ queryKey: ["/api/metric-definitions"] });
-                }}
-              />
-            </div>
-          </SheetContent>
-        </Sheet>
+        <AnimatePresence>
+          <Sheet open={isEditing} onOpenChange={setIsEditing}>
+            <SheetContent 
+              side="right" 
+              className="w-[60%] sm:max-w-[60%]"
+            >
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2, delay: 0.1 }}
+              >
+                <SheetHeader>
+                  <SheetTitle>Edit Metric Definition</SheetTitle>
+                </SheetHeader>
+                <div className="py-6">
+                  <MetricDefinitionForm
+                    initialData={selectedMetric}
+                    onSuccess={() => {
+                      setIsEditing(false);
+                      setSelectedMetric(null);
+                      queryClient.invalidateQueries({ queryKey: ["/api/metric-definitions"] });
+                    }}
+                  />
+                </div>
+              </motion.div>
+            </SheetContent>
+          </Sheet>
+        </AnimatePresence>
       )}
     </>
   );
