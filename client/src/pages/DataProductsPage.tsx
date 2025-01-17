@@ -132,10 +132,10 @@ export default function DataProductsPage() {
             </Button>
           </div>
 
-          <div className="flex-1 p-3 min-w-0 overflow-auto">
+          <div className="flex-1 min-w-0 flex flex-col h-screen">
             <AnimatePresence mode="wait">
               {isLoading && (
-                <motion.div {...fadeIn} key="loading">
+                <motion.div {...fadeIn} key="loading" className="p-3">
                   <Skeleton className="h-8 w-1/3 mb-2" />
                   <Skeleton className="h-4 w-2/3 mb-6" />
                   <Skeleton className="h-[400px]" />
@@ -143,7 +143,7 @@ export default function DataProductsPage() {
               )}
 
               {!isLoading && selectedProduct && (
-                <motion.div {...fadeIn} key={selectedProduct.id}>
+                <motion.div {...fadeIn} key={selectedProduct.id} className="flex flex-col h-full p-3">
                   <div className="mb-6">
                     <h2 className="text-xl font-semibold text-foreground">
                       {selectedProduct.name}
@@ -157,8 +157,8 @@ export default function DataProductsPage() {
 
                   <Tabs 
                     value={activeTab} 
-                    onValueChange={setActiveTab} 
-                    className="space-y-4"
+                    onValueChange={setActiveTab}
+                    className="flex-1 flex flex-col"
                   >
                     <TabsList>
                       <TabsTrigger value="metadata">Metadata</TabsTrigger>
@@ -166,55 +166,60 @@ export default function DataProductsPage() {
                       <TabsTrigger value="lineage">Lineage</TabsTrigger>
                     </TabsList>
 
-                    <AnimatePresence mode="wait">
-                      <TabsContent value="metadata" asChild key="metadata">
-                        <motion.div
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0 }}
-                        >
-                          <Card>
-                            <CardHeader>
-                              <h3 className="text-lg font-semibold">Metadata Management</h3>
-                            </CardHeader>
-                            <CardContent>
-                              <MetadataPanel dataProductId={selectedDataProduct} />
-                            </CardContent>
-                          </Card>
-                        </motion.div>
-                      </TabsContent>
+                    <div className="flex-1 mt-4">
+                      <AnimatePresence mode="wait">
+                        <TabsContent value="metadata" asChild key="metadata" className="h-full">
+                          <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0 }}
+                            className="h-full"
+                          >
+                            <Card className="h-full">
+                              <CardHeader>
+                                <h3 className="text-lg font-semibold">Metadata Management</h3>
+                              </CardHeader>
+                              <CardContent className="h-[calc(100%-4rem)]">
+                                <MetadataPanel dataProductId={selectedDataProduct} />
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        </TabsContent>
 
-                      <TabsContent value="quality" asChild key="quality">
-                        <motion.div
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0 }}
-                        >
-                          <Card>
-                            <CardHeader>
-                              <h3 className="text-lg font-semibold">Quality Metrics</h3>
-                            </CardHeader>
-                            <CardContent>
-                              <QualityMetrics dataProductId={selectedDataProduct} />
-                            </CardContent>
-                          </Card>
-                        </motion.div>
-                      </TabsContent>
+                        <TabsContent value="quality" asChild key="quality" className="h-full">
+                          <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0 }}
+                            className="h-full"
+                          >
+                            <Card className="h-full">
+                              <CardHeader>
+                                <h3 className="text-lg font-semibold">Quality Metrics</h3>
+                              </CardHeader>
+                              <CardContent className="h-[calc(100%-4rem)]">
+                                <QualityMetrics dataProductId={selectedDataProduct} />
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        </TabsContent>
 
-                      <TabsContent value="lineage" asChild key="lineage">
-                        <motion.div
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0 }}
-                        >
-                          <Card>
-                            <CardContent className="pt-6">
-                              <LineageGraph dataProductId={selectedDataProduct} />
-                            </CardContent>
-                          </Card>
-                        </motion.div>
-                      </TabsContent>
-                    </AnimatePresence>
+                        <TabsContent value="lineage" asChild key="lineage" className="h-full">
+                          <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0 }}
+                            className="h-full"
+                          >
+                            <Card className="h-full">
+                              <CardContent className="pt-6 h-full">
+                                <LineageGraph dataProductId={selectedDataProduct} />
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        </TabsContent>
+                      </AnimatePresence>
+                    </div>
                   </Tabs>
                 </motion.div>
               )}
