@@ -2,12 +2,13 @@ import { resetDatabase } from "./reset_db.js";
 import { seed_dataProducts } from "./seed_dataProducts.js";
 import { seed_metricDefinitions } from "./seed_metricDefinitions.js";
 import { seed_lineageData } from "./seed_lineageData.js";
+import { seed_qualityMetrics } from "./seed_qualityMetrics.js";
 
 // Reset database and run seeding
 async function runSeeding() {
   await resetDatabase();
   console.log("");
-try {
+  try {
     await seed_dataProducts();
     console.log("✅ Data Products seeded successfully!");
     console.log("");
@@ -18,6 +19,10 @@ try {
 
     await seed_lineageData();
     console.log("✅ Lineage Data seeded successfully!");
+    console.log("");
+
+    await seed_qualityMetrics();
+    console.log("✅ Quality metrics seeded successfully!");
     console.log("");
 
     console.log("🎉 Database seeding completed successfully!");
