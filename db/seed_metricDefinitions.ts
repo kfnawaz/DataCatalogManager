@@ -57,6 +57,24 @@ export async function seed_metricDefinitions() {
       })
       .returning();
 
+    const consistencyTemplate = await db
+      .insert(metricTemplates)
+      .values({
+        name: "Data Consistency",
+        description:
+          "Measures consistency of data values across different systems or data sets. Ensures data uniformity.",
+        type: "consistency",
+        defaultFormula: "count(matching_records) / total_records * 100",
+        parameters: {
+          comparisonSystems: ["system_a", "system_b"],
+          matchingFields: ["key_fields"],
+          threshold: 98,
+        },
+        example: "99% consistency between front-office and back-office systems",
+        tags: ["data quality", "consistency", "technical"],
+      })
+      .returning();
+
     // Create generic metric definitions applicable to any data product
     await db.insert(metricDefinitions).values([
       {
