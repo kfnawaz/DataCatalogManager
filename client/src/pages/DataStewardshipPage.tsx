@@ -80,7 +80,7 @@ export default function DataStewardshipPage() {
 
   if (isLoading || !metrics) {
     return (
-      <div className="container mx-auto px-4 py-6">
+        <div className="px-2 py-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Data Stewardship Dashboard</h1>
           <Button
@@ -124,7 +124,7 @@ export default function DataStewardshipPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6">
+      <div className="px-2 py-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Data Stewardship Dashboard</h1>
         <Button
