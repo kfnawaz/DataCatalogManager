@@ -12,6 +12,13 @@ import HierarchicalView from "../components/metadata/HierarchicalView";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import DataProductComments from "../components/comments/DataProductComments";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface DataProduct {
   id: number;
@@ -40,6 +47,7 @@ const fadeIn = {
 export default function DataProductsPage() {
   const [selectedDataProduct, setSelectedDataProduct] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("metadata");
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -78,28 +86,64 @@ export default function DataProductsPage() {
         animate={{ opacity: 1 }}
         className="container mx-auto px-4 py-6"
       >
-        <div className="grid grid-cols-[300px_1fr] gap-6">
-          <div className="space-y-4">
-            <SearchBar 
-              onSelect={handleProductSelect} 
-              initialValue={selectedDataProduct} 
-              className="search-bar" 
-            />
-            {isLoadingAll ? (
-              <div className="space-y-2">
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-[400px] w-full" />
-              </div>
-            ) : allDataProducts ? (
-              <HierarchicalView
-                dataProducts={allDataProducts}
-                onSelect={handleProductSelect}
-                selectedId={selectedDataProduct}
+        <ResizablePanelGroup
+          direction="horizontal"
+          className="min-h-[800px] rounded-lg border"
+        >
+          <ResizablePanel 
+            defaultSize={20}
+            minSize={10}
+            maxSize={40}
+            collapsible
+            collapsedSize={4}
+            onCollapse={() => setIsCollapsed(true)}
+            onExpand={() => setIsCollapsed(false)}
+            className="p-4"
+          >
+            <div className={`space-y-4 transition-all duration-300 ${isCollapsed ? 'opacity-0 invisible' : 'opacity-100 visible'}`}>
+              <SearchBar 
+                onSelect={handleProductSelect} 
+                initialValue={selectedDataProduct} 
+                className="search-bar" 
               />
-            ) : null}
-          </div>
+              {isLoadingAll ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-[400px] w-full" />
+                </div>
+              ) : allDataProducts ? (
+                <HierarchicalView
+                  dataProducts={allDataProducts}
+                  onSelect={handleProductSelect}
+                  selectedId={selectedDataProduct}
+                />
+              ) : null}
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-2 -right-3 z-10 h-6 w-6 rounded-full p-0 hover:bg-muted"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+            >
+              {isCollapsed ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <ChevronLeft className="h-4 w-4" />
+              )}
+              <span className="sr-only">
+                {isCollapsed ? 'Expand' : 'Collapse'} sidebar
+              </span>
+            </Button>
+          </ResizablePanel>
 
-          <div>
+          <ResizableHandle withHandle />
+
+          <ResizablePanel
+            defaultSize={80}
+            minSize={60}
+            maxSize={90}
+            className="p-4"
+          >
             <AnimatePresence mode="wait">
               {isLoading && (
                 <motion.div {...fadeIn} key="loading">
@@ -192,8 +236,8 @@ export default function DataProductsPage() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
-        </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </motion.main>
     </TooltipProvider>
   );
