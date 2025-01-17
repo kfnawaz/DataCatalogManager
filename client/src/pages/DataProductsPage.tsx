@@ -143,12 +143,12 @@ export default function DataProductsPage() {
 
               {!isLoading && selectedProduct && (
                 <motion.div {...fadeIn} key={selectedProduct.id} className="flex flex-col h-full p-3">
-                  <div className="mb-6">
+                  <div className="mb-2">
                     <h2 className="text-xl font-semibold text-foreground">
                       {selectedProduct.name}
                     </h2>
                     {selectedProduct.description && (
-                      <p className="mt-1 text-sm text-muted-foreground">
+                      <p className="mt-0.5 text-sm text-muted-foreground">
                         {selectedProduct.description}
                       </p>
                     )}
@@ -165,7 +165,7 @@ export default function DataProductsPage() {
                       <TabsTrigger value="lineage">Lineage</TabsTrigger>
                     </TabsList>
 
-                    <div className="flex-1 mt-4">
+                    <div className="flex-1 mt-2">
                       <AnimatePresence mode="wait">
                         <TabsContent value="metadata" asChild key="metadata" className="h-full">
                           <motion.div
@@ -175,7 +175,7 @@ export default function DataProductsPage() {
                             className="h-full"
                           >
                             <Card className="h-full">
-                              <CardHeader className="border-b">
+                              <CardHeader className="border-b py-3">
                                 <h3 className="text-lg font-semibold">Metadata Management</h3>
                               </CardHeader>
                               <CardContent className="flex-1 overflow-hidden">
@@ -193,7 +193,7 @@ export default function DataProductsPage() {
                             className="h-full"
                           >
                             <Card className="h-full">
-                              <CardHeader className="border-b">
+                              <CardHeader className="border-b py-3">
                                 <h3 className="text-lg font-semibold">Quality Metrics</h3>
                               </CardHeader>
                               <CardContent className="h-[calc(100%-4rem)]">
