@@ -76,9 +76,9 @@ export default function DataProductsPage() {
       <motion.main 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="min-h-screen bg-background"
+        className="h-screen flex flex-col bg-background"
       >
-        <div className="flex h-screen bg-background">
+        <div className="flex flex-1 overflow-hidden">
           <div 
             className={`relative transition-all duration-300 ease-in-out border-r ${
               isCollapsed 
@@ -86,21 +86,21 @@ export default function DataProductsPage() {
                 : 'w-[300px] min-w-[300px]'
             }`}
           >
-            <div className={`p-3 h-full transition-opacity duration-300 ${
+            <div className={`h-full transition-opacity duration-300 ${
               isCollapsed ? 'opacity-0 invisible' : 'opacity-100 visible'
             }`}>
               <SearchBar 
                 onSelect={handleProductSelect} 
                 initialValue={selectedDataProduct} 
-                className="search-bar" 
+                className="search-bar px-2 pt-2" 
               />
               {isLoadingAll ? (
-                <div className="space-y-2 mt-4">
+                <div className="space-y-2 mt-4 px-2">
                   <Skeleton className="h-8 w-full" />
                   <Skeleton className="h-[400px] w-full" />
                 </div>
               ) : allDataProducts ? (
-                <div className="mt-4">
+                <div className="mt-2 px-2">
                   <HierarchicalView
                     dataProducts={allDataProducts}
                     onSelect={handleProductSelect}
@@ -131,19 +131,19 @@ export default function DataProductsPage() {
             </Button>
           </div>
 
-          <div className="flex-1 min-w-0 flex flex-col h-screen">
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             <AnimatePresence mode="wait">
               {isLoading && (
-                <motion.div {...fadeIn} key="loading" className="p-3">
+                <motion.div {...fadeIn} key="loading" className="p-2">
                   <Skeleton className="h-8 w-1/3 mb-2" />
-                  <Skeleton className="h-4 w-2/3 mb-6" />
+                  <Skeleton className="h-4 w-2/3 mb-4" />
                   <Skeleton className="h-[400px]" />
                 </motion.div>
               )}
 
               {!isLoading && selectedProduct && (
-                <motion.div {...fadeIn} key={selectedProduct.id} className="flex flex-col h-full p-3">
-                  <div className="mb-2">
+                <motion.div {...fadeIn} key={selectedProduct.id} className="flex flex-col flex-1 overflow-hidden">
+                  <div className="px-2 pt-2">
                     <h2 className="text-xl font-semibold text-foreground">
                       {selectedProduct.name}
                     </h2>
@@ -157,15 +157,15 @@ export default function DataProductsPage() {
                   <Tabs 
                     value={activeTab} 
                     onValueChange={setActiveTab}
-                    className="flex-1 flex flex-col"
+                    className="flex-1 flex flex-col mt-2 overflow-hidden"
                   >
-                    <TabsList className="px-1 py-1">
+                    <TabsList className="px-2">
                       <TabsTrigger value="metadata">Metadata</TabsTrigger>
                       <TabsTrigger value="quality">Quality Metrics</TabsTrigger>
                       <TabsTrigger value="lineage">Lineage</TabsTrigger>
                     </TabsList>
 
-                    <div className="flex-1 mt-1"> {/* Reduced mt-2 to mt-1 */}
+                    <div className="flex-1 px-2 pt-2 overflow-hidden">
                       <AnimatePresence mode="wait">
                         <TabsContent value="metadata" asChild key="metadata" className="h-full">
                           <motion.div
@@ -174,11 +174,11 @@ export default function DataProductsPage() {
                             exit={{ opacity: 0 }}
                             className="h-full"
                           >
-                            <Card className="h-full">
-                              <CardHeader className="border-b py-3">
+                            <Card className="h-full flex flex-col">
+                              <CardHeader className="border-b py-2">
                                 <h3 className="text-lg font-semibold">Metadata Management</h3>
                               </CardHeader>
-                              <CardContent className="flex-1 overflow-hidden">
+                              <CardContent className="flex-1">
                                 <MetadataPanel dataProductId={selectedDataProduct} />
                               </CardContent>
                             </Card>
@@ -192,11 +192,11 @@ export default function DataProductsPage() {
                             exit={{ opacity: 0 }}
                             className="h-full"
                           >
-                            <Card className="h-full">
-                              <CardHeader className="border-b py-3">
+                            <Card className="h-full flex flex-col">
+                              <CardHeader className="border-b py-2">
                                 <h3 className="text-lg font-semibold">Quality Metrics</h3>
                               </CardHeader>
-                              <CardContent className="h-[calc(100%-4rem)]">
+                              <CardContent className="flex-1">
                                 <QualityMetrics dataProductId={selectedDataProduct} />
                               </CardContent>
                             </Card>
@@ -210,8 +210,8 @@ export default function DataProductsPage() {
                             exit={{ opacity: 0 }}
                             className="h-full"
                           >
-                            <Card className="h-full">
-                              <CardContent className="pt-6 h-full">
+                            <Card className="h-full flex flex-col">
+                              <CardContent className="flex-1">
                                 <LineageGraph dataProductId={selectedDataProduct} />
                               </CardContent>
                             </Card>
