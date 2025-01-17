@@ -24,8 +24,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface MetricDefinition {
   id?: number;
@@ -93,7 +94,7 @@ export default function MetricDefinitionForm({ initialData, onSuccess }: MetricD
       parameters: initialData?.parameters || {},
       changeMessage: "",
     },
-    mode: "onChange", // Enable real-time validation
+    mode: "onTouched", // Enable validation on blur
   });
 
   const createMetricMutation = useMutation({
@@ -122,7 +123,6 @@ export default function MetricDefinitionForm({ initialData, onSuccess }: MetricD
       return response.json();
     },
     onSuccess: () => {
-      // Invalidate both the definitions list and the history queries
       queryClient.invalidateQueries({ queryKey: ["/api/metric-definitions"] });
       if (initialData?.id) {
         queryClient.invalidateQueries({ 
@@ -201,6 +201,182 @@ export default function MetricDefinitionForm({ initialData, onSuccess }: MetricD
 
         <FormField
           control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Name</FormLabel>
+              <motion.div
+                initial={false}
+                animate={{
+                  scale: form.formState.errors.name ? [1, 1.02, 1] : 1,
+                }}
+                transition={{ duration: 0.2 }}
+              >
+                <FormControl>
+                  <div className="relative">
+                    <Input 
+                      placeholder="Metric name" 
+                      {...field} 
+                      className={`pr-10 ${
+                        form.formState.errors.name 
+                          ? 'border-red-500 focus-visible:ring-red-500' 
+                          : field.value && !form.formState.errors.name 
+                          ? 'border-green-500 focus-visible:ring-green-500' 
+                          : ''
+                      }`}
+                    />
+                    <AnimatePresence>
+                      {field.value && !form.formState.errors.name && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          className="absolute right-3 top-2.5 text-green-500"
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </FormControl>
+                <AnimatePresence>
+                  {form.formState.errors.name && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <FormMessage />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <FormDescription>
+                  A unique, descriptive name for this metric
+                </FormDescription>
+              </motion.div>
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="type"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Type</FormLabel>
+              <motion.div
+                initial={false}
+                animate={{
+                  scale: form.formState.errors.type ? [1, 1.02, 1] : 1,
+                }}
+                transition={{ duration: 0.2 }}
+              >
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger
+                      className={
+                        form.formState.errors.type
+                          ? 'border-red-500 focus-visible:ring-red-500'
+                          : field.value
+                          ? 'border-green-500 focus-visible:ring-green-500'
+                          : ''
+                      }
+                    >
+                      <SelectValue placeholder="Select metric type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="completeness">Completeness</SelectItem>
+                    <SelectItem value="accuracy">Accuracy</SelectItem>
+                    <SelectItem value="timeliness">Timeliness</SelectItem>
+                    <SelectItem value="consistency">Consistency</SelectItem>
+                    <SelectItem value="uniqueness">Uniqueness</SelectItem>
+                    <SelectItem value="validity">Validity</SelectItem>
+                  </SelectContent>
+                </Select>
+                <AnimatePresence>
+                  {form.formState.errors.type && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <FormMessage />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <FormDescription>
+                  The category this metric belongs to
+                </FormDescription>
+              </motion.div>
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <motion.div
+                initial={false}
+                animate={{
+                  scale: form.formState.errors.description ? [1, 1.02, 1] : 1,
+                }}
+                transition={{ duration: 0.2 }}
+              >
+                <FormControl>
+                  <div className="relative">
+                    <Textarea
+                      placeholder="Describe what this metric measures and why it's important"
+                      className={`min-h-[100px] pr-10 ${
+                        form.formState.errors.description
+                          ? 'border-red-500 focus-visible:ring-red-500'
+                          : field.value && !form.formState.errors.description
+                          ? 'border-green-500 focus-visible:ring-green-500'
+                          : ''
+                      }`}
+                      {...field}
+                    />
+                    <AnimatePresence>
+                      {field.value && !form.formState.errors.description && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          className="absolute right-3 top-2.5 text-green-500"
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </FormControl>
+                <AnimatePresence>
+                  {form.formState.errors.description && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <FormMessage />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <FormDescription>
+                  Provide a clear explanation of what this metric measures and how it should be interpreted
+                </FormDescription>
+              </motion.div>
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
           name="templateId"
           render={({ field }) => (
             <FormItem>
@@ -253,121 +429,55 @@ export default function MetricDefinitionForm({ initialData, onSuccess }: MetricD
         )}
 
         <div className="grid gap-6 md:grid-cols-2">
+          
           <FormField
             control={form.control}
-            name="name"
+            name="formula"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Name</FormLabel>
+                <FormLabel>Formula</FormLabel>
                 <FormControl>
-                  <Input placeholder="Metric name" {...field} />
-                </FormControl>
-                <FormDescription>
-                  A unique, descriptive name for this metric
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Type</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select metric type" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="completeness">Completeness</SelectItem>
-                    <SelectItem value="accuracy">Accuracy</SelectItem>
-                    <SelectItem value="timeliness">Timeliness</SelectItem>
-                    <SelectItem value="consistency">Consistency</SelectItem>
-                    <SelectItem value="uniqueness">Uniqueness</SelectItem>
-                    <SelectItem value="validity">Validity</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormDescription>
-                  The category this metric belongs to
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Describe what this metric measures and why it's important"
-                  className="min-h-[100px]"
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>
-                Provide a clear explanation of what this metric measures and how it should be interpreted
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="formula"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Formula</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="SQL or calculation formula for this metric"
-                  className="min-h-[100px] font-mono"
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>
-                {selectedTemplate
-                  ? "Customize the template formula if needed"
-                  : "How this metric should be calculated"}
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {selectedTemplate && Object.entries(selectedTemplate.parameters).map(([key, param]) => (
-          <FormField
-            key={key}
-            control={form.control}
-            name={`parameters.${key}`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{key}</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder={param.description}
-                    type={param.type === "number" ? "number" : "text"}
+                  <Textarea
+                    placeholder="SQL or calculation formula for this metric"
+                    className="min-h-[100px] font-mono"
                     {...field}
                   />
                 </FormControl>
-                <FormDescription>{param.description}</FormDescription>
-                {param.required && (
-                  <FormMessage>This parameter is required</FormMessage>
-                )}
+                <FormDescription>
+                  {selectedTemplate
+                    ? "Customize the template formula if needed"
+                    : "How this metric should be calculated"}
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
-        ))}
+
+          {selectedTemplate && Object.entries(selectedTemplate.parameters).map(([key, param]) => (
+            <FormField
+              key={key}
+              control={form.control}
+              name={`parameters.${key}`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{key}</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder={param.description}
+                      type={param.type === "number" ? "number" : "text"}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>{param.description}</FormDescription>
+                  {param.required && (
+                    <FormMessage>This parameter is required</FormMessage>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ))}
+        </div>
 
         {initialData && (
           <FormField
@@ -393,19 +503,27 @@ export default function MetricDefinitionForm({ initialData, onSuccess }: MetricD
         )}
 
         <div className="flex justify-end">
-          <Button 
-            type="submit" 
-            size="lg"
-            disabled={createMetricMutation.isPending || !form.formState.isValid}
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
-            {createMetricMutation.isPending
-              ? initialData
-                ? "Updating..."
-                : "Creating..."
-              : initialData
-              ? "Update Metric"
-              : "Create Metric"}
-          </Button>
+            <Button 
+              type="submit" 
+              size="lg"
+              disabled={createMetricMutation.isPending || !form.formState.isValid}
+              className={`min-w-[150px] ${
+                form.formState.isValid ? 'bg-primary' : 'bg-muted cursor-not-allowed'
+              }`}
+            >
+              {createMetricMutation.isPending
+                ? initialData
+                  ? "Updating..."
+                  : "Creating..."
+                : initialData
+                ? "Update Metric"
+                : "Create Metric"}
+            </Button>
+          </motion.div>
         </div>
       </form>
     </Form>
